@@ -34,28 +34,28 @@ export const PenaltyModal: React.FC<PenaltyModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-200">
-      <div className="relative w-full max-w-md bg-zinc-950 border-2 border-red-500/70 rounded-3xl p-6 shadow-2xl">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-200 overflow-y-auto">
+      <div className="relative w-full max-w-md max-h-[92vh] overflow-y-auto bg-zinc-950 border-2 border-red-500/70 rounded-2xl sm:rounded-3xl p-4 sm:p-6 shadow-2xl">
         {/* Close Button */}
         <button
           onClick={onClose}
-          className="absolute top-4 right-4 text-zinc-400 hover:text-white p-1 rounded-full hover:bg-white/10"
+          className="absolute top-3 sm:top-4 right-3 sm:right-4 text-zinc-400 hover:text-white p-1 sm:p-1.5 rounded-full hover:bg-white/10 transition-colors"
         >
-          <X className="w-5 h-5" />
+          <X className="w-4 h-4 sm:w-5 sm:h-5" />
         </button>
 
         {/* Header */}
-        <div className="flex items-center gap-3 mb-5">
-          <div className="p-2.5 rounded-2xl bg-red-600/20 border border-red-500/40 text-red-500">
-            <ShieldAlert className="w-6 h-6" />
+        <div className="flex items-center gap-2.5 sm:gap-3 mb-3.5 sm:mb-5">
+          <div className="p-2 sm:p-2.5 rounded-xl sm:rounded-2xl bg-red-600/20 border border-red-500/40 text-red-500 shrink-0">
+            <ShieldAlert className="w-5 h-5 sm:w-6 sm:h-6" />
           </div>
           <div>
-            <h3 className="text-lg font-black text-white tracking-wide">Call Penalty</h3>
-            <p className="text-xs text-zinc-400">Accuse a player of violating Dukki Bazaar rules</p>
+            <h3 className="text-base sm:text-lg font-black text-white tracking-wide">Call Penalty</h3>
+            <p className="text-[11px] sm:text-xs text-zinc-400">Accuse a player of violating Dukki Bazaar rules</p>
           </div>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={handleSubmit} className="space-y-3 sm:space-y-4">
           {/* Step 1: Select Offending Player */}
           <div>
             <label className="block text-xs font-bold text-zinc-300 uppercase tracking-wider mb-2">

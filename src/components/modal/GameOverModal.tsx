@@ -47,57 +47,57 @@ export const GameOverModal: React.FC<GameOverModalProps> = ({
   const scoreboard = [...players].sort((a, b) => a.hiddenCount - b.hiddenCount);
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-md animate-in fade-in zoom-in duration-300">
-      <div className="relative w-full max-w-lg bg-zinc-950 border-2 border-gold rounded-3xl p-6 sm:p-8 shadow-2xl flex flex-col items-center text-center">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-black/85 backdrop-blur-md animate-in fade-in zoom-in duration-300 overflow-y-auto">
+      <div className="relative w-full max-w-lg max-h-[92vh] overflow-y-auto bg-zinc-950 border-2 border-gold rounded-2xl sm:rounded-3xl p-4 sm:p-8 shadow-2xl flex flex-col items-center text-center">
         
         {/* Crown Icon */}
-        <div className="w-20 h-20 rounded-full bg-gradient-to-tr from-amber-500 to-yellow-300 flex items-center justify-center shadow-gold-glow mb-4">
-          <Trophy className="w-10 h-10 text-black fill-black" />
+        <div className="w-12 h-12 sm:w-20 sm:h-20 rounded-full bg-gradient-to-tr from-amber-500 to-yellow-300 flex items-center justify-center shadow-gold-glow mb-2 sm:mb-4 shrink-0">
+          <Trophy className="w-6 h-6 sm:w-10 sm:h-10 text-black fill-black" />
         </div>
 
         {/* Winner Announcement */}
-        <h2 className="text-2xl sm:text-3xl font-black text-white uppercase tracking-wider">
+        <h2 className="text-xl sm:text-3xl font-black text-white uppercase tracking-wider">
           Victory!
         </h2>
-        <div className="mt-2 flex items-center gap-2 px-4 py-1.5 rounded-full bg-gold/15 border border-gold/40">
+        <div className="mt-1.5 sm:mt-2 flex items-center gap-2 px-3 sm:px-4 py-1 sm:py-1.5 rounded-full bg-gold/15 border border-gold/40">
           <div
-            className="w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold text-white shadow"
+            className="w-5 h-5 sm:w-6 sm:h-6 rounded-full flex items-center justify-center text-[10px] sm:text-xs font-bold text-white shadow"
             style={{ backgroundColor: winner.avatarColor }}
           >
             {winner.name.charAt(0)}
           </div>
-          <span className="font-extrabold text-gold text-lg">{winner.name}</span>
-          <span className="text-xs text-zinc-400">cleared all hidden cards!</span>
+          <span className="font-extrabold text-gold text-sm sm:text-lg">{winner.name}</span>
+          <span className="text-[10px] sm:text-xs text-zinc-400">cleared all hidden cards!</span>
         </div>
 
         {/* Scoreboard */}
-        <div className="w-full mt-6 bg-zinc-900/60 rounded-2xl border border-zinc-800 p-4">
-          <h3 className="text-xs font-bold uppercase tracking-wider text-zinc-400 text-left mb-3">
+        <div className="w-full mt-3 sm:mt-6 bg-zinc-900/60 rounded-xl sm:rounded-2xl border border-zinc-800 p-2.5 sm:p-4">
+          <h3 className="text-[10px] sm:text-xs font-bold uppercase tracking-wider text-zinc-400 text-left mb-2 sm:mb-3">
             Final Standings
           </h3>
-          <div className="space-y-2">
+          <div className="space-y-1.5 sm:space-y-2">
             {scoreboard.map((p, idx) => (
               <div
                 key={p.id}
                 className={cn(
-                  'flex items-center justify-between p-2.5 rounded-xl text-sm',
+                  'flex items-center justify-between p-2 sm:p-2.5 rounded-lg sm:rounded-xl text-xs sm:text-sm',
                   idx === 0
                     ? 'bg-amber-500/10 border border-gold/50 text-gold-light font-bold'
                     : 'bg-zinc-800/40 text-zinc-300'
                 )}
               >
-                <div className="flex items-center gap-3">
-                  <span className="w-5 text-xs font-black text-zinc-500">#{idx + 1}</span>
+                <div className="flex items-center gap-2 sm:gap-3">
+                  <span className="w-4 sm:w-5 text-[10px] sm:text-xs font-black text-zinc-500">#{idx + 1}</span>
                   <div
-                    className="w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold text-white"
+                    className="w-5 h-5 sm:w-6 sm:h-6 rounded-full flex items-center justify-center text-[10px] sm:text-xs font-bold text-white shrink-0"
                     style={{ backgroundColor: p.avatarColor }}
                   >
                     {p.name.charAt(0)}
                   </div>
-                  <span className="truncate max-w-[140px]">{p.name}</span>
-                  {idx === 0 && <Crown className="w-4 h-4 text-gold fill-gold" />}
+                  <span className="truncate max-w-[110px] sm:max-w-[140px]">{p.name}</span>
+                  {idx === 0 && <Crown className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-gold fill-gold" />}
                 </div>
-                <div className="text-xs">
+                <div className="text-[10px] sm:text-xs">
                   <span className="font-bold">{p.hiddenCount}</span> cards left
                 </div>
               </div>
@@ -106,17 +106,17 @@ export const GameOverModal: React.FC<GameOverModalProps> = ({
         </div>
 
         {/* Actions */}
-        <div className="mt-6 w-full flex flex-col gap-2">
+        <div className="mt-3 sm:mt-6 w-full flex flex-col gap-2">
           {isHost ? (
             <button
               onClick={onPlayAgain}
-              className="w-full py-3.5 rounded-xl font-black text-sm uppercase tracking-wider bg-gradient-to-r from-amber-500 to-yellow-400 text-black hover:from-amber-400 hover:to-yellow-300 shadow-gold-glow active:scale-95 transition-all flex items-center justify-center gap-2"
+              className="w-full py-2.5 sm:py-3.5 rounded-xl font-black text-xs sm:text-sm uppercase tracking-wider bg-gradient-to-r from-amber-500 to-yellow-400 text-black hover:from-amber-400 hover:to-yellow-300 shadow-gold-glow active:scale-95 transition-all flex items-center justify-center gap-2"
             >
               <RotateCcw className="w-4 h-4" />
               <span>Deal Again & Rematch</span>
             </button>
           ) : (
-            <span className="text-xs text-zinc-400">Waiting for host to restart match...</span>
+            <span className="text-[11px] sm:text-xs text-zinc-400">Waiting for host to restart match...</span>
           )}
         </div>
       </div>

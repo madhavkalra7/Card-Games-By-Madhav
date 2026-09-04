@@ -10,7 +10,7 @@ interface PlayingCardProps {
   className?: string;
   onClick?: () => void;
   interactive?: boolean;
-  size?: 'sm' | 'md' | 'lg' | 'xl';
+  size?: 'xs' | 'sm' | 'md' | 'lg' | 'xl';
   glow?: boolean;
 }
 
@@ -54,10 +54,11 @@ export const PlayingCard: React.FC<PlayingCardProps> = ({
 }) => {
   // Dimension scale based on authentic poker card ratio (~2.5 x 3.5 inches -> 1:1.4)
   const sizeClasses = {
-    sm: 'w-14 h-20 text-xs',
-    md: 'w-20 h-28 text-sm',
-    lg: 'w-28 h-40 text-lg',
-    xl: 'w-36 h-52 text-2xl',
+    xs: 'w-10 h-14 text-[9px]',
+    sm: 'w-12 h-16 sm:w-14 sm:h-20 text-[10px] sm:text-xs',
+    md: 'w-14 h-20 sm:w-20 sm:h-28 text-xs sm:text-sm',
+    lg: 'w-20 h-28 sm:w-28 sm:h-40 text-sm sm:text-lg',
+    xl: 'w-28 h-40 sm:w-36 sm:h-52 text-base sm:text-2xl',
   }[size];
 
   if (faceDown || !card) {

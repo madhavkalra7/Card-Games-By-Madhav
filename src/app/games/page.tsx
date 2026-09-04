@@ -113,7 +113,7 @@ export default function GamesPage() {
 
   return (
     <main
-      className="relative min-h-screen bg-[#0e0c12] text-zinc-100 flex flex-col justify-between overflow-hidden selection:bg-white selection:text-black"
+      className="relative min-h-screen bg-[#0e0c12] text-zinc-100 flex flex-col justify-between overflow-x-hidden overflow-y-auto selection:bg-white selection:text-black"
       style={{ fontFamily: "'Inter', sans-serif" }}
     >
       {/* 1. Grain overlay matching landing page */}
@@ -136,14 +136,14 @@ export default function GamesPage() {
       </div>
 
       {/* 3. Top Navigation matching Landing Page */}
-      <header className="relative z-30 w-full px-4 sm:px-8 py-5 flex items-center justify-between border-b border-white/10 bg-black/30 backdrop-blur-md">
-        <Link href="/" className="flex items-center gap-2.5 group">
-          <div className="w-8 h-8 rounded-lg bg-white/20 backdrop-blur-md flex items-center justify-center text-white font-black text-sm border border-white/30 shadow-sm group-hover:scale-105 transition-transform">
+      <header className="relative z-30 w-full px-3 sm:px-8 py-3 sm:py-5 flex items-center justify-between border-b border-white/10 bg-black/30 backdrop-blur-md">
+        <Link href="/" className="flex items-center gap-2 sm:gap-2.5 group">
+          <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg bg-white/20 backdrop-blur-md flex items-center justify-center text-white font-black text-xs sm:text-sm border border-white/30 shadow-sm group-hover:scale-105 transition-transform">
             ♠
           </div>
           <div>
             <span
-              className="text-xs font-semibold uppercase text-white tracking-[0.18em] block"
+              className="text-[10px] sm:text-xs font-semibold uppercase text-white tracking-[0.16em] sm:tracking-[0.18em] block"
               style={{ opacity: 0.9 }}
             >
               CARD GAMES BY MADHAV
@@ -154,10 +154,10 @@ export default function GamesPage() {
           </div>
         </Link>
 
-        <div className="flex items-center gap-2 sm:gap-3">
+        <div className="flex items-center gap-1.5 sm:gap-3">
           <Link
             href="/"
-            className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-white/10 hover:bg-white/20 backdrop-blur-md border border-white/20 text-white text-xs font-bold transition-all shadow-sm active:scale-95"
+            className="flex items-center gap-1 sm:gap-1.5 px-3 sm:px-3.5 py-1 sm:py-1.5 rounded-full bg-white/10 hover:bg-white/20 backdrop-blur-md border border-white/20 text-white text-[11px] sm:text-xs font-bold transition-all shadow-sm active:scale-95"
           >
             <ArrowLeft className="w-3.5 h-3.5 text-white" />
             <span>Home</span>
@@ -165,7 +165,7 @@ export default function GamesPage() {
 
           <button
             onClick={() => setRulesModalOpen(true)}
-            className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-white/10 hover:bg-white/20 backdrop-blur-md border border-white/20 text-white text-xs font-bold transition-all shadow-sm active:scale-95"
+            className="flex items-center gap-1 sm:gap-1.5 px-3 sm:px-3.5 py-1 sm:py-1.5 rounded-full bg-white/10 hover:bg-white/20 backdrop-blur-md border border-white/20 text-white text-[11px] sm:text-xs font-bold transition-all shadow-sm active:scale-95"
           >
             <BookOpen className="w-3.5 h-3.5 text-white" />
             <span className="hidden sm:inline">Rules</span>
@@ -174,7 +174,7 @@ export default function GamesPage() {
           <button
             onClick={handleToggleSound}
             title={isMuted ? 'Unmute Sound' : 'Mute Sound'}
-            className="p-2 rounded-full bg-white/10 hover:bg-white/20 backdrop-blur-md border border-white/20 text-white transition-all active:scale-95"
+            className="p-1.5 sm:p-2 rounded-full bg-white/10 hover:bg-white/20 backdrop-blur-md border border-white/20 text-white transition-all active:scale-95"
           >
             {isMuted ? <VolumeX className="w-3.5 h-3.5 text-red-400" /> : <Volume2 className="w-3.5 h-3.5 text-emerald-400" />}
           </button>
@@ -182,28 +182,28 @@ export default function GamesPage() {
       </header>
 
       {/* 4. Main Catalog Content */}
-      <div className="relative z-20 max-w-6xl mx-auto px-4 sm:px-6 py-8 sm:py-12 w-full flex-1">
+      <div className="relative z-20 max-w-6xl mx-auto px-3 sm:px-6 py-5 sm:py-10 w-full flex-1">
         
         {/* Page Title & Intro */}
-        <div className="mb-8 sm:mb-12 text-center sm:text-left">
-          <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-white/10 border border-white/20 text-white text-xs font-bold mb-3 backdrop-blur-md">
-            <Sparkles className="w-3.5 h-3.5 text-yellow-300" />
+        <div className="mb-5 sm:mb-10 text-center sm:text-left">
+          <div className="inline-flex items-center gap-1.5 sm:gap-2 px-3 py-1 rounded-full bg-white/10 border border-white/20 text-white text-[11px] sm:text-xs font-bold mb-2 sm:mb-3 backdrop-blur-md">
+            <Sparkles className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-yellow-300" />
             <span className="tracking-wide">TRADITIONAL 52-CARD CATALOG • 4 INDIAN FORMATS</span>
           </div>
 
           <h1
-            className="text-4xl sm:text-6xl font-black text-white tracking-tight uppercase"
+            className="text-3xl sm:text-5xl md:text-6xl font-black text-white tracking-tight uppercase"
             style={{ fontFamily: "'Anton', sans-serif" }}
           >
             SELECT YOUR GAME
           </h1>
-          <p className="mt-2 text-xs sm:text-base text-zinc-300 max-w-2xl leading-relaxed">
+          <p className="mt-1 sm:mt-2 text-xs sm:text-base text-zinc-300 max-w-2xl leading-relaxed">
             Choose an authentic Indian table card game. Create private tables with custom room codes, invite friends, and play with authoritative server fairness.
           </p>
         </div>
 
         {/* 5. Games Grid - Colored & Styled matching landing page figurines */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-5 sm:gap-7">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-7">
           {GAMES.map((game, idx) => {
             const isAvailable = game.status === 'available';
 
@@ -211,7 +211,7 @@ export default function GamesPage() {
               <div
                 key={game.id}
                 className={cn(
-                  'group relative rounded-3xl p-6 sm:p-7 flex flex-col justify-between overflow-hidden transition-all duration-300',
+                  'group relative rounded-2xl sm:rounded-3xl p-4 sm:p-7 flex flex-col justify-between overflow-hidden transition-all duration-300',
                   'border backdrop-blur-md shadow-2xl',
                   isAvailable
                     ? 'hover:-translate-y-1 hover:scale-[1.01]'
@@ -291,7 +291,7 @@ export default function GamesPage() {
                 </div>
 
                 {/* Card Footer Actions */}
-                <div className="relative z-10 mt-6 sm:mt-8 pt-5 border-t border-white/15 flex flex-wrap items-center gap-2.5">
+                <div className="relative z-10 mt-4 sm:mt-8 pt-3.5 sm:pt-5 border-t border-white/15 flex flex-wrap items-center gap-2 sm:gap-2.5">
                   {isAvailable ? (
                     <>
                       <button

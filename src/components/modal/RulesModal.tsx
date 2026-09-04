@@ -12,27 +12,27 @@ export const RulesModal: React.FC<RulesModalProps> = ({ isOpen, onClose }) => {
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-in fade-in duration-200">
-      <div className="relative w-full max-w-2xl max-h-[85vh] bg-zinc-950 border-2 border-gold/70 rounded-3xl p-6 sm:p-8 shadow-2xl flex flex-col overflow-hidden">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-black/80 backdrop-blur-md animate-in fade-in duration-200 overflow-y-auto">
+      <div className="relative w-full max-w-2xl max-h-[92vh] bg-zinc-950 border-2 border-gold/70 rounded-2xl sm:rounded-3xl p-3.5 sm:p-7 shadow-2xl flex flex-col overflow-hidden">
         
         {/* Close Button */}
         <button
           onClick={onClose}
-          className="absolute top-4 right-4 text-zinc-400 hover:text-white p-2 rounded-full hover:bg-white/10"
+          className="absolute top-3 sm:top-4 right-3 sm:right-4 text-zinc-400 hover:text-white p-1.5 sm:p-2 rounded-full hover:bg-white/10 transition-colors"
         >
-          <X className="w-5 h-5" />
+          <X className="w-4 h-4 sm:w-5 sm:h-5" />
         </button>
 
         {/* Modal Title */}
-        <div className="flex items-center gap-3 mb-4 shrink-0">
-          <div className="p-2.5 rounded-2xl bg-amber-500/20 border border-gold/40 text-gold">
-            <BookOpen className="w-6 h-6" />
+        <div className="flex items-center gap-2.5 sm:gap-3 mb-3 sm:mb-4 shrink-0">
+          <div className="p-2 sm:p-2.5 rounded-xl sm:rounded-2xl bg-amber-500/20 border border-gold/40 text-gold shrink-0">
+            <BookOpen className="w-5 h-5 sm:w-6 sm:h-6" />
           </div>
           <div>
-            <h2 className="text-xl font-black text-white uppercase tracking-wide">
+            <h2 className="text-base sm:text-xl font-black text-white uppercase tracking-wide">
               Dukki Bazaar - Official Rules
             </h2>
-            <p className="text-xs text-zinc-400">Traditional Indian 52-Card Table Game</p>
+            <p className="text-[11px] sm:text-xs text-zinc-400">Traditional Indian 52-Card Table Game</p>
           </div>
         </div>
 

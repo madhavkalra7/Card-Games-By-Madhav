@@ -68,35 +68,35 @@ export const PokerTable: React.FC<PokerTableProps> = ({
 
   const totalPlayers = reorderedPlayers.length;
 
-  // Symmetrical seat positioning tailored to actual player count
+  // Symmetrical seat positioning tailored to actual player count and mobile landscape
   const getSeatPositionClass = (idx: number, count: number): string => {
     if (idx === 0) {
       // Current player (Self) is always at bottom center
-      return 'bottom-2 sm:bottom-4 left-1/2 -translate-x-1/2';
+      return 'bottom-1 sm:bottom-2 md:bottom-4 left-1/2 -translate-x-1/2';
     }
 
     if (count === 3) {
       // Symmetrical 3-Player Triangle
-      if (idx === 1) return 'top-8 sm:top-12 left-10 sm:left-32 -translate-x-1/2';
-      if (idx === 2) return 'top-8 sm:top-12 right-10 sm:right-32 translate-x-1/2';
+      if (idx === 1) return 'top-1 sm:top-4 md:top-8 left-4 sm:left-16 md:left-32 -translate-x-1/2';
+      if (idx === 2) return 'top-1 sm:top-4 md:top-8 right-4 sm:right-16 md:right-32 translate-x-1/2';
     }
 
     if (count === 4) {
       // Symmetrical 4-Player Diamond
-      if (idx === 1) return 'top-1/2 -translate-y-1/2 left-3 sm:left-12';
-      if (idx === 2) return 'top-6 sm:top-8 left-1/2 -translate-x-1/2';
-      if (idx === 3) return 'top-1/2 -translate-y-1/2 right-3 sm:right-12';
+      if (idx === 1) return 'top-1/2 -translate-y-1/2 left-1 sm:left-4 md:left-8';
+      if (idx === 2) return 'top-1 sm:top-2 md:top-6 left-1/2 -translate-x-1/2';
+      if (idx === 3) return 'top-1/2 -translate-y-1/2 right-1 sm:right-4 md:right-8';
     }
 
     if (count >= 5) {
       // Symmetrical 5-Player Pentagon
-      if (idx === 1) return 'top-[58%] -translate-y-1/2 left-2 sm:left-10';
-      if (idx === 2) return 'top-6 sm:top-8 left-1/4 -translate-x-1/2';
-      if (idx === 3) return 'top-6 sm:top-8 right-1/4 translate-x-1/2';
-      if (idx === 4) return 'top-[58%] -translate-y-1/2 right-2 sm:right-10';
+      if (idx === 1) return 'top-1/2 -translate-y-1/2 left-1 sm:left-3 md:left-6';
+      if (idx === 2) return 'top-1 sm:top-2 md:top-6 left-[28%] -translate-x-1/2';
+      if (idx === 3) return 'top-1 sm:top-2 md:top-6 right-[28%] translate-x-1/2';
+      if (idx === 4) return 'top-1/2 -translate-y-1/2 right-1 sm:right-3 md:right-6';
     }
 
-    return 'top-8 left-1/2 -translate-x-1/2';
+    return 'top-1 sm:top-6 left-1/2 -translate-x-1/2';
   };
 
   const handleCopy = () => {
@@ -114,29 +114,29 @@ export const PokerTable: React.FC<PokerTableProps> = ({
   };
 
   return (
-    <div className="relative w-full h-screen min-h-[600px] flex items-center justify-center p-1 sm:p-2 select-none overflow-hidden bg-black">
+    <div className="relative w-full h-screen h-[100dvh] flex items-center justify-center p-0.5 sm:p-2 select-none overflow-hidden bg-black">
       
       {/* Outer Walnut Wood Rail Framing Full Screen */}
-      <div className="relative w-full h-full rounded-[24px] sm:rounded-[45px] walnut-rail-border p-2 sm:p-3 flex items-center justify-center bg-[#24160d] overflow-hidden">
+      <div className="relative w-full h-full rounded-[14px] sm:rounded-[28px] md:rounded-[45px] walnut-rail-border p-1 sm:p-2 flex items-center justify-center bg-[#24160d] overflow-hidden">
         
         {/* Physical Felt Taash Table Inner Area Filling 100% of Screen */}
-        <div className="relative w-full h-full rounded-[16px] sm:rounded-[36px] poker-felt-bg shadow-poker-felt border border-emerald-500/25 flex items-center justify-center overflow-hidden">
+        <div className="relative w-full h-full rounded-[10px] sm:rounded-[20px] md:rounded-[36px] poker-felt-bg shadow-poker-felt border border-emerald-500/25 flex items-center justify-center overflow-hidden">
           
           {/* Minimal Floating HUD (Top Left: Room Code) */}
-          <div className="absolute top-3 left-3 z-30 flex items-center gap-2 bg-black/65 backdrop-blur-md px-3 py-1.5 rounded-full border border-gold/40 shadow-lg">
-            <span className="text-[10px] text-zinc-400 font-bold uppercase tracking-wider">Room</span>
+          <div className="absolute top-1.5 sm:top-3 left-1.5 sm:left-3 z-30 flex items-center gap-1.5 sm:gap-2 bg-black/65 backdrop-blur-md px-2 sm:px-3 py-1 sm:py-1.5 rounded-full border border-gold/40 shadow-lg">
+            <span className="text-[9px] sm:text-[10px] text-zinc-400 font-bold uppercase tracking-wider">Room</span>
             <span className="font-mono font-black text-xs sm:text-sm text-gold tracking-widest">{roomCode}</span>
             <button
               onClick={handleCopy}
               title="Copy Room Code"
-              className="p-1 rounded-full text-zinc-400 hover:text-white hover:bg-white/10 active:scale-95 transition-all"
+              className="p-0.5 sm:p-1 rounded-full text-zinc-400 hover:text-white hover:bg-white/10 active:scale-95 transition-all"
             >
-              {copied ? <Check className="w-3.5 h-3.5 text-green-400" /> : <Copy className="w-3.5 h-3.5" />}
+              {copied ? <Check className="w-3 h-3 text-green-400" /> : <Copy className="w-3 h-3" />}
             </button>
           </div>
 
           {/* Minimal Floating HUD (Top Right: Rules, Audio, Exit) */}
-          <div className="absolute top-3 right-3 z-30 flex items-center gap-1.5">
+          <div className="absolute top-1.5 sm:top-3 right-1.5 sm:right-3 z-30 flex items-center gap-1 sm:gap-1.5">
             <button
               onClick={() => setRulesModalOpen(true)}
               title="View Rules"

@@ -49,32 +49,32 @@ export const JoinRoomModal: React.FC<JoinRoomModalProps> = ({ isOpen, onClose, i
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-200">
-      <div className="relative w-full max-w-md bg-zinc-950 border-2 border-gold/70 rounded-3xl p-6 sm:p-8 shadow-2xl">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-200 overflow-y-auto">
+      <div className="relative w-full max-w-md max-h-[92vh] overflow-y-auto bg-zinc-950 border-2 border-gold/70 rounded-2xl sm:rounded-3xl p-4 sm:p-7 shadow-2xl">
         
         {/* Close */}
         <button
           onClick={onClose}
-          className="absolute top-4 right-4 text-zinc-400 hover:text-white p-2 rounded-full hover:bg-white/10"
+          className="absolute top-3 sm:top-4 right-3 sm:right-4 text-zinc-400 hover:text-white p-1.5 sm:p-2 rounded-full hover:bg-white/10 transition-colors"
         >
-          <X className="w-5 h-5" />
+          <X className="w-4 h-4 sm:w-5 sm:h-5" />
         </button>
 
         {/* Title */}
-        <div className="flex items-center gap-3 mb-6">
-          <div className="p-3 rounded-2xl bg-emerald-500/20 border border-emerald-500/40 text-emerald-400">
-            <LogIn className="w-6 h-6" />
+        <div className="flex items-center gap-2.5 sm:gap-3 mb-3.5 sm:mb-6">
+          <div className="p-2 sm:p-3 rounded-xl sm:rounded-2xl bg-emerald-500/20 border border-emerald-500/40 text-emerald-400 shrink-0">
+            <LogIn className="w-5 h-5 sm:w-6 sm:h-6" />
           </div>
           <div>
-            <h2 className="text-xl font-black text-white uppercase tracking-wide">Join Game Room</h2>
-            <p className="text-xs text-zinc-400">Enter room code to join table</p>
+            <h2 className="text-lg sm:text-xl font-black text-white uppercase tracking-wide">Join Game Room</h2>
+            <p className="text-[11px] sm:text-xs text-zinc-400">Enter room code to join table</p>
           </div>
         </div>
 
-        <form onSubmit={handleJoin} className="space-y-4">
+        <form onSubmit={handleJoin} className="space-y-3 sm:space-y-4">
           {/* Room Code */}
           <div>
-            <label className="block text-xs font-bold text-zinc-300 uppercase tracking-wider mb-2">
+            <label className="block text-[11px] sm:text-xs font-bold text-zinc-300 uppercase tracking-wider mb-1.5 sm:mb-2">
               6-Character Room Code
             </label>
             <input
@@ -84,13 +84,13 @@ export const JoinRoomModal: React.FC<JoinRoomModalProps> = ({ isOpen, onClose, i
               placeholder="e.g. K7P2QM"
               value={code}
               onChange={(e) => setCode(e.target.value.toUpperCase())}
-              className="w-full px-4 py-3 rounded-xl bg-zinc-900 border border-zinc-700 text-gold text-center font-mono font-black text-lg tracking-widest placeholder-zinc-600 focus:outline-none focus:border-gold focus:ring-1 focus:ring-gold uppercase"
+              className="w-full px-3 sm:px-4 py-2 sm:py-2.5 rounded-xl bg-zinc-900 border border-zinc-700 text-gold text-center font-mono font-black text-base sm:text-lg tracking-widest placeholder-zinc-600 focus:outline-none focus:border-gold focus:ring-1 focus:ring-gold uppercase"
             />
           </div>
 
           {/* Name Input */}
           <div>
-            <label className="block text-xs font-bold text-zinc-300 uppercase tracking-wider mb-2">
+            <label className="block text-[11px] sm:text-xs font-bold text-zinc-300 uppercase tracking-wider mb-1.5 sm:mb-2">
               Your Player Name
             </label>
             <input
@@ -100,23 +100,23 @@ export const JoinRoomModal: React.FC<JoinRoomModalProps> = ({ isOpen, onClose, i
               placeholder="Enter your name"
               value={name}
               onChange={(e) => setName(e.target.value)}
-              className="w-full px-4 py-3 rounded-xl bg-zinc-900 border border-zinc-700 text-white placeholder-zinc-500 focus:outline-none focus:border-gold focus:ring-1 focus:ring-gold transition-all text-sm font-medium"
+              className="w-full px-3.5 sm:px-4 py-2 sm:py-2.5 rounded-xl bg-zinc-900 border border-zinc-700 text-white placeholder-zinc-500 focus:outline-none focus:border-gold focus:ring-1 focus:ring-gold transition-all text-xs sm:text-sm font-medium"
             />
           </div>
 
           {/* Avatar Color Selector */}
           <div>
-            <label className="block text-xs font-bold text-zinc-300 uppercase tracking-wider mb-2">
+            <label className="block text-[11px] sm:text-xs font-bold text-zinc-300 uppercase tracking-wider mb-1.5 sm:mb-2">
               Select Avatar Color
             </label>
-            <div className="grid grid-cols-4 gap-3">
+            <div className="grid grid-cols-4 gap-2 sm:gap-3">
               {AVATAR_COLORS.map((color) => (
                 <button
                   type="button"
                   key={color}
                   onClick={() => setAvatar(color)}
                   className={cn(
-                    'h-10 rounded-xl flex items-center justify-center font-black text-white text-sm transition-all relative',
+                    'h-8 sm:h-10 rounded-xl flex items-center justify-center font-black text-white text-xs sm:text-sm transition-all relative',
                     avatar === color
                       ? 'ring-2 ring-white ring-offset-2 ring-offset-black scale-105 shadow-lg'
                       : 'opacity-70 hover:opacity-100'
@@ -134,7 +134,7 @@ export const JoinRoomModal: React.FC<JoinRoomModalProps> = ({ isOpen, onClose, i
             type="submit"
             disabled={loading || !name.trim() || code.trim().length < 6}
             className={cn(
-              'w-full py-3.5 rounded-xl font-black text-sm uppercase tracking-wider transition-all shadow-lg mt-4',
+              'w-full py-2.5 sm:py-3.5 rounded-xl font-black text-xs sm:text-sm uppercase tracking-wider transition-all shadow-lg mt-2 sm:mt-4',
               !loading && name.trim() && code.trim().length >= 6
                 ? 'bg-gradient-to-r from-emerald-600 to-teal-500 hover:from-emerald-500 hover:to-teal-400 text-white active:scale-95 shadow-emerald-900/50'
                 : 'bg-zinc-800 text-zinc-500 cursor-not-allowed border border-zinc-700'

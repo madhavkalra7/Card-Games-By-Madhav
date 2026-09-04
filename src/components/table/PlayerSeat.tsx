@@ -100,7 +100,7 @@ export const PlayerSeat: React.FC<PlayerSeatProps> = ({
       )}
 
       {/* Cards: Left Deck (Hidden Stack) & Right Deck (Face up top card) */}
-      <div className="mt-2 flex items-center gap-3">
+      <div className="mt-1 sm:mt-2 flex items-center gap-1.5 sm:gap-3">
         {/* Left Deck (Hidden Stack) */}
         <div className="flex flex-col items-center">
           <CardStack
@@ -109,7 +109,7 @@ export const PlayerSeat: React.FC<PlayerSeatProps> = ({
             isClickable={isSelf && canDrawCard}
             onClick={isSelf && canDrawCard ? onDrawCard : undefined}
             isHighlighted={isSelf && canDrawCard}
-            size="sm"
+            size={isSelf ? 'sm' : 'xs'}
             label="Left Deck"
           />
         </div>
@@ -121,7 +121,7 @@ export const PlayerSeat: React.FC<PlayerSeatProps> = ({
             data-player-id={player.id}
             onClick={canPlaceOnRightDeck ? onPlaceRightDeck : undefined}
             className={cn(
-              'relative transition-transform p-1 rounded-xl',
+              'relative transition-transform p-0.5 sm:p-1 rounded-xl',
               canPlaceOnRightDeck && 'cursor-pointer hover:scale-105 active:scale-95 ring-2 ring-gold/60 bg-gold/10'
             )}
           >
@@ -129,13 +129,13 @@ export const PlayerSeat: React.FC<PlayerSeatProps> = ({
               type="right"
               count={player.rightDeckCount}
               topCard={player.rightDeckTop}
-              size="sm"
+              size={isSelf ? 'sm' : 'xs'}
               isHighlighted={canPlaceOnRightDeck}
               label="Right Deck"
             />
             {canPlaceOnRightDeck && (
               <div className="absolute inset-0 bg-gold/25 rounded-[12px] flex items-center justify-center pointer-events-none">
-                <span className="bg-gold text-black text-[9px] font-black px-1.5 py-0.5 rounded shadow animate-bounce">
+                <span className="bg-gold text-black text-[8px] sm:text-[9px] font-black px-1 sm:px-1.5 py-0.2 rounded shadow animate-bounce">
                   PLACE
                 </span>
               </div>

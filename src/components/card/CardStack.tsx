@@ -13,7 +13,7 @@ interface CardStackProps {
   isClickable?: boolean;
   onClick?: () => void;
   isHighlighted?: boolean;
-  size?: 'sm' | 'md' | 'lg';
+  size?: 'xs' | 'sm' | 'md' | 'lg';
 }
 
 export const CardStack: React.FC<CardStackProps> = ({
@@ -43,11 +43,17 @@ export const CardStack: React.FC<CardStackProps> = ({
         {!hasCards ? (
           <div
             className={cn(
-              'border-2 border-dashed border-amber-400/25 rounded-[12px] bg-black/20 flex flex-col items-center justify-center p-2',
-              size === 'sm' ? 'w-14 h-20' : size === 'md' ? 'w-20 h-28' : 'w-28 h-40'
+              'border-2 border-dashed border-amber-400/25 rounded-[12px] bg-black/20 flex flex-col items-center justify-center p-1 sm:p-2',
+              size === 'xs'
+                ? 'w-10 h-14'
+                : size === 'sm'
+                ? 'w-12 h-16 sm:w-14 sm:h-20'
+                : size === 'md'
+                ? 'w-14 h-20 sm:w-20 sm:h-28'
+                : 'w-20 h-28 sm:w-28 sm:h-40'
             )}
           >
-            <span className="text-[10px] sm:text-xs text-amber-200/40 text-center font-medium uppercase tracking-wider">
+            <span className="text-[9px] sm:text-xs text-amber-200/40 text-center font-medium uppercase tracking-wider">
               {type === 'hidden' ? 'Empty' : 'Right Deck'}
             </span>
           </div>

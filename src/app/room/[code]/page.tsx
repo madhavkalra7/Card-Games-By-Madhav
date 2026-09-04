@@ -68,27 +68,27 @@ export default function RoomPage({ params }: { params: Promise<{ code: string }>
   // Direct join prompt modal if state is empty
   if (!gameState) {
     return (
-      <main className="min-h-screen bg-[#070d09] text-zinc-100 flex flex-col justify-between">
+      <main className="min-h-screen bg-[#070d09] text-zinc-100 flex flex-col justify-between overflow-y-auto">
         <Header roomCode={roomCode} />
         <Toast />
 
-        <div className="flex-1 flex items-center justify-center p-4">
-          <div className="w-full max-w-md bg-zinc-950 border-2 border-gold/70 rounded-3xl p-6 sm:p-8 shadow-2xl">
-            <div className="text-center mb-6">
-              <span className="text-xs font-bold text-gold uppercase tracking-widest">
+        <div className="flex-1 flex items-center justify-center p-2 sm:p-4">
+          <div className="w-full max-w-md max-h-[92vh] overflow-y-auto bg-zinc-950 border-2 border-gold/70 rounded-2xl sm:rounded-3xl p-4 sm:p-8 shadow-2xl">
+            <div className="text-center mb-4 sm:mb-6">
+              <span className="text-[10px] sm:text-xs font-bold text-gold uppercase tracking-widest">
                 Invited to Table
               </span>
-              <h2 className="text-2xl font-black text-white font-serif mt-1">
+              <h2 className="text-xl sm:text-2xl font-black text-white font-serif mt-0.5 sm:mt-1">
                 Room {roomCode}
               </h2>
-              <p className="text-xs text-zinc-400 mt-1">
+              <p className="text-[11px] sm:text-xs text-zinc-400 mt-0.5 sm:mt-1">
                 Enter your details to take a seat at the table
               </p>
             </div>
 
-            <form onSubmit={handleDirectJoin} className="space-y-4">
+            <form onSubmit={handleDirectJoin} className="space-y-3 sm:space-y-4">
               <div>
-                <label className="block text-xs font-bold text-zinc-300 uppercase tracking-wider mb-2">
+                <label className="block text-[11px] sm:text-xs font-bold text-zinc-300 uppercase tracking-wider mb-1.5 sm:mb-2">
                   Your Player Name
                 </label>
                 <input
@@ -98,12 +98,12 @@ export default function RoomPage({ params }: { params: Promise<{ code: string }>
                   placeholder="Enter name"
                   value={directName}
                   onChange={(e) => setDirectName(e.target.value)}
-                  className="w-full px-4 py-3 rounded-xl bg-zinc-900 border border-zinc-700 text-white placeholder-zinc-500 focus:outline-none focus:border-gold text-sm font-medium"
+                  className="w-full px-3.5 sm:px-4 py-2 sm:py-3 rounded-xl bg-zinc-900 border border-zinc-700 text-white placeholder-zinc-500 focus:outline-none focus:border-gold text-xs sm:text-sm font-medium"
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-zinc-300 uppercase tracking-wider mb-2">
+                <label className="block text-[11px] sm:text-xs font-bold text-zinc-300 uppercase tracking-wider mb-1.5 sm:mb-2">
                   Choose Avatar Color
                 </label>
                 <div className="grid grid-cols-4 gap-2">
@@ -114,7 +114,7 @@ export default function RoomPage({ params }: { params: Promise<{ code: string }>
                         key={color}
                         onClick={() => setDirectAvatar(color)}
                         className={cn(
-                          'h-9 rounded-xl flex items-center justify-center text-xs font-black text-white transition-all',
+                          'h-8 sm:h-9 rounded-xl flex items-center justify-center text-xs font-black text-white transition-all',
                           directAvatar === color ? 'ring-2 ring-white scale-105' : 'opacity-70 hover:opacity-100'
                         )}
                         style={{ backgroundColor: color }}
@@ -130,7 +130,7 @@ export default function RoomPage({ params }: { params: Promise<{ code: string }>
                 type="submit"
                 disabled={isJoining || !directName.trim()}
                 className={cn(
-                  'w-full py-3.5 rounded-xl font-black text-sm uppercase tracking-wider transition-all shadow-gold-glow mt-4',
+                  'w-full py-2.5 sm:py-3.5 rounded-xl font-black text-xs sm:text-sm uppercase tracking-wider transition-all shadow-gold-glow mt-2 sm:mt-4',
                   !isJoining && directName.trim()
                     ? 'bg-gradient-to-r from-amber-500 to-yellow-400 text-black hover:from-amber-400 hover:to-yellow-300 active:scale-95'
                     : 'bg-zinc-800 text-zinc-500 cursor-not-allowed border border-zinc-700'
@@ -150,16 +150,19 @@ export default function RoomPage({ params }: { params: Promise<{ code: string }>
   const isLobby = gameState.status === 'LOBBY';
 
   return (
-    <main className="min-h-screen bg-[#070d09] text-zinc-100 flex flex-col justify-between selection:bg-gold selection:text-black overflow-hidden">
+    <main className={cn(
+      "bg-[#070d09] text-zinc-100 flex flex-col justify-between selection:bg-gold selection:text-black",
+      isLobby ? "min-h-screen overflow-y-auto" : "h-screen h-[100dvh] overflow-hidden"
+    )}>
       {/* Hide navbar when game starts (isLobby is false) */}
       {isLobby && <Header roomCode={roomCode} />}
       <Toast />
 
       {isLobby ? (
         /* ==================== LOBBY VIEW ==================== */
-        <div className="flex-1 flex flex-col items-center justify-center p-4 sm:p-8 max-w-4xl mx-auto w-full">
+        <div className="flex-1 flex flex-col items-center justify-center p-2 sm:p-6 md:p-8 max-w-4xl mx-auto w-full">
           {/* Lobby Card Container */}
-          <div className="w-full bg-zinc-950/80 border-2 border-gold/70 rounded-3xl p-6 sm:p-10 shadow-2xl backdrop-blur-md">
+          <div className="w-full bg-zinc-950/80 border-2 border-gold/70 rounded-2xl sm:rounded-3xl p-4 sm:p-8 md:p-10 shadow-2xl backdrop-blur-md">
             
             {/* Lobby Header */}
             <div className="flex flex-col sm:flex-row items-center justify-between gap-4 border-b border-white/10 pb-6">
@@ -247,7 +250,7 @@ export default function RoomPage({ params }: { params: Promise<{ code: string }>
             </div>
 
             {/* Start Game Action */}
-            <div className="mt-10 pt-6 border-t border-white/10 flex flex-col sm:flex-row items-center justify-between gap-4">
+            <div className="mt-6 sm:mt-10 pt-4 sm:pt-6 border-t border-white/10 flex flex-col sm:flex-row items-center justify-between gap-3 sm:gap-4">
               <div className="text-xs text-zinc-400 text-center sm:text-left">
                 {gameState.players.length < 3 ? (
                   <span className="text-amber-400 font-semibold">
@@ -265,7 +268,7 @@ export default function RoomPage({ params }: { params: Promise<{ code: string }>
                   onClick={startGame}
                   disabled={gameState.players.length < 3}
                   className={cn(
-                    'w-full sm:w-auto flex items-center justify-center gap-2.5 px-8 py-3.5 rounded-2xl font-black text-sm uppercase tracking-wider transition-all shadow-gold-glow',
+                    'w-full sm:w-auto flex items-center justify-center gap-2 px-6 sm:px-8 py-2.5 sm:py-3.5 rounded-xl sm:rounded-2xl font-black text-xs sm:text-sm uppercase tracking-wider transition-all shadow-gold-glow',
                     gameState.players.length >= 3
                       ? 'bg-gradient-to-r from-amber-500 to-yellow-400 text-black hover:from-amber-400 hover:to-yellow-300 active:scale-95'
                       : 'bg-zinc-800 text-zinc-500 cursor-not-allowed border border-zinc-700'
@@ -285,7 +288,7 @@ export default function RoomPage({ params }: { params: Promise<{ code: string }>
         </div>
       ) : (
         /* ==================== LIVE GAME TABLE VIEW (FULL SCREEN) ==================== */
-        <div className="w-full h-screen overflow-hidden">
+        <div className="w-full h-screen h-[100dvh] overflow-hidden">
           <PokerTable
             state={gameState}
             onDrawCard={drawCard}

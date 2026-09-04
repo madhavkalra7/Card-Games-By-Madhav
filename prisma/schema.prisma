@@ -1,0 +1,40 @@
+datasource db {
+  provider = "sqlite"
+  url      = "file:./dev.db"
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model Room {
+  id          String        @id @default(uuid())
+  code        String        @unique
+  hostId      String
+  status      String        @default("LOBBY")
+  gameType    String        @default("DUKKI_BAZAAR")
+  maxPlayers  Int           @default(5)
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+  histories   GameHistory[]
+}
+
+model GameHistory {
+  id          String   @id @default(uuid())
+  roomId      String
+  room        Room     @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  winnerName  String
+  roundsCount Int      @default(0)
+  playerCount Int
+  summary     String?
+  createdAt   DateTime @default(now())
+}
+
+model PlayerSession {
+  id          String   @id @default(uuid())
+  sessionId   String   @unique
+  name        String
+  avatarColor String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}

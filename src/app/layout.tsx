@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import './globals.css';
+import { Toast } from '@/components/ui/Toast';
 
 export const metadata: Metadata = {
   title: 'Card Games By Madhav | Traditional Indian 52-Card Platform',
@@ -21,6 +22,7 @@ export default function RootLayout({
         <link href="https://fonts.googleapis.com/css2?family=Anton&family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
       </head>
       <body className="antialiased selection:bg-gold-bright selection:text-black">
+        <Toast />
         {children}
       </body>
     </html>

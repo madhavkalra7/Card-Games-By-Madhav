@@ -24,11 +24,17 @@ const AVATAR_COLORS = [
 
 export const CreateRoomModal: React.FC<CreateRoomModalProps> = ({ isOpen, onClose }) => {
   const router = useRouter();
-  const { myName, myAvatar, createRoom } = useGameStore();
+  const { myName, myAvatar, createRoom, isConnected, initSocketListeners } = useGameStore();
 
   const [name, setName] = useState(myName || '');
   const [avatar, setAvatar] = useState(myAvatar || AVATAR_COLORS[0]);
   const [loading, setLoading] = useState(false);
+
+  React.useEffect(() => {
+    if (isOpen) {
+      initSocketListeners();
+    }
+  }, [isOpen, initSocketListeners]);
 
   if (!isOpen) return null;
 
@@ -68,6 +74,13 @@ export const CreateRoomModal: React.FC<CreateRoomModalProps> = ({ isOpen, onClos
             <p className="text-[11px] sm:text-xs text-zinc-400">Host a game and invite your friends</p>
           </div>
         </div>
+
+        {!isConnected && (
+          <div className="mb-3 p-2.5 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-300 text-[11px] flex items-center gap-2">
+            <span className="w-2 h-2 rounded-full bg-amber-400 animate-ping shrink-0" />
+            <span className="font-medium">Connecting to multiplayer game server...</span>
+          </div>
+        )}
 
         <form onSubmit={handleCreate} className="space-y-3 sm:space-y-5">
           {/* Name Input */}

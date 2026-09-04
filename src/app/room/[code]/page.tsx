@@ -70,7 +70,6 @@ export default function RoomPage({ params }: { params: Promise<{ code: string }>
     return (
       <main className="min-h-screen bg-[#070d09] text-zinc-100 flex flex-col justify-between overflow-y-auto">
         <Header roomCode={roomCode} />
-        <Toast />
 
         <div className="flex-1 flex items-center justify-center p-2 sm:p-4">
           <div className="w-full max-w-md max-h-[92vh] overflow-y-auto bg-zinc-950 border-2 border-gold/70 rounded-2xl sm:rounded-3xl p-4 sm:p-8 shadow-2xl">
@@ -156,7 +155,6 @@ export default function RoomPage({ params }: { params: Promise<{ code: string }>
     )}>
       {/* Hide navbar when game starts (isLobby is false) */}
       {isLobby && <Header roomCode={roomCode} />}
-      <Toast />
 
       {isLobby ? (
         /* ==================== LOBBY VIEW ==================== */

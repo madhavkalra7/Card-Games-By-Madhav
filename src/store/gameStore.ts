@@ -74,6 +74,10 @@ export const useGameStore = create<GameStore>((set, get) => ({
     socket.off('syncState');
     socket.off('connect');
     socket.off('disconnect');
+    socket.off('connect_error');
+
+    // Set current connection status immediately
+    set({ isConnected: socket.connected });
 
     socket.on('connect', () => {
       set({ isConnected: true });
@@ -81,6 +85,11 @@ export const useGameStore = create<GameStore>((set, get) => ({
 
     socket.on('disconnect', () => {
       set({ isConnected: false });
+    });
+
+    socket.on('connect_error', (err) => {
+      set({ isConnected: false });
+      console.warn('Socket connection error:', err.message);
     });
 
     socket.on('syncState', (state: GameStateClientView) => {
@@ -126,13 +135,38 @@ export const useGameStore = create<GameStore>((set, get) => ({
       const sessionId = getOrCreateSessionId();
       get().setProfile(name, avatar);
 
+      // Trigger connection if disconnected
+      if (!socket.connected) {
+        socket.connect();
+      }
+
+      let settled = false;
+
+      // 7-second fail-safe timeout prevents infinite loading in deployed apps
+      const timer = setTimeout(() => {
+        if (!settled) {
+          settled = true;
+          const isVercel = typeof window !== 'undefined' && window.location.hostname.includes('vercel.app');
+          const errMsg = isVercel
+            ? 'Game server not detected. Realtime WebSockets require a backend server (e.g. Render/Railway). Set NEXT_PUBLIC_SOCKET_URL in Vercel settings.'
+            : 'Connection timeout: Game server did not respond. Please ensure the backend server is running.';
+          get().showToast(errMsg, 'error');
+          resolve({ success: false, error: errMsg });
+        }
+      }, 7000);
+
       socket.emit('createRoom', { name, avatarColor: avatar, sessionId }, (res: any) => {
-        if (res.success) {
+        if (settled) return;
+        settled = true;
+        clearTimeout(timer);
+
+        if (res && res.success) {
           set({ gameState: res.state, roomCode: res.roomCode });
           resolve({ success: true, code: res.roomCode });
         } else {
-          get().showToast(res.error || 'Failed to create room', 'error');
-          resolve({ success: false, error: res.error });
+          const errMsg = res?.error || 'Failed to create room';
+          get().showToast(errMsg, 'error');
+          resolve({ success: false, error: errMsg });
         }
       });
     });
@@ -144,13 +178,36 @@ export const useGameStore = create<GameStore>((set, get) => ({
       const sessionId = getOrCreateSessionId();
       get().setProfile(name, avatar);
 
+      if (!socket.connected) {
+        socket.connect();
+      }
+
+      let settled = false;
+
+      const timer = setTimeout(() => {
+        if (!settled) {
+          settled = true;
+          const isVercel = typeof window !== 'undefined' && window.location.hostname.includes('vercel.app');
+          const errMsg = isVercel
+            ? 'Game server not detected. Realtime WebSockets require a backend server (e.g. Render/Railway). Set NEXT_PUBLIC_SOCKET_URL in Vercel settings.'
+            : 'Connection timeout: Game server did not respond. Please ensure the backend server is running.';
+          get().showToast(errMsg, 'error');
+          resolve({ success: false, error: errMsg });
+        }
+      }, 7000);
+
       socket.emit('joinRoom', { roomCode: code.toUpperCase(), name, avatarColor: avatar, sessionId }, (res: any) => {
-        if (res.success) {
+        if (settled) return;
+        settled = true;
+        clearTimeout(timer);
+
+        if (res && res.success) {
           set({ gameState: res.state, roomCode: res.roomCode });
           resolve({ success: true });
         } else {
-          get().showToast(res.error || 'Failed to join room', 'error');
-          resolve({ success: false, error: res.error });
+          const errMsg = res?.error || 'Failed to join room';
+          get().showToast(errMsg, 'error');
+          resolve({ success: false, error: errMsg });
         }
       });
     });
@@ -218,10 +275,25 @@ export const useGameStore = create<GameStore>((set, get) => ({
     return new Promise((resolve) => {
       const socket = getSocket();
       const { roomCode } = get();
+
+      let settled = false;
+      const timer = setTimeout(() => {
+        if (!settled) {
+          settled = true;
+          get().showToast('Penalty call timed out. Server did not respond.', 'error');
+          resolve({ success: false, error: 'Timeout' });
+        }
+      }, 7000);
+
       socket.emit('requestPenalty', { roomCode, targetPlayerId, reason }, (res: any) => {
-        if (!res.success) {
-          get().showToast(res.error || 'Could not call penalty', 'error');
-          resolve({ success: false, error: res.error });
+        if (settled) return;
+        settled = true;
+        clearTimeout(timer);
+
+        if (!res || !res.success) {
+          const err = res?.error || 'Could not call penalty';
+          get().showToast(err, 'error');
+          resolve({ success: false, error: err });
         } else {
           set({ isPenaltyModalOpen: false });
           if (res.result?.isValid) {

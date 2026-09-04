@@ -1,6 +1,6 @@
 import { Server as SocketIOServer, Socket } from 'socket.io';
 import { DukkiBazaarRoom } from '../game/engine';
-import { prisma } from '../db';
+import { RoomModel } from '../db';
 
 const activeRooms = new Map<string, DukkiBazaarRoom>();
 const disconnectTimers = new Map<string, NodeJS.Timeout>();
@@ -52,19 +52,18 @@ export function setupSocketHandlers(io: SocketIOServer) {
 
         socket.join(code);
 
-        // Record room in DB
+        // Record room in MongoDB
         try {
-          await prisma.room.create({
-            data: {
-              code,
-              hostId: player.sessionId,
-              status: 'LOBBY',
-              gameType: 'DUKKI_BAZAAR',
-              maxPlayers: 5,
-            },
+          await RoomModel.create({
+            code,
+            hostId: player.sessionId,
+            status: 'LOBBY',
+            gameType: 'DUKKI_BAZAAR',
+            maxPlayers: 5,
           });
         } catch (dbErr) {
-          console.error("DB Room create error:", dbErr);
+          // Non-blocking if MongoDB is offline or connecting
+          console.warn("MongoDB Room record skipped:", dbErr);
         }
 
         callback({ success: true, roomCode: code, state: room.getClientView(socket.id) });

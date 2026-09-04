@@ -4,6 +4,7 @@ import { Server as SocketIOServer } from 'socket.io';
 import next from 'next';
 import cors from 'cors';
 import { setupSocketHandlers } from './socket/handler';
+import { connectDB } from './db';
 
 const port = parseInt(process.env.PORT || '3000', 10);
 const dev = process.env.NODE_ENV !== 'production';
@@ -11,6 +12,9 @@ const nextApp = next({ dev, dir: process.cwd() });
 const nextHandler = nextApp.getRequestHandler();
 
 async function bootstrap() {
+  // Connect to MongoDB
+  await connectDB();
+
   await nextApp.prepare();
 
   const app = express();

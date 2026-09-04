@@ -45,6 +45,8 @@ const config: Config = {
       },
       fontFamily: {
         serif: ["Georgia", "Cambria", "serif"],
+        anton: ["Anton", "sans-serif"],
+        inter: ["Inter", "sans-serif"],
       },
       keyframes: {
         pulseGold: {

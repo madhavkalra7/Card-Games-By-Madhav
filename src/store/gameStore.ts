@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { GameStateClientView } from '@/lib/types';
-import { getSocket } from '@/socket/client';
+import { getSocket, resolveBackendUrl } from '@/socket/client';
 import { getOrCreateSessionId, saveProfile, getSavedProfile } from '@/lib/utils';
 import { sounds } from '@/lib/sound';
 
@@ -69,68 +69,78 @@ export const useGameStore = create<GameStore>((set, get) => ({
   },
 
   initSocketListeners: () => {
-    const socket = getSocket();
+    const bindListeners = (s: any) => {
+      s.off('syncState');
+      s.off('connect');
+      s.off('disconnect');
+      s.off('connect_error');
 
-    socket.off('syncState');
-    socket.off('connect');
-    socket.off('disconnect');
-    socket.off('connect_error');
+      // Set current connection status immediately
+      set({ isConnected: s.connected });
 
-    // Set current connection status immediately
-    set({ isConnected: socket.connected });
+      s.on('connect', () => {
+        set({ isConnected: true });
+      });
 
-    socket.on('connect', () => {
-      set({ isConnected: true });
-    });
+      s.on('disconnect', () => {
+        set({ isConnected: false });
+      });
 
-    socket.on('disconnect', () => {
-      set({ isConnected: false });
-    });
+      s.on('connect_error', (err: any) => {
+        set({ isConnected: false });
+        console.warn('Socket connection error:', err.message);
+      });
 
-    socket.on('connect_error', (err) => {
-      set({ isConnected: false });
-      console.warn('Socket connection error:', err.message);
-    });
+      s.on('syncState', (state: GameStateClientView) => {
+        const prevState = get().gameState;
 
-    socket.on('syncState', (state: GameStateClientView) => {
-      const prevState = get().gameState;
+        // Detect sounds and transitions
+        if (prevState) {
+          // Sound on card draw
+          if (!prevState.myFloatingCard && state.myFloatingCard) {
+            sounds.playCardFlip();
+          }
 
-      // Detect sounds and transitions
-      if (prevState) {
-        // Sound on card draw
-        if (!prevState.myFloatingCard && state.myFloatingCard) {
-          sounds.playCardFlip();
+          // Sound on center placement
+          if (state.centerCard && prevState.centerCard?.id !== state.centerCard.id) {
+            sounds.playCardSlide();
+          }
+
+          // Sound on Bazaar Open for this player
+          const prevMe = prevState.players.find(p => p.id === state.myPlayerId);
+          const currMe = state.players.find(p => p.id === state.myPlayerId);
+          if (currMe?.isBazaarOpen && !prevMe?.isBazaarOpen) {
+            sounds.playBazaarOpen();
+          }
+
+          // Sound on penalty triggered
+          if (!prevState.activePenaltyAnimation && state.activePenaltyAnimation) {
+            sounds.playPenalty();
+          }
+
+          // Sound on Game Over
+          if (prevState.status !== 'GAME_OVER' && state.status === 'GAME_OVER') {
+            sounds.playVictory();
+          }
         }
 
-        // Sound on center placement
-        if (state.centerCard && prevState.centerCard?.id !== state.centerCard.id) {
-          sounds.playCardSlide();
-        }
+        set({ gameState: state, roomCode: state.roomCode });
+      });
+    };
 
-        // Sound on Bazaar Open for this player
-        const prevMe = prevState.players.find(p => p.id === state.myPlayerId);
-        const currMe = state.players.find(p => p.id === state.myPlayerId);
-        if (currMe?.isBazaarOpen && !prevMe?.isBazaarOpen) {
-          sounds.playBazaarOpen();
-        }
+    const initialSocket = getSocket();
+    bindListeners(initialSocket);
 
-        // Sound on penalty triggered
-        if (!prevState.activePenaltyAnimation && state.activePenaltyAnimation) {
-          sounds.playPenalty();
-        }
-
-        // Sound on Game Over
-        if (prevState.status !== 'GAME_OVER' && state.status === 'GAME_OVER') {
-          sounds.playVictory();
-        }
-      }
-
-      set({ gameState: state, roomCode: state.roomCode });
+    // If backend URL resolves to Render via /api/socket-url fallback, re-bind to the remote socket
+    resolveBackendUrl().then((url) => {
+      const remoteSocket = getSocket(url);
+      bindListeners(remoteSocket);
     });
   },
 
   createRoom: (name, avatar) => {
-    return new Promise((resolve) => {
+    return new Promise(async (resolve) => {
+      await resolveBackendUrl();
       const socket = getSocket();
       const sessionId = getOrCreateSessionId();
       get().setProfile(name, avatar);
@@ -142,18 +152,18 @@ export const useGameStore = create<GameStore>((set, get) => ({
 
       let settled = false;
 
-      // 7-second fail-safe timeout prevents infinite loading in deployed apps
+      // 25-second fail-safe timeout prevents infinite loading while allowing Render cold starts
       const timer = setTimeout(() => {
         if (!settled) {
           settled = true;
           const isVercel = typeof window !== 'undefined' && window.location.hostname.includes('vercel.app');
           const errMsg = isVercel
-            ? 'Game server not detected. Realtime WebSockets require a backend server (e.g. Render/Railway). Set NEXT_PUBLIC_SOCKET_URL in Vercel settings.'
+            ? 'Game server not responding. If using Render free tier, the backend can take ~30-50s to wake up from sleep. Please wait a moment and try again.'
             : 'Connection timeout: Game server did not respond. Please ensure the backend server is running.';
           get().showToast(errMsg, 'error');
           resolve({ success: false, error: errMsg });
         }
-      }, 7000);
+      }, 25000);
 
       socket.emit('createRoom', { name, avatarColor: avatar, sessionId }, (res: any) => {
         if (settled) return;
@@ -173,7 +183,8 @@ export const useGameStore = create<GameStore>((set, get) => ({
   },
 
   joinRoom: (code, name, avatar) => {
-    return new Promise((resolve) => {
+    return new Promise(async (resolve) => {
+      await resolveBackendUrl();
       const socket = getSocket();
       const sessionId = getOrCreateSessionId();
       get().setProfile(name, avatar);
@@ -189,12 +200,12 @@ export const useGameStore = create<GameStore>((set, get) => ({
           settled = true;
           const isVercel = typeof window !== 'undefined' && window.location.hostname.includes('vercel.app');
           const errMsg = isVercel
-            ? 'Game server not detected. Realtime WebSockets require a backend server (e.g. Render/Railway). Set NEXT_PUBLIC_SOCKET_URL in Vercel settings.'
+            ? 'Game server not responding. If using Render free tier, the backend can take ~30-50s to wake up from sleep. Please wait a moment and try again.'
             : 'Connection timeout: Game server did not respond. Please ensure the backend server is running.';
           get().showToast(errMsg, 'error');
           resolve({ success: false, error: errMsg });
         }
-      }, 7000);
+      }, 25000);
 
       socket.emit('joinRoom', { roomCode: code.toUpperCase(), name, avatarColor: avatar, sessionId }, (res: any) => {
         if (settled) return;

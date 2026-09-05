@@ -37,11 +37,23 @@ export const PlayerSessionModel = mongoose.models.PlayerSession || mongoose.mode
 // Connection manager
 let isConnected = false;
 
+// Attach error listener to prevent unhandled EventEmitter process crashes
+mongoose.connection.on('error', (err) => {
+  console.warn('⚠️ MongoDB connection warning:', err.message);
+  isConnected = false;
+});
+
 export async function connectDB(): Promise<boolean> {
   const uri = process.env.MONGODB_URI;
 
   if (!uri) {
     console.warn('⚠️ MONGODB_URI environment variable is not set. Game running in in-memory mode.');
+    return false;
+  }
+
+  // Prevent DNS errors if URI contains unconfigured placeholder tokens
+  if (uri.includes('<username>') || uri.includes('<password>') || uri.includes('xxxxx')) {
+    console.log('ℹ️ MONGODB_URI contains placeholder text (<username>, <password>). Game server running in in-memory mode until real credentials are provided.');
     return false;
   }
 

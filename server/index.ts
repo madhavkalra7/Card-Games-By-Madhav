@@ -1,3 +1,6 @@
+import { loadEnvConfig } from '@next/env';
+loadEnvConfig(process.cwd());
+
 import express from 'express';
 import http from 'http';
 import { Server as SocketIOServer } from 'socket.io';
@@ -51,6 +54,14 @@ async function bootstrap() {
     console.log(`======================================================\n`);
   });
 }
+
+process.on('uncaughtException', (err) => {
+  console.error('⚠️ Uncaught Exception:', err);
+});
+
+process.on('unhandledRejection', (reason) => {
+  console.error('⚠️ Unhandled Rejection:', reason);
+});
 
 bootstrap().catch((err) => {
   console.error("Failed to start game server:", err);

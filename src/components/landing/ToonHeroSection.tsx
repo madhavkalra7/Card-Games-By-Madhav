@@ -2,9 +2,11 @@
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { ArrowLeft, ArrowRight, Gamepad2, Plus, Users, Music } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Gamepad2, Plus, Users, Music, User } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { funkyMusic } from '@/lib/funkyMusic';
+import { useAuthStore } from '@/store/authStore';
+import { getAvatarById } from '@/lib/avatars';
 
 const IMAGES = [
   {
@@ -68,8 +70,14 @@ export const ToonHeroSection: React.FC<ToonHeroSectionProps> = ({
   const [isShortHeight, setIsShortHeight] = useState(false);
   const [isMusicPlaying, setIsMusicPlaying] = useState(false);
 
-  // Preload all 4 images on mount and manage background funky music
+  const user = useAuthStore((s) => s.user);
+  const checkAuth = useAuthStore((s) => s.checkAuth);
+  const setAuthModalOpen = useAuthStore((s) => s.setAuthModalOpen);
+  const setProfileModalOpen = useAuthStore((s) => s.setProfileModalOpen);
+
+  // Preload all 4 images on mount and manage background funky music & auth check
   useEffect(() => {
+    checkAuth();
     IMAGES.forEach((img) => {
       const image = new Image();
       image.src = img.src;
@@ -274,6 +282,46 @@ export const ToonHeroSection: React.FC<ToonHeroSectionProps> = ({
               <Gamepad2 className="w-3.5 h-3.5 text-white" />
               <span>Catalog</span>
             </Link>
+
+            {/* Top-Right Circular Cartoon Avatar or Sign In Button */}
+            {user ? (
+              <button
+                type="button"
+                onClick={() => setProfileModalOpen(true)}
+                className="flex items-center gap-1.5 sm:gap-2 pl-1 pr-2.5 sm:pr-3.5 py-1 rounded-full bg-black/45 hover:bg-black/70 border border-gold/60 backdrop-blur-md transition-all shadow-md active:scale-95 cursor-pointer group"
+                title="View Profile & Game Stats"
+              >
+                {/* Circular Cartoon Avatar */}
+                <div
+                  className="w-7 h-7 sm:w-8 sm:h-8 rounded-full border-2 border-amber-300 p-0.5 flex items-center justify-center overflow-hidden shrink-0 shadow-gold-glow group-hover:scale-105 transition-transform"
+                  style={{ backgroundColor: `${getAvatarById(user.avatarId).color}40` }}
+                >
+                  <img
+                    src={getAvatarById(user.avatarId).image}
+                    alt={user.name}
+                    className="w-full h-full object-contain filter drop-shadow"
+                  />
+                </div>
+
+                <div className="flex flex-col items-start text-left leading-none">
+                  <span className="text-[10px] sm:text-xs font-bold text-white max-w-[70px] sm:max-w-[110px] truncate">
+                    {user.name}
+                  </span>
+                  <span className="text-[8px] sm:text-[9px] font-mono text-amber-300 font-extrabold mt-0.5">
+                    {user.totalScore.toLocaleString()} PTS
+                  </span>
+                </div>
+              </button>
+            ) : (
+              <button
+                type="button"
+                onClick={() => setAuthModalOpen(true, 'login')}
+                className="flex items-center gap-1.5 px-3 sm:px-3.5 py-1 sm:py-1.5 rounded-full bg-gradient-to-r from-amber-500 via-yellow-400 to-amber-500 hover:from-amber-400 hover:to-yellow-300 text-black text-[11px] sm:text-xs font-black tracking-wider uppercase backdrop-blur-md shadow-gold-glow transition-all active:scale-95 cursor-pointer"
+              >
+                <User className="w-3.5 h-3.5 stroke-[2.5]" />
+                <span>Sign In</span>
+              </button>
+            )}
           </div>
         </header>
 

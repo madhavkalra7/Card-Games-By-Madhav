@@ -4,6 +4,8 @@ import React, { useState } from 'react';
 import { ToonHeroSection } from '@/components/landing/ToonHeroSection';
 import { CreateRoomModal } from '@/components/modal/CreateRoomModal';
 import { JoinRoomModal } from '@/components/modal/JoinRoomModal';
+import { AuthModal } from '@/components/modal/AuthModal';
+import { ProfileModal } from '@/components/modal/ProfileModal';
 
 export default function LandingPage() {
   const [isCreateOpen, setIsCreateOpen] = useState(false);
@@ -20,6 +22,10 @@ export default function LandingPage() {
       {/* Room Creation & Joining Modals */}
       <CreateRoomModal isOpen={isCreateOpen} onClose={() => setIsCreateOpen(false)} />
       <JoinRoomModal isOpen={isJoinOpen} onClose={() => setIsJoinOpen(false)} />
+
+      {/* Authentication & Profile Modals */}
+      <AuthModal />
+      <ProfileModal />
     </main>
   );
 }

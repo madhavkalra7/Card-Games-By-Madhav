@@ -9,6 +9,7 @@ import cors from 'cors';
 import { setupSocketHandlers } from './socket/handler';
 import net from 'net';
 import { connectDB } from './db';
+import { authRouter } from './routes/auth';
 
 const defaultPort = parseInt(process.env.PORT || '3000', 10);
 const dev = process.env.NODE_ENV !== 'production';
@@ -97,6 +98,9 @@ async function bootstrap() {
   app.get('/api/health', (req, res) => {
     res.json({ status: 'ok', time: new Date().toISOString() });
   });
+
+  // Authentication & Profile endpoints
+  app.use('/api/auth', authRouter);
 
   // Next.js App Router & Pages
   app.all('*', (req, res) => {

@@ -34,6 +34,41 @@ const playerSessionSchema = new mongoose.Schema({
 
 export const PlayerSessionModel = mongoose.models.PlayerSession || mongoose.model('PlayerSession', playerSessionSchema);
 
+// 4. User Account Schema (Email & Google Auth)
+const userSchema = new mongoose.Schema({
+  name: { type: String, required: true },
+  email: { type: String, required: true, unique: true, lowercase: true, trim: true },
+  passwordHash: { type: String },
+  salt: { type: String },
+  googleId: { type: String },
+  avatarUrl: { 
+    type: String, 
+    default: 'https://fifth-gentle-45902158.figma.site/_components/v2/4de492f6d9cf8244ad5293233e5c6f52407d42fc/1.02464a56.png' 
+  },
+  avatarColor: { type: String, default: '#F4845F' },
+  avatarId: { type: String, default: 'toon-orange' },
+  totalScore: { type: Number, default: 100 },
+  totalGamesWon: { type: Number, default: 0 },
+  totalGamesPlayed: { type: Number, default: 0 },
+  createdAt: { type: Date, default: Date.now },
+});
+
+export const UserModel = mongoose.models.User || mongoose.model('User', userSchema);
+
+// Password hashing helpers using native crypto
+import crypto from 'crypto';
+
+export function hashPassword(password: string): { salt: string; hash: string } {
+  const salt = crypto.randomBytes(16).toString('hex');
+  const hash = crypto.pbkdf2Sync(password, salt, 1000, 64, 'sha512').toString('hex');
+  return { salt, hash };
+}
+
+export function verifyPassword(password: string, salt: string, hash: string): boolean {
+  const verifyHash = crypto.pbkdf2Sync(password, salt, 1000, 64, 'sha512').toString('hex');
+  return verifyHash === hash;
+}
+
 // Connection manager
 let isConnected = false;
 

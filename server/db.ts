@@ -1,4 +1,8 @@
 import mongoose from 'mongoose';
+import crypto from 'crypto';
+
+// Disable buffering so queries fail or fallback immediately instead of hanging 10 seconds
+mongoose.set('bufferCommands', false);
 
 // 1. Room Schema
 const roomSchema = new mongoose.Schema({
@@ -56,8 +60,6 @@ const userSchema = new mongoose.Schema({
 export const UserModel = mongoose.models.User || mongoose.model('User', userSchema);
 
 // Password hashing helpers using native crypto
-import crypto from 'crypto';
-
 export function hashPassword(password: string): { salt: string; hash: string } {
   const salt = crypto.randomBytes(16).toString('hex');
   const hash = crypto.pbkdf2Sync(password, salt, 1000, 64, 'sha512').toString('hex');
@@ -69,42 +71,57 @@ export function verifyPassword(password: string, salt: string, hash: string): bo
   return verifyHash === hash;
 }
 
-// Connection manager
-let isConnected = false;
+// Serverless Cached Mongoose Connection
+interface MongooseCache {
+  conn: typeof mongoose | null;
+  promise: Promise<typeof mongoose> | null;
+}
 
-// Attach error listener to prevent unhandled EventEmitter process crashes
-mongoose.connection.on('error', (err) => {
-  console.warn('⚠️ MongoDB connection warning:', err.message);
-  isConnected = false;
-});
+declare global {
+  var mongooseCache: MongooseCache | undefined;
+}
+
+let cached: MongooseCache = global.mongooseCache || { conn: null, promise: null };
+if (!global.mongooseCache) {
+  global.mongooseCache = cached;
+}
 
 export async function connectDB(): Promise<boolean> {
   const uri = process.env.MONGODB_URI;
 
-  if (!uri) {
-    console.warn('⚠️ MONGODB_URI environment variable is not set. Game running in in-memory mode.');
+  if (!uri || uri.includes('<username>') || uri.includes('<password>')) {
     return false;
   }
 
-  // Prevent DNS errors if URI contains unconfigured placeholder tokens
-  if (uri.includes('<username>') || uri.includes('<password>') || uri.includes('xxxxx')) {
-    console.log('ℹ️ MONGODB_URI contains placeholder text (<username>, <password>). Game server running in in-memory mode until real credentials are provided.');
-    return false;
-  }
-
-  if (isConnected) {
+  if (cached.conn && mongoose.connection.readyState === 1) {
     return true;
+  }
+
+  if (!cached.promise) {
+    cached.promise = mongoose.connect(uri, {
+      bufferCommands: false,
+      serverSelectionTimeoutMS: 3000,
+      connectTimeoutMS: 3000,
+    }).then((m) => {
+      return m;
+    }).catch((err) => {
+      cached.promise = null;
+      console.warn('⚠️ MongoDB connection failed:', err.message);
+      return null as any;
+    });
   }
 
   try {
-    const conn = await mongoose.connect(uri, {
-      serverSelectionTimeoutMS: 5000,
-    });
-    isConnected = !!conn.connections[0].readyState;
-    console.log('🍃 MongoDB connected successfully:', conn.connection.host);
-    return true;
+    const result = await cached.promise;
+    if (result && mongoose.connection.readyState === 1) {
+      cached.conn = result;
+      return true;
+    }
+    cached.promise = null;
+    return false;
   } catch (err: any) {
-    console.error('❌ MongoDB connection error:', err.message);
+    cached.promise = null;
+    console.warn('⚠️ MongoDB connection error:', err.message);
     return false;
   }
 }

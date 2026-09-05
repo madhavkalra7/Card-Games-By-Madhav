@@ -31,8 +31,9 @@ interface GameStore {
   joinRoom: (code: string, name: string, avatar: string) => Promise<{ success: boolean; error?: string }>;
   startGame: () => void;
   drawCard: () => void;
-  placeCenter: (targetDeckId?: number | any) => void;
-  placeRightDeck: (targetPlayerId: string) => void;
+  placeCenter: (targetDeckId?: number | any, fromRightDeck?: boolean) => void;
+  placeRightDeck: (targetPlayerId: string, fromRightDeck?: boolean) => void;
+  passTurn: () => void;
   requestPenalty: (targetPlayerId: string, reason: 'MISSED_CENTER' | 'WRONG_CARD_PLAYED' | 'INVALID_SEQUENCE') => Promise<{ success: boolean; error?: string }>;
   kickPlayer: (targetPlayerId: string) => void;
   playAgain: () => void;
@@ -248,36 +249,52 @@ export const useGameStore = create<GameStore>((set, get) => ({
     });
   },
 
-  placeCenter: (targetDeckId?: number | any) => {
+  placeCenter: (targetDeckId?: number | any, fromRightDeck?: boolean) => {
     const socket = getSocket();
     const { roomCode } = get();
     const resolvedDeckId = typeof targetDeckId === 'number' ? targetDeckId : (!isNaN(Number(targetDeckId)) ? Number(targetDeckId) : undefined);
-    socket.emit('placeCenter', { roomCode, targetDeckId: resolvedDeckId }, (res: any) => {
+    socket.emit('placeCenter', { roomCode, targetDeckId: resolvedDeckId, fromRightDeck }, (res: any) => {
       if (!res.success) {
         get().showToast(res.error || 'Invalid move on center', 'error');
       } else if (res.autoPenalized) {
         sounds.playPenalty();
-        get().showToast(`🚨 AUTO PENALTY: ${res.reason || 'Wrong card placed in Center! Sent to Right Deck.'}`, 'error');
+        get().showToast(`🚨 AUTO PENALTY: ${res.reason || 'Wrong card placed in Center!'}`, 'error');
       } else {
         sounds.playCardSlide();
         if (res.openedBazaar) {
           get().showToast('🌟 BAZAAR OPEN! You can now place on opponents!', 'success');
+        } else {
+          get().showToast('✅ Valid play! Your turn continues!', 'success');
         }
       }
     });
   },
 
-  placeRightDeck: (targetPlayerId: string) => {
+  placeRightDeck: (targetPlayerId: string, fromRightDeck?: boolean) => {
     const socket = getSocket();
-    const { roomCode } = get();
-    socket.emit('placeRightDeck', { roomCode, targetPlayerId }, (res: any) => {
+    const { roomCode, gameState } = get();
+    const isSelf = targetPlayerId === gameState?.myPlayerId;
+    socket.emit('placeRightDeck', { roomCode, targetPlayerId, fromRightDeck }, (res: any) => {
       if (!res.success) {
         get().showToast(res.error || 'Invalid move on right deck', 'error');
       } else if (res.autoPenalized) {
         sounds.playPenalty();
-        get().showToast(`🚨 AUTO PENALTY: ${res.reason || 'Missed Center or illegal placement! Sent to Right Deck.'}`, 'error');
+        get().showToast(`🚨 AUTO PENALTY: ${res.reason || 'Missed Center or illegal placement!'}`, 'error');
       } else {
         sounds.playCardSlide();
+        if (!isSelf) {
+          get().showToast('✅ Placed on opponent! Your turn continues!', 'success');
+        }
+      }
+    });
+  },
+
+  passTurn: () => {
+    const socket = getSocket();
+    const { roomCode } = get();
+    socket.emit('passTurn', { roomCode }, (res: any) => {
+      if (!res.success) {
+        get().showToast(res.error || 'Cannot pass turn', 'error');
       }
     });
   },

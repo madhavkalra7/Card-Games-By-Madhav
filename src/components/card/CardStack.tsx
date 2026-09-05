@@ -59,21 +59,15 @@ export const CardStack: React.FC<CardStackProps> = ({
           </div>
         ) : (
           <div className="relative">
-            {/* Visual depth layers for cards underneath */}
+            {/* Visual 3D depth layers for stacked cards matching exact card size */}
             {count > 2 && (
               <div
-                className={cn(
-                  'absolute -bottom-1.5 -right-1.5 rounded-[12px] bg-red-950 border border-amber-900/40 opacity-70 pointer-events-none',
-                  size === 'sm' ? 'w-14 h-20' : size === 'md' ? 'w-20 h-28' : 'w-28 h-40'
-                )}
+                className="absolute inset-0 translate-x-1 translate-y-1 rounded-[8px] sm:rounded-[12px] bg-black/60 border border-amber-950/60 pointer-events-none"
               />
             )}
             {count > 1 && (
               <div
-                className={cn(
-                  'absolute -bottom-0.5 -right-0.5 rounded-[12px] bg-red-950 border border-amber-900/40 opacity-90 pointer-events-none',
-                  size === 'sm' ? 'w-14 h-20' : size === 'md' ? 'w-20 h-28' : 'w-28 h-40'
-                )}
+                className="absolute inset-0 translate-x-0.5 translate-y-0.5 rounded-[8px] sm:rounded-[12px] bg-black/40 border border-amber-950/40 pointer-events-none"
               />
             )}
 

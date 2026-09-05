@@ -117,15 +117,18 @@ export const RulesModal: React.FC<RulesModalProps> = ({ isOpen, onClose }) => {
             </ul>
           </div>
 
-          {/* Win Condition */}
+          {/* Win Condition & Turn Flow */}
           <div className="bg-amber-950/20 p-4 rounded-2xl border border-gold/30 space-y-2">
             <h3 className="font-extrabold text-gold flex items-center gap-2">
               <Sparkles className="w-4 h-4" />
-              6. Winning the Game
+              6. Turn Continuity & Winning
             </h3>
-            <p className="text-zinc-200">
-              The first player to clear all hidden cards (Hidden Deck = 0 and no floating card) wins the match immediately!
-            </p>
+            <ul className="list-disc pl-5 space-y-1 text-zinc-300 text-xs leading-relaxed">
+              <li><strong className="text-white">Continuous Turns:</strong> Whenever your card is placed on the <strong className="text-gold">Center</strong> or on an <strong className="text-gold">Opponent&apos;s Right Deck</strong>, your turn CONTINUES! You can draw again or play from your Right Deck.</li>
+              <li><strong className="text-white">Turn Ends:</strong> Your turn ONLY ends when your card is placed on your <strong className="text-amber-400">OWN Right Deck</strong> (or upon penalty/timeout).</li>
+              <li><strong className="text-white">Draggable Right Deck:</strong> The top card of your Right Deck can be dragged directly to the Center or opponent right decks! Dragging to an illegal spot triggers an automatic penalty.</li>
+              <li><strong className="text-gold">Winning:</strong> The first player to shed all cards (both hidden stack and right deck) wins the game!</li>
+            </ul>
           </div>
 
         </div>

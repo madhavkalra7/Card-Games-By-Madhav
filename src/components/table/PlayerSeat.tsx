@@ -1,10 +1,11 @@
 'use client';
 
-import React from 'react';
+import React, { useState } from 'react';
+import { motion, PanInfo } from 'framer-motion';
 import { PlayerClientView, Card } from '@/lib/types';
 import { CardStack } from '../card/CardStack';
 import { cn } from '@/lib/utils';
-import { Crown, Sparkles, WifiOff } from 'lucide-react';
+import { Crown, Sparkles, WifiOff, Grab } from 'lucide-react';
 
 interface PlayerSeatProps {
   player: PlayerClientView;
@@ -14,6 +15,9 @@ interface PlayerSeatProps {
   onDrawCard?: () => void;
   canPlaceOnRightDeck?: boolean;
   onPlaceRightDeck?: () => void;
+  canDragRightDeck?: boolean;
+  onDropCenterFromRightDeck?: (targetDeckId?: number) => void;
+  onDropRightDeckFromRightDeck?: (targetPlayerId: string) => void;
   className?: string;
   positionClass?: string;
 }
@@ -26,9 +30,40 @@ export const PlayerSeat: React.FC<PlayerSeatProps> = ({
   onDrawCard,
   canPlaceOnRightDeck = false,
   onPlaceRightDeck,
+  canDragRightDeck = false,
+  onDropCenterFromRightDeck,
+  onDropRightDeckFromRightDeck,
   className,
   positionClass,
 }) => {
+  const [isDraggingRight, setIsDraggingRight] = useState(false);
+
+  const handleRightDeckDragEnd = (event: MouseEvent | TouchEvent | PointerEvent, info: PanInfo) => {
+    setIsDraggingRight(false);
+    const elements = document.elementsFromPoint(info.point.x, info.point.y);
+    if (!elements) return;
+
+    for (const el of elements) {
+      // 1. Check if dropped over Center Bazaar
+      const centerTarget = el.closest('[data-drop-target="center"]');
+      if (centerTarget) {
+        const deckIdStr = centerTarget.getAttribute('data-deck-id') || el.closest('[data-deck-id]')?.getAttribute('data-deck-id');
+        const deckId = deckIdStr !== null && deckIdStr !== undefined && !isNaN(Number(deckIdStr)) ? parseInt(deckIdStr, 10) : undefined;
+        onDropCenterFromRightDeck?.(deckId);
+        return;
+      }
+
+      // 2. Check if dropped over another player's Right Deck
+      const rightDeckTarget = el.closest('[data-drop-target="right-deck"]');
+      if (rightDeckTarget) {
+        const targetPlayerId = rightDeckTarget.getAttribute('data-player-id');
+        if (targetPlayerId && targetPlayerId !== player.id) {
+          onDropRightDeckFromRightDeck?.(targetPlayerId);
+          return;
+        }
+      }
+    }
+  };
   return (
     <div
       className={cn(
@@ -125,14 +160,40 @@ export const PlayerSeat: React.FC<PlayerSeatProps> = ({
               canPlaceOnRightDeck && 'cursor-pointer hover:scale-105 active:scale-95 ring-2 ring-gold/60 bg-gold/10'
             )}
           >
-            <CardStack
-              type="right"
-              count={player.rightDeckCount}
-              topCard={player.rightDeckTop}
-              size={isSelf ? 'sm' : 'xs'}
-              isHighlighted={canPlaceOnRightDeck}
-              label="Right Deck"
-            />
+            {canDragRightDeck && player.rightDeckTop ? (
+              <motion.div
+                drag
+                dragSnapToOrigin={true}
+                dragElastic={0.08}
+                whileHover={{ scale: 1.06, cursor: 'grab' }}
+                whileDrag={{ scale: 1.15, zIndex: 100, cursor: 'grabbing', rotate: 0 }}
+                onDragStart={() => setIsDraggingRight(true)}
+                onDragEnd={handleRightDeckDragEnd}
+                className="touch-none relative"
+              >
+                <CardStack
+                  type="right"
+                  count={player.rightDeckCount}
+                  topCard={player.rightDeckTop}
+                  size={isSelf ? 'sm' : 'xs'}
+                  isHighlighted={true}
+                  label="Right Deck"
+                />
+                <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-amber-400 text-black text-[8px] sm:text-[9px] font-black px-1.5 py-0.2 rounded-full shadow border border-yellow-200 flex items-center gap-0.5 pointer-events-none whitespace-nowrap animate-pulse">
+                  <Grab className="w-2.5 h-2.5" />
+                  <span>DRAG</span>
+                </div>
+              </motion.div>
+            ) : (
+              <CardStack
+                type="right"
+                count={player.rightDeckCount}
+                topCard={player.rightDeckTop}
+                size={isSelf ? 'sm' : 'xs'}
+                isHighlighted={canPlaceOnRightDeck}
+                label="Right Deck"
+              />
+            )}
             {canPlaceOnRightDeck && (
               <div className="absolute inset-0 bg-gold/25 rounded-[12px] flex items-center justify-center pointer-events-none">
                 <span className="bg-gold text-black text-[8px] sm:text-[9px] font-black px-1 sm:px-1.5 py-0.2 rounded shadow animate-bounce">

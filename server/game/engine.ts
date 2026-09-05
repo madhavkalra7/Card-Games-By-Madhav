@@ -307,7 +307,11 @@ export class DukkiBazaarRoom {
     return { cardsTransferred: transferredCount };
   }
 
-  public placeOnCenter(socketId: string, targetDeckId?: number): { success: boolean; error?: string; openedBazaar?: boolean; autoPenalized?: boolean; reason?: string } {
+  public placeOnCenter(
+    socketId: string,
+    targetDeckId?: number,
+    fromRightDeck?: boolean
+  ): { success: boolean; error?: string; openedBazaar?: boolean; autoPenalized?: boolean; reason?: string } {
     if (this.status !== 'PLAYING') return { success: false, error: "Game not in progress." };
 
     const current = this.getCurrentPlayer();
@@ -315,11 +319,21 @@ export class DukkiBazaarRoom {
       return { success: false, error: "It is not your turn." };
     }
 
-    if (!current.floatingCard) {
-      return { success: false, error: "Please draw a card from your hidden deck first." };
+    let card: Card;
+    if (fromRightDeck) {
+      if (current.rightDeck.length === 0) {
+        return { success: false, error: "Your right deck is empty." };
+      }
+      if (current.floatingCard) {
+        return { success: false, error: "Please place your drawn card first." };
+      }
+      card = current.rightDeck[current.rightDeck.length - 1];
+    } else {
+      if (!current.floatingCard) {
+        return { success: false, error: "Please draw a card from your hidden deck first." };
+      }
+      card = current.floatingCard;
     }
-
-    const card = current.floatingCard;
 
     // Determine target center deck
     let targetDeck: CenterDeck | undefined;
@@ -346,9 +360,13 @@ export class DukkiBazaarRoom {
     // If dragged on wrong center deck / wrong suit / wrong rank: AUTO PENALTY!
     if (!validation.valid) {
       const penaltyReason = validation.reason || `Invalid Center Play (${card.rank}${card.suit})`;
-      // Wrongly placed card automatically goes to offender's right deck
-      current.rightDeck.push(card);
-      current.floatingCard = null;
+      
+      if (!fromRightDeck) {
+        // Floating card goes to offender's right deck
+        current.rightDeck.push(card);
+        current.floatingCard = null;
+      }
+      // If fromRightDeck, card is already on the right deck, remains there
 
       this.triggerAutoPenalty(current, penaltyReason);
 
@@ -360,11 +378,18 @@ export class DukkiBazaarRoom {
         timestamp: Date.now(),
       };
 
+      // Illegal move always ends turn
       this.advanceTurn();
       return { success: true, autoPenalized: true, reason: penaltyReason };
     }
 
     // Valid placement on target center deck!
+    if (fromRightDeck) {
+      current.rightDeck.pop();
+    } else {
+      current.floatingCard = null;
+    }
+
     if (!targetDeck.isOpen) {
       targetDeck.isOpen = true;
       targetDeck.suit = card.suit;
@@ -381,7 +406,6 @@ export class DukkiBazaarRoom {
     }
 
     this.centerBazaar.push(card);
-    current.floatingCard = null;
 
     let openedBazaar = false;
     if (!current.isBazaarOpen) {
@@ -405,11 +429,17 @@ export class DukkiBazaarRoom {
       return { success: true, openedBazaar };
     }
 
-    this.advanceTurn();
+    // Per rules: As long as cards are placed validly in Center, turn continues!
+    this.startTurnTimer();
+    this.notifyState();
     return { success: true, openedBazaar };
   }
 
-  public placeOnRightDeck(socketId: string, targetPlayerId: string): { success: boolean; error?: string; autoPenalized?: boolean; reason?: string } {
+  public placeOnRightDeck(
+    socketId: string,
+    targetPlayerId: string,
+    fromRightDeck?: boolean
+  ): { success: boolean; error?: string; autoPenalized?: boolean; reason?: string } {
     if (this.status !== 'PLAYING') return { success: false, error: "Game not in progress." };
 
     const current = this.getCurrentPlayer();
@@ -417,21 +447,35 @@ export class DukkiBazaarRoom {
       return { success: false, error: "It is not your turn." };
     }
 
-    if (!current.floatingCard) {
-      return { success: false, error: "Please draw a card from your hidden deck first." };
-    }
-
     const target = this.players.find(p => p.id === targetPlayerId);
     if (!target) {
       return { success: false, error: "Target player not found." };
     }
 
-    const card = current.floatingCard;
+    let card: Card;
+    if (fromRightDeck) {
+      if (current.rightDeck.length === 0) {
+        return { success: false, error: "Your right deck is empty." };
+      }
+      if (current.floatingCard) {
+        return { success: false, error: "Please place your drawn card first." };
+      }
+      if (target.id === current.id) {
+        return { success: false, error: "Card is already on your right deck." };
+      }
+      card = current.rightDeck[current.rightDeck.length - 1];
+    } else {
+      if (!current.floatingCard) {
+        return { success: false, error: "Please draw a card from your hidden deck first." };
+      }
+      card = current.floatingCard;
+    }
+
     const centerPlayable = canPlayOnAnyCenterDeck(card, this.centerDecks, this.baseRank);
     const couldHavePlayedCenter = centerPlayable.canPlay;
 
     if (target.id === current.id) {
-      // Placing on own right deck
+      // Placing on own right deck (can only happen from floatingCard)
       target.rightDeck.push(card);
       current.floatingCard = null;
 
@@ -453,7 +497,7 @@ export class DukkiBazaarRoom {
         return { success: true, autoPenalized: true, reason };
       }
 
-      // Valid discard on own right deck
+      // Valid discard on own right deck - ENDS TURN!
       this.lastMove = {
         playerId: current.id,
         action: 'RIGHT_DECK',
@@ -462,12 +506,25 @@ export class DukkiBazaarRoom {
         wasPriorityViolation: false,
         timestamp: Date.now(),
       };
+
+      if (this.checkWinCondition(current)) {
+        this.status = 'GAME_OVER';
+        this.winner = current;
+        this.stopTurnTimer();
+        this.notifyState();
+        return { success: true };
+      }
+
+      this.advanceTurn();
+      return { success: true };
     } else {
       // Placing on ANOTHER player's right deck
       if (couldHavePlayedCenter) {
         // Priority violation: Must play center if possible!
-        current.rightDeck.push(card);
-        current.floatingCard = null;
+        if (!fromRightDeck) {
+          current.rightDeck.push(card);
+          current.floatingCard = null;
+        }
 
         const reason = `Missed Center! ${card.rank}${card.suit} was playable on Center Deck ${centerPlayable.targetDeckId !== undefined ? (centerPlayable.targetDeckId + 1) : ''}.`;
         this.triggerAutoPenalty(current, reason);
@@ -491,8 +548,10 @@ export class DukkiBazaarRoom {
       if (!validation.valid) {
         // Dragged onto opponent illegally: AUTO PENALTY!
         const reason = validation.reason || 'Illegal placement on opponent right deck';
-        current.rightDeck.push(card);
-        current.floatingCard = null;
+        if (!fromRightDeck) {
+          current.rightDeck.push(card);
+          current.floatingCard = null;
+        }
 
         this.triggerAutoPenalty(current, reason);
 
@@ -510,8 +569,12 @@ export class DukkiBazaarRoom {
       }
 
       // Valid placement onto opponent's right deck!
+      if (fromRightDeck) {
+        current.rightDeck.pop();
+      } else {
+        current.floatingCard = null;
+      }
       target.rightDeck.push(card);
-      current.floatingCard = null;
 
       this.lastMove = {
         playerId: current.id,
@@ -521,18 +584,20 @@ export class DukkiBazaarRoom {
         wasPriorityViolation: false,
         timestamp: Date.now(),
       };
-    }
 
-    if (this.checkWinCondition(current)) {
-      this.status = 'GAME_OVER';
-      this.winner = current;
-      this.stopTurnTimer();
+      if (this.checkWinCondition(current)) {
+        this.status = 'GAME_OVER';
+        this.winner = current;
+        this.stopTurnTimer();
+        this.notifyState();
+        return { success: true };
+      }
+
+      // Per rules: Valid placement on opponent right deck keeps turn!
+      this.startTurnTimer();
       this.notifyState();
       return { success: true };
     }
-
-    this.advanceTurn();
-    return { success: true };
   }
 
   public requestPenalty(
@@ -685,7 +750,18 @@ export class DukkiBazaarRoom {
   }
 
   private checkWinCondition(player: Player): boolean {
-    return player.hiddenCards.length === 0 && player.floatingCard === null;
+    return player.hiddenCards.length === 0 && player.rightDeck.length === 0 && player.floatingCard === null;
+  }
+
+  public passTurn(socketId: string): { success: boolean; error?: string } {
+    if (this.status !== 'PLAYING') return { success: false, error: "Game not in progress." };
+    const current = this.getCurrentPlayer();
+    if (!current || current.id !== socketId) return { success: false, error: "It is not your turn." };
+    if (current.floatingCard) return { success: false, error: "Must play your drawn card first." };
+    if (current.hiddenCards.length > 0) return { success: false, error: "You still have cards in your hidden deck to draw." };
+
+    this.advanceTurn();
+    return { success: true };
   }
 
   public getCenterCard(): Card | null {

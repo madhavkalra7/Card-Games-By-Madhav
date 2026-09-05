@@ -134,23 +134,34 @@ export function setupSocketHandlers(io: SocketIOServer) {
       callback(res);
     });
 
-    socket.on('placeCenter', (data: { roomCode: string; targetDeckId?: number; targetSuit?: any }, callback) => {
+    socket.on('placeCenter', (data: { roomCode: string; targetDeckId?: number; targetSuit?: any; fromRightDeck?: boolean }, callback) => {
       const room = activeRooms.get(data.roomCode);
       if (!room) return callback({ success: false, error: 'Room not found' });
 
       const targetDeckId = typeof data.targetDeckId === 'number' ? data.targetDeckId : (typeof data.targetSuit === 'number' ? data.targetSuit : undefined);
-      const res = room.placeOnCenter(socket.id, targetDeckId);
+      const res = room.placeOnCenter(socket.id, targetDeckId, data.fromRightDeck);
       if (res.success) {
         broadcastRoomState(room);
       }
       callback(res);
     });
 
-    socket.on('placeRightDeck', (data: { roomCode: string; targetPlayerId: string }, callback) => {
+    socket.on('placeRightDeck', (data: { roomCode: string; targetPlayerId: string; fromRightDeck?: boolean }, callback) => {
       const room = activeRooms.get(data.roomCode);
       if (!room) return callback({ success: false, error: 'Room not found' });
 
-      const res = room.placeOnRightDeck(socket.id, data.targetPlayerId);
+      const res = room.placeOnRightDeck(socket.id, data.targetPlayerId, data.fromRightDeck);
+      if (res.success) {
+        broadcastRoomState(room);
+      }
+      callback(res);
+    });
+
+    socket.on('passTurn', (data: { roomCode: string }, callback) => {
+      const room = activeRooms.get(data.roomCode);
+      if (!room) return callback({ success: false, error: 'Room not found' });
+
+      const res = room.passTurn(socket.id);
       if (res.success) {
         broadcastRoomState(room);
       }

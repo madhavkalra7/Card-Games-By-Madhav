@@ -15,8 +15,8 @@ import { BookOpen, Check, Copy, LogOut, Volume2, VolumeX } from 'lucide-react';
 interface PokerTableProps {
   state: GameStateClientView;
   onDrawCard: () => void;
-  onPlaceCenter: (targetDeckId?: any) => void;
-  onPlaceRightDeck: (targetPlayerId: string) => void;
+  onPlaceCenter: (targetDeckId?: any, fromRightDeck?: boolean) => void;
+  onPlaceRightDeck: (targetPlayerId: string, fromRightDeck?: boolean) => void;
   onOpenPenaltyModal?: () => void;
 }
 
@@ -188,6 +188,8 @@ export const PokerTable: React.FC<PokerTableProps> = ({
               }
             }
 
+            const canDragRight = isSelf && isMyTurn && !myFloatingCard && (player.rightDeckCount > 0);
+
             return (
               <div key={player.id} className={`absolute ${getSeatPositionClass(positionIndex, totalPlayers)}`}>
                 <PlayerSeat
@@ -198,10 +200,25 @@ export const PokerTable: React.FC<PokerTableProps> = ({
                   onDrawCard={onDrawCard}
                   canPlaceOnRightDeck={canPlaceRight}
                   onPlaceRightDeck={() => onPlaceRightDeck(player.id)}
+                  canDragRightDeck={canDragRight}
+                  onDropCenterFromRightDeck={(deckId) => onPlaceCenter(deckId, true)}
+                  onDropRightDeckFromRightDeck={(targetPlayerId) => onPlaceRightDeck(targetPlayerId, true)}
                 />
               </div>
             );
           })}
+
+          {/* Pass Turn button when hidden cards are exhausted and player cannot play their right deck */}
+          {isMyTurn && !myFloatingCard && (me?.hiddenCount ?? 0) === 0 && (me?.rightDeckCount ?? 0) > 0 && (
+            <div className="absolute bottom-24 left-1/2 -translate-x-1/2 z-30">
+              <button
+                onClick={() => useGameStore.getState().passTurn()}
+                className="px-4 py-1.5 rounded-full bg-black/85 hover:bg-black text-amber-300 border border-amber-400/50 text-xs font-black uppercase tracking-wider shadow-lg transition-all active:scale-95 flex items-center gap-1.5"
+              >
+                <span>Pass Turn</span>
+              </button>
+            </div>
+          )}
 
           {/* Manual Penalty Button commented out per rules - Auto-penalty automatically handles violations! */}
           {/*

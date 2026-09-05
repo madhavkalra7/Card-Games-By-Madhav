@@ -48,10 +48,10 @@ export const CenterBazaar: React.FC<CenterBazaarProps> = ({
   return (
     <div
       data-drop-target="center"
-      className="relative flex flex-col items-center justify-center p-1 sm:p-2 md:p-3.5 rounded-2xl sm:rounded-3xl bg-black/45 backdrop-blur-md border border-gold/30 shadow-2xl"
+      className="relative flex flex-col items-center justify-center p-1 sm:p-1.5 md:p-3 rounded-xl sm:rounded-2xl md:rounded-3xl bg-black/55 backdrop-blur-md border border-gold/30 shadow-2xl"
     >
       {/* 4 Center Decks in a clean row */}
-      <div className="flex flex-row items-center justify-center gap-1.5 sm:gap-2.5 md:gap-4">
+      <div className="flex flex-row items-center justify-center gap-1 sm:gap-2 md:gap-3.5">
         {decks.map((deck) => {
           const isOpen = deck.isOpen && !!deck.topCard;
           const isCompleted = deck.isCompleted;
@@ -64,22 +64,22 @@ export const CenterBazaar: React.FC<CenterBazaarProps> = ({
               data-deck-id={deck.id}
               onClick={() => onPlaceCenter && onPlaceCenter(deck.id)}
               className={cn(
-                'relative flex flex-col items-center transition-all duration-200 p-0.5 sm:p-1 rounded-xl sm:rounded-2xl select-none',
+                'relative flex flex-col items-center transition-all duration-200 p-0.5 sm:p-1 rounded-lg sm:rounded-xl select-none',
                 isMyTurn && floatingCard ? 'cursor-pointer hover:scale-105' : ''
               )}
             >
               {/* Suit Title or Deck Number - Aligned on top of cards, clearly visible */}
-              <div className="h-6 sm:h-7 flex items-center justify-center mb-1 sm:mb-1.5 z-20">
+              <div className="h-5 sm:h-6 flex items-center justify-center mb-0.5 sm:mb-1 z-20">
                 {deck.suit ? (
-                  <div className="flex items-center gap-1 bg-black/75 px-2 py-0.5 rounded-full border border-white/20 shadow-md">
-                    <SuitIcon suit={deck.suit} className="w-2.5 h-2.5 sm:w-3.5 sm:h-3.5 shrink-0" />
-                    <span className="text-[9px] sm:text-[10px] font-black text-white uppercase tracking-wider">
+                  <div className="flex items-center gap-0.5 sm:gap-1 bg-black/85 px-1.5 sm:px-2 py-0.2 sm:py-0.5 rounded-full border border-white/20 shadow-md">
+                    <SuitIcon suit={deck.suit} className="w-2.5 h-2.5 sm:w-3 sm:h-3 shrink-0" />
+                    <span className="text-[8px] sm:text-[9px] md:text-[10px] font-black text-white uppercase tracking-wider">
                       {SUIT_NAMES[deck.suit]}
                     </span>
                   </div>
                 ) : (
-                  <div className="flex items-center justify-center px-1.5 py-0.5">
-                    <span className="text-[9px] sm:text-[10px] font-bold text-zinc-400 uppercase tracking-wider">
+                  <div className="flex items-center justify-center px-1 sm:px-1.5 py-0.2">
+                    <span className="text-[8px] sm:text-[9px] font-bold text-zinc-400 uppercase tracking-wider">
                       Deck {deck.id + 1}
                     </span>
                   </div>
@@ -93,7 +93,7 @@ export const CenterBazaar: React.FC<CenterBazaarProps> = ({
                   <div className="relative">
                     {/* Depth shadow layers */}
                     {count > 1 && (
-                      <div className="absolute inset-0 translate-x-1 translate-y-1 rounded-[8px] sm:rounded-[12px] bg-black/60 border border-amber-950/60 pointer-events-none" />
+                      <div className="absolute inset-0 translate-x-1 translate-y-1 rounded-[6px] sm:rounded-[10px] bg-black/60 border border-amber-950/60 pointer-events-none" />
                     )}
                     <PlayingCard
                       card={deck.topCard}
@@ -103,15 +103,15 @@ export const CenterBazaar: React.FC<CenterBazaarProps> = ({
                     />
 
                     {/* Count Badge */}
-                    <div className="absolute -top-1.5 -right-1.5 sm:-top-2 sm:-right-2 bg-gradient-to-r from-amber-600 to-amber-700 text-white text-[8px] sm:text-[10px] font-black px-1 sm:px-1.5 py-0.2 rounded-full border border-amber-300 shadow z-20">
+                    <div className="absolute -top-1.5 -right-1.5 sm:-top-2 sm:-right-2 bg-gradient-to-r from-amber-600 to-amber-700 text-white text-[8px] sm:text-[9px] md:text-[10px] font-black px-1 sm:px-1.5 py-0.2 rounded-full border border-amber-300 shadow z-20">
                       {count}
                     </div>
 
                     {/* Status Ribbon below card (Only if Completed) */}
                     {isCompleted && (
-                      <div className="mt-1 flex items-center justify-center">
-                        <span className="flex items-center gap-0.5 bg-emerald-950 text-emerald-300 text-[8px] sm:text-[9px] font-black px-1.5 py-0.2 rounded-full border border-emerald-500/50">
-                          <Check className="w-2 h-2 sm:w-2.5 sm:h-2.5" /> COMPLETED
+                      <div className="mt-0.5 sm:mt-1 flex items-center justify-center">
+                        <span className="flex items-center gap-0.5 bg-emerald-950 text-emerald-300 text-[7px] sm:text-[8px] font-black px-1 sm:px-1.5 py-0.2 rounded-full border border-emerald-500/50">
+                          <Check className="w-2 h-2" /> DONE
                         </span>
                       </div>
                     )}
@@ -120,16 +120,16 @@ export const CenterBazaar: React.FC<CenterBazaarProps> = ({
                   /* Empty Center Deck Slot waiting for baseRank */
                   <div
                     className={cn(
-                      'w-12 h-16 sm:w-14 sm:h-20 rounded-[8px] sm:rounded-[12px] border-2 border-dashed flex flex-col items-center justify-center p-1 transition-all',
+                      'w-10 h-14 sm:w-12 sm:h-16 md:w-14 md:h-20 rounded-[8px] sm:rounded-[12px] border-2 border-dashed flex flex-col items-center justify-center p-0.5 sm:p-1 transition-all',
                       'border-amber-400/30 bg-black/30 hover:border-amber-400/60',
                       isMyTurn && floatingCard && 'cursor-pointer'
                     )}
                   >
-                    <Plus className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-amber-300/40 mb-0.5" />
-                    <span className="text-[7px] sm:text-[8px] text-zinc-400 font-bold uppercase tracking-wider text-center leading-none mb-0.5">
+                    <Plus className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-amber-300/40 mb-0.5" />
+                    <span className="text-[6px] sm:text-[7px] text-zinc-400 font-bold uppercase tracking-wider text-center leading-none mb-0.5">
                       Empty
                     </span>
-                    <span className="text-[8px] sm:text-[10px] font-black text-gold uppercase text-center leading-tight">
+                    <span className="text-[7px] sm:text-[9px] font-black text-gold uppercase text-center leading-tight">
                       Drop {currentBase}
                     </span>
                   </div>

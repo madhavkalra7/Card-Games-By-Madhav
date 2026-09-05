@@ -13,7 +13,7 @@ interface CardStackProps {
   isClickable?: boolean;
   onClick?: () => void;
   isHighlighted?: boolean;
-  size?: 'xs' | 'sm' | 'md' | 'lg';
+  size?: 'xxs' | 'xs' | 'sm' | 'md' | 'lg';
 }
 
 export const CardStack: React.FC<CardStackProps> = ({
@@ -36,25 +36,27 @@ export const CardStack: React.FC<CardStackProps> = ({
         className={cn(
           'relative transition-transform duration-200',
           isClickable && 'cursor-pointer hover:scale-105 active:scale-95',
-          isHighlighted && 'ring-2 ring-gold rounded-[14px] p-0.5 animate-pulse-gold'
+          isHighlighted && 'ring-2 ring-gold rounded-[10px] sm:rounded-[14px] p-0.5 animate-pulse-gold'
         )}
       >
         {/* Empty state placeholder slot */}
         {!hasCards ? (
           <div
             className={cn(
-              'border-2 border-dashed border-amber-400/25 rounded-[12px] bg-black/20 flex flex-col items-center justify-center p-1 sm:p-2',
-              size === 'xs'
-                ? 'w-10 h-14'
+              'border-2 border-dashed border-amber-400/25 rounded-[8px] sm:rounded-[12px] bg-black/20 flex flex-col items-center justify-center p-0.5 sm:p-1',
+              size === 'xxs'
+                ? 'w-8 h-11'
+                : size === 'xs'
+                ? 'w-9 h-13 sm:w-10 sm:h-14'
                 : size === 'sm'
-                ? 'w-12 h-16 sm:w-14 sm:h-20'
+                ? 'w-10 h-14 sm:w-12 sm:h-16 md:w-14 md:h-20'
                 : size === 'md'
-                ? 'w-14 h-20 sm:w-20 sm:h-28'
-                : 'w-20 h-28 sm:w-28 sm:h-40'
+                ? 'w-12 h-16 sm:w-16 sm:h-22 md:w-20 md:h-28'
+                : 'w-16 h-22 sm:w-22 sm:h-32 md:w-28 md:h-40'
             )}
           >
-            <span className="text-[9px] sm:text-xs text-amber-200/40 text-center font-medium uppercase tracking-wider">
-              {type === 'hidden' ? 'Empty' : 'Right Deck'}
+            <span className="text-[7px] sm:text-[9px] text-amber-200/40 text-center font-medium uppercase tracking-wider">
+              {type === 'hidden' ? 'Empty' : 'Right'}
             </span>
           </div>
         ) : (
@@ -62,12 +64,12 @@ export const CardStack: React.FC<CardStackProps> = ({
             {/* Visual 3D depth layers for stacked cards matching exact card size */}
             {count > 2 && (
               <div
-                className="absolute inset-0 translate-x-1 translate-y-1 rounded-[8px] sm:rounded-[12px] bg-black/60 border border-amber-950/60 pointer-events-none"
+                className="absolute inset-0 translate-x-1 translate-y-1 rounded-[6px] sm:rounded-[10px] bg-black/60 border border-amber-950/60 pointer-events-none"
               />
             )}
             {count > 1 && (
               <div
-                className="absolute inset-0 translate-x-0.5 translate-y-0.5 rounded-[8px] sm:rounded-[12px] bg-black/40 border border-amber-950/40 pointer-events-none"
+                className="absolute inset-0 translate-x-0.5 translate-y-0.5 rounded-[6px] sm:rounded-[10px] bg-black/40 border border-amber-950/40 pointer-events-none"
               />
             )}
 
@@ -90,14 +92,14 @@ export const CardStack: React.FC<CardStackProps> = ({
             )}
 
             {/* Count Badge */}
-            <div className="absolute -top-2 -right-2 bg-gradient-to-r from-amber-600 to-amber-700 text-amber-50 text-[11px] font-black px-1.5 py-0.5 rounded-full border border-amber-300/60 shadow-md min-w-[20px] text-center">
+            <div className="absolute -top-1.5 -right-1.5 sm:-top-2 sm:-right-2 bg-gradient-to-r from-amber-600 to-amber-700 text-amber-50 text-[8px] sm:text-[10px] md:text-[11px] font-black px-1 sm:px-1.5 py-0.2 sm:py-0.5 rounded-full border border-amber-300/60 shadow-md min-w-[16px] sm:min-w-[20px] text-center">
               {count}
             </div>
 
             {/* Click to Draw Tooltip if clickable */}
             {isClickable && type === 'hidden' && (
-              <div className="absolute inset-0 bg-gold/15 rounded-[12px] flex items-center justify-center pointer-events-none">
-                <span className="bg-black/80 text-gold-light text-[10px] font-bold px-2 py-1 rounded shadow-lg border border-gold/40 animate-bounce">
+              <div className="absolute inset-0 bg-gold/15 rounded-[8px] sm:rounded-[12px] flex items-center justify-center pointer-events-none">
+                <span className="bg-black/85 text-gold-light text-[8px] sm:text-[10px] font-bold px-1.5 py-0.5 rounded shadow-lg border border-gold/40 animate-bounce">
                   DRAW
                 </span>
               </div>
@@ -106,9 +108,9 @@ export const CardStack: React.FC<CardStackProps> = ({
         )}
       </div>
 
-      {/* Stack Label */}
+      {/* Stack Label - Hidden on mobile screens to save vertical space */}
       {label && (
-        <span className="mt-1 text-[11px] font-semibold tracking-wider uppercase text-amber-200/60">
+        <span className="hidden sm:block mt-0.5 sm:mt-1 text-[8px] sm:text-[10px] font-bold tracking-wider uppercase text-amber-200/60">
           {label}
         </span>
       )}

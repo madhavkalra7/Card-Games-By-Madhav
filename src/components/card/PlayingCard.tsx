@@ -10,7 +10,7 @@ interface PlayingCardProps {
   className?: string;
   onClick?: () => void;
   interactive?: boolean;
-  size?: 'xs' | 'sm' | 'md' | 'lg' | 'xl';
+  size?: 'xxs' | 'xs' | 'sm' | 'md' | 'lg' | 'xl';
   glow?: boolean;
 }
 
@@ -54,11 +54,12 @@ export const PlayingCard: React.FC<PlayingCardProps> = ({
 }) => {
   // Dimension scale based on authentic poker card ratio (~2.5 x 3.5 inches -> 1:1.4)
   const sizeClasses = {
-    xs: 'w-10 h-14 text-[9px]',
-    sm: 'w-12 h-16 sm:w-14 sm:h-20 text-[10px] sm:text-xs',
-    md: 'w-14 h-20 sm:w-20 sm:h-28 text-xs sm:text-sm',
-    lg: 'w-20 h-28 sm:w-28 sm:h-40 text-sm sm:text-lg',
-    xl: 'w-28 h-40 sm:w-36 sm:h-52 text-base sm:text-2xl',
+    xxs: 'w-8 h-11 text-[8px]',
+    xs: 'w-9 h-13 sm:w-10 sm:h-14 text-[8px] sm:text-[9px]',
+    sm: 'w-10 h-14 sm:w-12 sm:h-16 md:w-14 md:h-20 text-[9px] sm:text-[10px] md:text-xs',
+    md: 'w-12 h-16 sm:w-16 sm:h-22 md:w-20 md:h-28 text-[10px] sm:text-xs md:text-sm',
+    lg: 'w-16 h-22 sm:w-22 sm:h-32 md:w-28 md:h-40 text-xs sm:text-sm md:text-lg',
+    xl: 'w-24 h-34 sm:w-36 sm:h-52 text-sm sm:text-2xl',
   }[size];
 
   if (faceDown || !card) {
@@ -66,7 +67,7 @@ export const PlayingCard: React.FC<PlayingCardProps> = ({
       <div
         onClick={onClick}
         className={cn(
-          'relative rounded-[12px] select-none transition-all duration-200 overflow-hidden cursor-default',
+          'relative rounded-[8px] sm:rounded-[12px] select-none transition-all duration-200 overflow-hidden cursor-default',
           'border border-amber-900/60 shadow-card',
           sizeClasses,
           interactive && 'hover:-translate-y-1.5 hover:shadow-card-hover cursor-pointer active:scale-95',
@@ -78,8 +79,8 @@ export const PlayingCard: React.FC<PlayingCardProps> = ({
         }}
       >
         {/* Luxury Indian filigree card back pattern */}
-        <div className="absolute inset-1 rounded-[9px] border-2 border-amber-400/40 p-1 flex items-center justify-center overflow-hidden">
-          <div className="w-full h-full rounded-[6px] border border-amber-400/20 bg-red-950/80 flex items-center justify-center relative">
+        <div className="absolute inset-0.5 sm:inset-1 rounded-[6px] sm:rounded-[9px] border sm:border-2 border-amber-400/40 p-0.5 sm:p-1 flex items-center justify-center overflow-hidden">
+          <div className="w-full h-full rounded-[4px] sm:rounded-[6px] border border-amber-400/20 bg-red-950/80 flex items-center justify-center relative">
             {/* Geometric Mandala / Taash Back SVG */}
             <svg viewBox="0 0 100 140" className="w-full h-full text-amber-400/30 opacity-70">
               <defs>
@@ -105,8 +106,8 @@ export const PlayingCard: React.FC<PlayingCardProps> = ({
     <div
       onClick={onClick}
       className={cn(
-        'relative bg-[#fdfdfc] rounded-[12px] border border-zinc-300 select-none shadow-card',
-        'flex flex-col justify-between p-1.5 sm:p-2 transition-all duration-200',
+        'relative bg-[#fdfdfc] rounded-[8px] sm:rounded-[12px] border border-zinc-300 select-none shadow-card',
+        'flex flex-col justify-between p-1 sm:p-1.5 md:p-2 transition-all duration-200',
         sizeClasses,
         interactive && 'hover:-translate-y-2 hover:shadow-card-hover cursor-pointer active:scale-95',
         glow && 'ring-2 ring-gold shadow-gold-glow animate-pulse-gold',
@@ -114,34 +115,34 @@ export const PlayingCard: React.FC<PlayingCardProps> = ({
       )}
     >
       {/* Top Left Rank & Suit */}
-      <div className="flex flex-col items-center leading-none w-5">
+      <div className="flex flex-col items-center leading-none w-3 sm:w-4 md:w-5">
         <span className={cn('font-black tracking-tighter', textColor)}>{card.rank}</span>
-        <SuitIcon suit={card.suit} className="w-3.5 h-3.5 mt-0.5" />
+        <SuitIcon suit={card.suit} className="w-2 h-2 sm:w-3 sm:h-3 md:w-3.5 md:h-3.5 mt-0.5" />
       </div>
 
       {/* Center Art / Large Suit */}
       <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
         {['J', 'Q', 'K'].includes(card.rank) ? (
           <div className="flex flex-col items-center opacity-85">
-            <span className={cn('font-serif font-black text-2xl sm:text-4xl opacity-90', textColor)}>
+            <span className={cn('font-serif font-black text-lg sm:text-2xl md:text-4xl opacity-90', textColor)}>
               {card.rank}
             </span>
-            <SuitIcon suit={card.suit} className="w-5 h-5 sm:w-7 sm:h-7 opacity-75" />
+            <SuitIcon suit={card.suit} className="w-3.5 h-3.5 sm:w-5 sm:h-5 md:w-7 md:h-7 opacity-75" />
           </div>
         ) : card.rank === 'A' ? (
-          <SuitIcon suit={card.suit} className="w-8 h-8 sm:w-12 sm:h-12 opacity-85" />
+          <SuitIcon suit={card.suit} className="w-5 h-5 sm:w-8 sm:h-8 md:w-12 md:h-12 opacity-85" />
         ) : (
-          <div className="grid grid-cols-2 gap-1 items-center justify-items-center opacity-80">
-            <SuitIcon suit={card.suit} className="w-4 h-4 sm:w-5 sm:h-5" />
-            <SuitIcon suit={card.suit} className="w-4 h-4 sm:w-5 sm:h-5" />
+          <div className="grid grid-cols-2 gap-0.5 sm:gap-1 items-center justify-items-center opacity-80">
+            <SuitIcon suit={card.suit} className="w-2.5 h-2.5 sm:w-3.5 sm:h-3.5 md:w-5 md:h-5" />
+            <SuitIcon suit={card.suit} className="w-2.5 h-2.5 sm:w-3.5 sm:h-3.5 md:w-5 md:h-5" />
           </div>
         )}
       </div>
 
       {/* Bottom Right Inverted Rank & Suit */}
-      <div className="flex flex-col items-center leading-none w-5 self-end rotate-180">
+      <div className="flex flex-col items-center leading-none w-3 sm:w-4 md:w-5 self-end rotate-180">
         <span className={cn('font-black tracking-tighter', textColor)}>{card.rank}</span>
-        <SuitIcon suit={card.suit} className="w-3.5 h-3.5 mt-0.5" />
+        <SuitIcon suit={card.suit} className="w-2 h-2 sm:w-3 sm:h-3 md:w-3.5 md:h-3.5 mt-0.5" />
       </div>
     </div>
   );

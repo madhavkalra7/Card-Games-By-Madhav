@@ -21,6 +21,7 @@ interface PlayerSeatProps {
   onDropRightDeckFromRightDeck?: (targetPlayerId: string) => void;
   className?: string;
   positionClass?: string;
+  cardSize?: 'xxs' | 'xs' | 'sm' | 'md';
 }
 
 export const PlayerSeat: React.FC<PlayerSeatProps> = ({
@@ -36,8 +37,10 @@ export const PlayerSeat: React.FC<PlayerSeatProps> = ({
   onDropRightDeckFromRightDeck,
   className,
   positionClass,
+  cardSize,
 }) => {
   const [isDraggingRight, setIsDraggingRight] = useState(false);
+  const activeCardSize = cardSize || (isSelf ? 'sm' : 'xs');
 
   // Voice chat speaking & mute status
   const speakingPeers = useVoiceStore((s) => s.speakingPeers);
@@ -90,69 +93,69 @@ export const PlayerSeat: React.FC<PlayerSeatProps> = ({
       {/* Player Header Capsule */}
       <div
         className={cn(
-          'relative flex items-center gap-2 px-3 py-1.5 rounded-full backdrop-blur-md transition-all duration-300',
-          'bg-black/60 border border-white/10 shadow-lg',
-          isCurrentTurn && 'ring-2 ring-gold shadow-gold-glow bg-black/80 scale-105',
+          'relative flex items-center gap-1.5 sm:gap-2 px-2 sm:px-3 py-0.5 sm:py-1 rounded-full backdrop-blur-md transition-all duration-300',
+          'bg-black/65 border border-white/10 shadow-lg',
+          isCurrentTurn && 'ring-2 ring-gold shadow-gold-glow bg-black/85 scale-105',
           !player.isConnected && 'opacity-60 border-red-500/50'
         )}
       >
         {/* Avatar Circle */}
         <div
           className={cn(
-            'relative w-7 h-7 sm:w-8 sm:h-8 rounded-full flex items-center justify-center font-bold text-white text-xs shadow-md border border-white/30 transition-all duration-200',
+            'relative w-6 h-6 sm:w-7 sm:h-7 md:w-8 md:h-8 rounded-full flex items-center justify-center font-bold text-white text-[10px] sm:text-xs shadow-md border border-white/30 transition-all duration-200 shrink-0',
             isSpeaking && 'ring-3 ring-emerald-400 shadow-[0_0_12px_rgba(52,211,153,0.85)] scale-110'
           )}
           style={{ backgroundColor: player.avatarColor || '#3b82f6' }}
         >
           {player.name.charAt(0).toUpperCase()}
           {player.isHost && (
-            <span className="absolute -top-2.5 -right-1 text-gold filter drop-shadow">
-              <Crown className="w-4 h-4 fill-gold text-amber-900" />
+            <span className="absolute -top-2 -right-1 text-gold filter drop-shadow">
+              <Crown className="w-3.5 h-3.5 fill-gold text-amber-900" />
             </span>
           )}
 
           {/* Voice Chat Muted Status Badge */}
           {isMuted && (
             <span className="absolute -bottom-1 -right-1 bg-red-600/95 text-white p-0.5 rounded-full shadow border border-black/40 z-10">
-              <MicOff className="w-2.5 h-2.5" />
+              <MicOff className="w-2 h-2" />
             </span>
           )}
 
           {/* Voice Chat Speaking Audio Wave Badge */}
           {isSpeaking && (
             <span className="absolute -bottom-1 -right-1 bg-emerald-500 text-black p-0.5 rounded-full shadow border border-black/40 z-10 animate-bounce">
-              <Mic className="w-2.5 h-2.5" />
+              <Mic className="w-2 h-2" />
             </span>
           )}
         </div>
 
         {/* Player Name & Tag */}
-        <div className="flex flex-col items-start leading-tight">
-          <div className="flex items-center gap-1.5">
-            <span className="font-semibold text-xs sm:text-sm text-zinc-100 max-w-[90px] sm:max-w-[110px] truncate">
+        <div className="flex flex-col items-start leading-none sm:leading-tight">
+          <div className="flex items-center gap-1 sm:gap-1.5">
+            <span className="font-semibold text-[10px] sm:text-xs md:text-sm text-zinc-100 max-w-[65px] sm:max-w-[85px] md:max-w-[110px] truncate">
               {player.name}
             </span>
             {isSelf && (
-              <span className="text-[9px] bg-white/20 text-zinc-200 px-1 py-0.2 rounded font-mono">
+              <span className="text-[8px] sm:text-[9px] bg-white/20 text-zinc-200 px-1 py-0.2 rounded font-mono">
                 YOU
               </span>
             )}
           </div>
-          <span className="text-[10px] text-zinc-400">
-            {player.hiddenCount} cards left
+          <span className="text-[8px] sm:text-[9px] md:text-[10px] text-zinc-400 mt-0.5">
+            {player.hiddenCount} cards
           </span>
         </div>
 
         {/* Disconnected Indicator */}
         {!player.isConnected && (
           <div title="Player disconnected (60s reconnect grace)">
-            <WifiOff className="w-3.5 h-3.5 text-red-400 animate-pulse" />
+            <WifiOff className="w-3 h-3 text-red-400 animate-pulse" />
           </div>
         )}
 
         {/* Turn indicator glow pill */}
         {isCurrentTurn && (
-          <div className="absolute -top-2.5 left-1/2 -translate-x-1/2 bg-gold text-black text-[9px] font-black px-2 py-0.2 rounded-full uppercase tracking-wider shadow">
+          <div className="absolute -top-2 left-1/2 -translate-x-1/2 bg-gold text-black text-[8px] sm:text-[9px] font-black px-1.5 py-0.2 rounded-full uppercase tracking-wider shadow">
             Turn
           </div>
         )}
@@ -160,14 +163,14 @@ export const PlayerSeat: React.FC<PlayerSeatProps> = ({
 
       {/* Golden Glowing Bazaar Open Badge */}
       {player.isBazaarOpen && (
-        <div className="mt-1 flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-gradient-to-r from-amber-500 to-yellow-400 text-black text-[10px] font-black shadow-gold-glow animate-pulse border border-yellow-200">
-          <Sparkles className="w-3 h-3 fill-black" />
+        <div className="mt-0.5 sm:mt-1 flex items-center gap-1 px-1.5 sm:px-2 py-0.2 sm:py-0.5 rounded-full bg-gradient-to-r from-amber-500 to-yellow-400 text-black text-[8px] sm:text-[9px] font-black shadow-gold-glow animate-pulse border border-yellow-200">
+          <Sparkles className="w-2.5 h-2.5 fill-black" />
           <span>BAZAAR OPEN</span>
         </div>
       )}
 
       {/* Cards: Left Deck (Hidden Stack) & Right Deck (Face up top card) */}
-      <div className="mt-1 sm:mt-2 flex items-center gap-1.5 sm:gap-3">
+      <div className="mt-0.5 sm:mt-1.5 flex items-center gap-1 sm:gap-2">
         {/* Left Deck (Hidden Stack) */}
         <div className="flex flex-col items-center">
           <CardStack
@@ -176,7 +179,7 @@ export const PlayerSeat: React.FC<PlayerSeatProps> = ({
             isClickable={isSelf && canDrawCard}
             onClick={isSelf && canDrawCard ? onDrawCard : undefined}
             isHighlighted={isSelf && canDrawCard}
-            size={isSelf ? 'sm' : 'xs'}
+            size={activeCardSize}
             label="Left Deck"
           />
         </div>
@@ -188,7 +191,7 @@ export const PlayerSeat: React.FC<PlayerSeatProps> = ({
             data-player-id={player.id}
             onClick={canPlaceOnRightDeck ? onPlaceRightDeck : undefined}
             className={cn(
-              'relative transition-transform p-0.5 sm:p-1 rounded-xl',
+              'relative transition-transform p-0.5 rounded-lg sm:rounded-xl',
               canPlaceOnRightDeck && 'cursor-pointer hover:scale-105 active:scale-95 ring-2 ring-gold/60 bg-gold/10'
             )}
           >
@@ -207,12 +210,12 @@ export const PlayerSeat: React.FC<PlayerSeatProps> = ({
                   type="right"
                   count={player.rightDeckCount}
                   topCard={player.rightDeckTop}
-                  size={isSelf ? 'sm' : 'xs'}
+                  size={activeCardSize}
                   isHighlighted={true}
                   label="Right Deck"
                 />
-                <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-amber-400 text-black text-[8px] sm:text-[9px] font-black px-1.5 py-0.2 rounded-full shadow border border-yellow-200 flex items-center gap-0.5 pointer-events-none whitespace-nowrap animate-pulse">
-                  <Grab className="w-2.5 h-2.5" />
+                <div className="absolute -top-2.5 left-1/2 -translate-x-1/2 bg-amber-400 text-black text-[7px] sm:text-[8px] font-black px-1 sm:px-1.5 py-0.2 rounded-full shadow border border-yellow-200 flex items-center gap-0.5 pointer-events-none whitespace-nowrap animate-pulse">
+                  <Grab className="w-2 h-2" />
                   <span>DRAG</span>
                 </div>
               </motion.div>
@@ -221,14 +224,14 @@ export const PlayerSeat: React.FC<PlayerSeatProps> = ({
                 type="right"
                 count={player.rightDeckCount}
                 topCard={player.rightDeckTop}
-                size={isSelf ? 'sm' : 'xs'}
+                size={activeCardSize}
                 isHighlighted={false}
                 label="Right Deck"
               />
             )}
             {canPlaceOnRightDeck && isSelf && (
-              <div className="absolute inset-0 bg-gold/15 rounded-[12px] flex items-center justify-center pointer-events-none">
-                <span className="bg-gold text-black text-[8px] sm:text-[9px] font-black px-1 sm:px-1.5 py-0.2 rounded shadow">
+              <div className="absolute inset-0 bg-gold/15 rounded-[8px] sm:rounded-[12px] flex items-center justify-center pointer-events-none">
+                <span className="bg-gold text-black text-[7px] sm:text-[8px] font-black px-1 sm:px-1.5 py-0.2 rounded shadow">
                   DISCARD
                 </span>
               </div>

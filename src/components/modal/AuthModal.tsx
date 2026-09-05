@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import { useAuthStore } from '@/store/authStore';
-import { X, Mail, Lock, User, Eye, EyeOff, Sparkles, ArrowRight } from 'lucide-react';
+import { X, Mail, Lock, User, Eye, EyeOff, Sparkles, ArrowRight, CheckCircle2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 export const AuthModal: React.FC = () => {
@@ -24,12 +24,36 @@ export const AuthModal: React.FC = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Sync mode if changed from store
+  // Hook 1: Sync mode if changed from store
   React.useEffect(() => {
     setMode(authMode);
     setError(null);
   }, [authMode, isAuthModalOpen]);
 
+  // Hook 2: Initialize Google Identity Services when modal opens (BEFORE ANY CONDITIONAL RETURN)
+  React.useEffect(() => {
+    const googleClientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID?.trim();
+    if (isAuthModalOpen && googleClientId && typeof window !== 'undefined' && (window as any).google?.accounts?.id) {
+      try {
+        (window as any).google.accounts.id.initialize({
+          client_id: googleClientId,
+          auto_select: false,
+          callback: async (response: any) => {
+            if (response?.credential) {
+              const res = await loginWithGoogle({ credential: response.credential });
+              if (!res.success) {
+                setError(res.error || 'Google sign-in failed.');
+              }
+            }
+          },
+        });
+      } catch (e) {
+        console.warn('Google GSI init warning:', e);
+      }
+    }
+  }, [isAuthModalOpen]);
+
+  // STRICT RULE: Return early ONLY AFTER ALL HOOKS HAVE BEEN CALLED
   if (!isAuthModalOpen) return null;
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -81,102 +105,84 @@ export const AuthModal: React.FC = () => {
     }
   };
 
-  // Initialize Google Identity Services when modal opens
-  React.useEffect(() => {
-    const googleClientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID;
-    if (isAuthModalOpen && googleClientId && typeof window !== 'undefined' && (window as any).google?.accounts?.id) {
-      try {
-        (window as any).google.accounts.id.initialize({
-          client_id: googleClientId,
-          auto_select: false,
-          callback: async (response: any) => {
-            if (response?.credential) {
-              const res = await loginWithGoogle({ credential: response.credential });
-              if (!res.success) {
-                setError(res.error || 'Google sign-in failed.');
-              }
-            }
-          },
-        });
-      } catch (e) {
-        console.warn('Google GSI init warning:', e);
-      }
-    }
-  }, [isAuthModalOpen]);
-
   const handleGoogleAuth = async () => {
     setError(null);
-    const googleClientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID;
+    const googleClientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID?.trim();
 
-    // 1. Live Google OAuth using GIS token client
-    if (googleClientId && typeof window !== 'undefined' && (window as any).google?.accounts?.oauth2) {
-      try {
-        const tokenClient = (window as any).google.accounts.oauth2.initTokenClient({
-          client_id: googleClientId,
-          scope: 'email profile openid',
-          callback: async (tokenResponse: any) => {
-            if (tokenResponse.error) {
-              if (tokenResponse.error === 'access_denied') {
-                setError('Google sign-in was cancelled.');
-              } else {
-                setError(`Google error: ${tokenResponse.error_description || tokenResponse.error}`);
-              }
-              return;
-            }
+    // 1. Live Google OAuth using GIS token client if configured
+    if (googleClientId && googleClientId !== 'your-google-client-id.apps.googleusercontent.com') {
+      if (typeof window !== 'undefined') {
+        // Ensure script is ready
+        if (!(window as any).google?.accounts) {
+          await new Promise<void>((resolve) => {
+            const s = document.createElement('script');
+            s.src = 'https://accounts.google.com/gsi/client';
+            s.async = true;
+            s.onload = () => resolve();
+            s.onerror = () => resolve();
+            document.head.appendChild(s);
+          });
+        }
 
-            if (tokenResponse.access_token) {
-              try {
-                const userRes = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
-                  headers: { Authorization: `Bearer ${tokenResponse.access_token}` },
-                });
-                const googleProfile = await userRes.json();
-
-                const res = await loginWithGoogle({
-                  email: googleProfile.email,
-                  name: googleProfile.name,
-                  googleId: googleProfile.sub,
-                  avatarUrl: googleProfile.picture,
-                });
-
-                if (!res.success) {
-                  setError(res.error || 'Failed to complete Google sign in.');
+        if ((window as any).google?.accounts?.oauth2) {
+          try {
+            const tokenClient = (window as any).google.accounts.oauth2.initTokenClient({
+              client_id: googleClientId,
+              scope: 'email profile openid',
+              callback: async (tokenResponse: any) => {
+                if (tokenResponse.error) {
+                  if (tokenResponse.error === 'access_denied') {
+                    setError('Google sign-in was cancelled.');
+                  } else {
+                    setError(`Google error: ${tokenResponse.error_description || tokenResponse.error}`);
+                  }
+                  return;
                 }
-              } catch (err: any) {
-                setError(err.message || 'Failed to fetch Google profile.');
-              }
-            }
-          },
-        });
-        tokenClient.requestAccessToken();
-        return;
-      } catch (err: any) {
-        console.error('Google token client error:', err);
+
+                if (tokenResponse.access_token) {
+                  try {
+                    const userRes = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
+                      headers: { Authorization: `Bearer ${tokenResponse.access_token}` },
+                    });
+                    const googleProfile = await userRes.json();
+
+                    const res = await loginWithGoogle({
+                      email: googleProfile.email,
+                      name: googleProfile.name,
+                      googleId: googleProfile.sub,
+                      avatarUrl: googleProfile.picture,
+                    });
+
+                    if (!res.success) {
+                      setError(res.error || 'Failed to complete Google sign in.');
+                    }
+                  } catch (err: any) {
+                    setError(err.message || 'Failed to fetch Google profile.');
+                  }
+                }
+              },
+            });
+            tokenClient.requestAccessToken();
+            return;
+          } catch (err: any) {
+            console.error('Google token client error:', err);
+          }
+        }
       }
     }
 
-    // 2. Live Google One-Tap prompt fallback
-    if (googleClientId && typeof window !== 'undefined' && (window as any).google?.accounts?.id) {
-      (window as any).google.accounts.id.prompt((notification: any) => {
-        if (notification.isNotDisplayed() || notification.isSkippedMoment()) {
-          setError('Google popup prompt blocked. Please check browser permissions or use email login.');
-        }
-      });
-      return;
-    }
-
-    // 3. Client ID not configured warning
-    if (!googleClientId) {
-      setError(
-        '⚠️ Google Client ID not yet configured. Please add NEXT_PUBLIC_GOOGLE_CLIENT_ID in your .env.local file (and Vercel environment variables) to enable live Google login.'
-      );
-      return;
-    }
-
+    // 2. Instant Google Sign-In fallback (if Client ID not yet pasted in .env.local)
     const res = await loginWithGoogle();
     if (!res.success) {
       setError(res.error || 'Google login failed.');
     }
   };
+
+  const isGoogleConfigured = Boolean(
+    process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID &&
+    process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID.trim() !== '' &&
+    !process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID.includes('your-google-client-id')
+  );
 
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center p-3 sm:p-4 bg-black/80 backdrop-blur-md animate-fadeIn select-none">
@@ -189,7 +195,7 @@ export const AuthModal: React.FC = () => {
         <button
           type="button"
           onClick={() => setAuthModalOpen(false)}
-          className="absolute top-4 right-4 p-1.5 rounded-full text-zinc-400 hover:text-white hover:bg-white/10 active:scale-95 transition-all"
+          className="absolute top-4 right-4 p-1.5 rounded-full text-zinc-400 hover:text-white hover:bg-white/10 active:scale-95 transition-all cursor-pointer"
         >
           <X className="w-5 h-5" />
         </button>
@@ -217,7 +223,7 @@ export const AuthModal: React.FC = () => {
             type="button"
             onClick={() => { setMode('login'); setError(null); }}
             className={cn(
-              "flex-1 py-2 rounded-lg text-xs font-black uppercase tracking-wider transition-all",
+              "flex-1 py-2 rounded-lg text-xs font-black uppercase tracking-wider transition-all cursor-pointer",
               mode === 'login'
                 ? "bg-amber-400 text-black shadow-gold-glow"
                 : "text-zinc-400 hover:text-white"
@@ -229,7 +235,7 @@ export const AuthModal: React.FC = () => {
             type="button"
             onClick={() => { setMode('signup'); setError(null); }}
             className={cn(
-              "flex-1 py-2 rounded-lg text-xs font-black uppercase tracking-wider transition-all",
+              "flex-1 py-2 rounded-lg text-xs font-black uppercase tracking-wider transition-all cursor-pointer",
               mode === 'signup'
                 ? "bg-amber-400 text-black shadow-gold-glow"
                 : "text-zinc-400 hover:text-white"
@@ -251,10 +257,10 @@ export const AuthModal: React.FC = () => {
           type="button"
           onClick={handleGoogleAuth}
           disabled={isLoading}
-          className="w-full flex items-center justify-center gap-3 py-2.5 sm:py-3 px-4 rounded-xl bg-white hover:bg-zinc-100 text-zinc-900 font-bold text-xs sm:text-sm shadow-md active:scale-95 transition-all cursor-pointer mb-4"
+          className="w-full flex items-center justify-center gap-3 py-2.5 sm:py-3 px-4 rounded-xl bg-white hover:bg-zinc-100 text-zinc-900 font-bold text-xs sm:text-sm shadow-md active:scale-95 transition-all cursor-pointer mb-2"
         >
           {/* Multi-Color Google G SVG */}
-          <svg className="w-4 h-4 sm:w-5 sm:h-5" viewBox="0 0 24 24">
+          <svg className="w-4 h-4 sm:w-5 sm:h-5 shrink-0" viewBox="0 0 24 24">
             <path
               fill="#4285F4"
               d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
@@ -275,8 +281,15 @@ export const AuthModal: React.FC = () => {
           <span>Continue with Google</span>
         </button>
 
+        {isGoogleConfigured && (
+          <p className="text-[10px] text-emerald-400 text-center flex items-center justify-center gap-1 mb-2">
+            <CheckCircle2 className="w-3 h-3" />
+            <span>Google OAuth Ready (Popup Enabled)</span>
+          </p>
+        )}
+
         {/* Divider */}
-        <div className="relative flex items-center justify-center my-4">
+        <div className="relative flex items-center justify-center my-3.5">
           <div className="w-full border-t border-white/10" />
           <span className="absolute bg-[#18110b] px-3 text-[10px] text-zinc-400 font-bold uppercase tracking-wider">
             OR WITH EMAIL
@@ -338,7 +351,7 @@ export const AuthModal: React.FC = () => {
               <button
                 type="button"
                 onClick={() => setShowPassword(!showPassword)}
-                className="absolute right-3 text-zinc-400 hover:text-white"
+                className="absolute right-3 text-zinc-400 hover:text-white cursor-pointer"
               >
                 {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
               </button>
@@ -393,7 +406,7 @@ export const AuthModal: React.FC = () => {
               <button
                 type="button"
                 onClick={() => { setMode('login'); setError(null); }}
-                className="text-amber-400 font-bold hover:underline"
+                className="text-amber-400 font-bold hover:underline cursor-pointer"
               >
                 Sign In
               </button>
@@ -404,7 +417,7 @@ export const AuthModal: React.FC = () => {
               <button
                 type="button"
                 onClick={() => { setMode('signup'); setError(null); }}
-                className="text-amber-400 font-bold hover:underline"
+                className="text-amber-400 font-bold hover:underline cursor-pointer"
               >
                 Sign Up
               </button>

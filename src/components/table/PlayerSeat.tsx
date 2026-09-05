@@ -190,14 +190,14 @@ export const PlayerSeat: React.FC<PlayerSeatProps> = ({
                 count={player.rightDeckCount}
                 topCard={player.rightDeckTop}
                 size={isSelf ? 'sm' : 'xs'}
-                isHighlighted={canPlaceOnRightDeck}
+                isHighlighted={false}
                 label="Right Deck"
               />
             )}
-            {canPlaceOnRightDeck && (
-              <div className="absolute inset-0 bg-gold/25 rounded-[12px] flex items-center justify-center pointer-events-none">
-                <span className="bg-gold text-black text-[8px] sm:text-[9px] font-black px-1 sm:px-1.5 py-0.2 rounded shadow animate-bounce">
-                  PLACE
+            {canPlaceOnRightDeck && isSelf && (
+              <div className="absolute inset-0 bg-gold/15 rounded-[12px] flex items-center justify-center pointer-events-none">
+                <span className="bg-gold text-black text-[8px] sm:text-[9px] font-black px-1 sm:px-1.5 py-0.2 rounded shadow">
+                  DISCARD
                 </span>
               </div>
             )}

@@ -4,7 +4,7 @@ import React from 'react';
 import { Card, CenterDeck, Rank, Suit } from '@/lib/types';
 import { PlayingCard, SuitIcon } from '../card/PlayingCard';
 import { cn } from '@/lib/utils';
-import { canPlayOnCenterDeck, RANK_ORDER } from '@/lib/validator';
+import { RANK_ORDER } from '@/lib/validator';
 import { Check, Plus } from 'lucide-react';
 
 interface CenterBazaarProps {
@@ -57,12 +57,6 @@ export const CenterBazaar: React.FC<CenterBazaarProps> = ({
           const isCompleted = deck.isCompleted;
           const count = deck.cards.length;
 
-          // Check if player's floating card is valid on this specific center deck
-          let isMatch = false;
-          if (isMyTurn && floatingCard && baseRank) {
-            isMatch = canPlayOnCenterDeck(floatingCard, deck, baseRank, decks).valid;
-          }
-
           return (
             <div
               key={deck.id}
@@ -71,8 +65,7 @@ export const CenterBazaar: React.FC<CenterBazaarProps> = ({
               onClick={() => onPlaceCenter && onPlaceCenter(deck.id)}
               className={cn(
                 'relative flex flex-col items-center transition-all duration-200 p-0.5 sm:p-1 rounded-xl sm:rounded-2xl select-none',
-                isMatch && 'ring-2 ring-gold/90 shadow-gold-glow bg-gold/15 animate-pulse-gold scale-105 cursor-pointer',
-                !isMatch && isMyTurn && floatingCard && 'opacity-85 hover:opacity-100 cursor-pointer'
+                isMyTurn && floatingCard ? 'cursor-pointer hover:scale-105' : ''
               )}
             >
               {/* Suit Title or Deck Number - Aligned on top of cards, clearly visible */}
@@ -105,11 +98,8 @@ export const CenterBazaar: React.FC<CenterBazaarProps> = ({
                     <PlayingCard
                       card={deck.topCard}
                       size="sm"
-                      glow={isMatch}
-                      className={cn(
-                        'shadow-xl transition-transform',
-                        isMatch && 'ring-2 ring-gold'
-                      )}
+                      glow={false}
+                      className="shadow-xl transition-transform"
                     />
 
                     {/* Count Badge */}
@@ -131,9 +121,8 @@ export const CenterBazaar: React.FC<CenterBazaarProps> = ({
                   <div
                     className={cn(
                       'w-12 h-16 sm:w-14 sm:h-20 rounded-[8px] sm:rounded-[12px] border-2 border-dashed flex flex-col items-center justify-center p-1 transition-all',
-                      isMatch
-                        ? 'border-gold bg-gold/20 shadow-gold-glow animate-pulse'
-                        : 'border-amber-400/30 bg-black/30 hover:border-amber-400/60'
+                      'border-amber-400/30 bg-black/30 hover:border-amber-400/60',
+                      isMyTurn && floatingCard && 'cursor-pointer'
                     )}
                   >
                     <Plus className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-amber-300/40 mb-0.5" />

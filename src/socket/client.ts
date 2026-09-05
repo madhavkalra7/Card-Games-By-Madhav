@@ -47,14 +47,14 @@ export async function resolveBackendUrl(): Promise<string> {
     return currentTargetUrl;
   }
 
-  return 'http://localhost:3000';
+  return `http://localhost:${process.env.PORT || '3000'}`;
 }
 
 export function getSocket(overrideUrl?: string): Socket {
   let targetUrl = overrideUrl || currentTargetUrl || process.env.NEXT_PUBLIC_SOCKET_URL;
   
   if (!targetUrl) {
-    targetUrl = typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3000';
+    targetUrl = typeof window !== 'undefined' ? window.location.origin : `http://localhost:${process.env.PORT || '3000'}`;
   }
   targetUrl = targetUrl.trim().replace(/\/$/, '');
 

@@ -2,8 +2,9 @@
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { ArrowLeft, ArrowRight, Gamepad2, Plus, Users } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Gamepad2, Plus, Users, Music } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { funkyMusic } from '@/lib/funkyMusic';
 
 const IMAGES = [
   {
@@ -65,14 +66,41 @@ export const ToonHeroSection: React.FC<ToonHeroSectionProps> = ({
   const [isAnimating, setIsAnimating] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
   const [isShortHeight, setIsShortHeight] = useState(false);
+  const [isMusicPlaying, setIsMusicPlaying] = useState(false);
 
-  // Preload all 4 images on mount
+  // Preload all 4 images on mount and manage background funky music
   useEffect(() => {
     IMAGES.forEach((img) => {
       const image = new Image();
       image.src = img.src;
     });
+
+    const unsub = funkyMusic.subscribe((playing) => {
+      setIsMusicPlaying(playing);
+    });
+
+    // Auto-start funky music on user's first click or keypress
+    const handleFirstInteraction = () => {
+      if (localStorage.getItem('cg_landing_music') !== 'false') {
+        funkyMusic.start();
+      }
+    };
+
+    window.addEventListener('click', handleFirstInteraction, { once: true });
+    window.addEventListener('keydown', handleFirstInteraction, { once: true });
+
+    return () => {
+      unsub();
+      window.removeEventListener('click', handleFirstInteraction);
+      window.removeEventListener('keydown', handleFirstInteraction);
+      funkyMusic.stop(); // Stop music when leaving the landing page
+    };
   }, []);
+
+  const handleToggleMusic = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    funkyMusic.toggle();
+  };
 
   // Responsive listener detecting mobile portrait AND mobile landscape (short height)
   useEffect(() => {
@@ -210,6 +238,35 @@ export const ToonHeroSection: React.FC<ToonHeroSectionProps> = ({
           </div>
 
           <div className="flex items-center gap-2 sm:gap-3">
+            {/* Funky Music Toggle Button */}
+            <button
+              type="button"
+              onClick={handleToggleMusic}
+              title={isMusicPlaying ? 'Pause Funky Music' : 'Play Funky Music'}
+              className={cn(
+                "flex items-center gap-1.5 px-3 sm:px-3.5 py-1 sm:py-1.5 rounded-full backdrop-blur-md transition-all shadow-sm active:scale-95 cursor-pointer",
+                isMusicPlaying
+                  ? "bg-amber-400 text-black border border-yellow-200 font-extrabold shadow-lg"
+                  : "bg-white/15 hover:bg-white/25 border border-white/25 text-white font-bold"
+              )}
+            >
+              {isMusicPlaying ? (
+                <>
+                  <div className="flex items-end gap-0.5 h-3.5 py-0.5 shrink-0">
+                    <span className="w-0.5 sm:w-1 bg-black rounded-full animate-bounce" style={{ height: '70%', animationDuration: '400ms' }} />
+                    <span className="w-0.5 sm:w-1 bg-black rounded-full animate-bounce" style={{ height: '100%', animationDuration: '280ms' }} />
+                    <span className="w-0.5 sm:w-1 bg-black rounded-full animate-bounce" style={{ height: '50%', animationDuration: '500ms' }} />
+                  </div>
+                  <span className="text-[10px] sm:text-xs font-black tracking-wider">FUNKY BEATS</span>
+                </>
+              ) : (
+                <>
+                  <Music className="w-3.5 h-3.5 text-white" />
+                  <span className="text-[10px] sm:text-xs tracking-wider">PLAY MUSIC</span>
+                </>
+              )}
+            </button>
+
             <Link
               href="/games"
               className="flex items-center gap-1 sm:gap-1.5 px-3 sm:px-3.5 py-1 sm:py-1.5 rounded-full bg-white/15 hover:bg-white/25 backdrop-blur-md border border-white/25 text-white text-[11px] sm:text-xs font-bold transition-all shadow-sm active:scale-95"

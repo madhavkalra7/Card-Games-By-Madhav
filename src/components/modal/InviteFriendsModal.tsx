@@ -102,8 +102,14 @@ export const InviteFriendsModal: React.FC<InviteFriendsModalProps> = ({ roomCode
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-black/85 backdrop-blur-md animate-in fade-in zoom-in duration-200 select-none overflow-y-auto">
-      <div className="relative w-full max-w-lg max-h-[90vh] flex flex-col bg-gradient-to-b from-zinc-950 via-[#18110b] to-[#0d0a06] border-2 border-gold/70 rounded-2xl sm:rounded-3xl shadow-[0_0_50px_rgba(212,175,55,0.4)] overflow-hidden">
+    <div
+      onClick={() => setInviteModalOpen(false)}
+      className="fixed inset-0 z-[120] flex items-center justify-center p-2 sm:p-4 bg-black/85 backdrop-blur-md animate-in fade-in zoom-in duration-200 select-none overflow-y-auto"
+    >
+      <div
+        onClick={(e) => e.stopPropagation()}
+        className="relative w-full max-w-lg max-h-[90vh] flex flex-col bg-gradient-to-b from-zinc-950 via-[#18110b] to-[#0d0a06] border-2 border-gold/70 rounded-2xl sm:rounded-3xl shadow-[0_0_50px_rgba(212,175,55,0.4)] overflow-hidden"
+      >
         
         {/* Glow Accent */}
         <div className="absolute top-0 left-1/2 -translate-x-1/2 w-48 h-12 bg-gold/25 blur-2xl pointer-events-none rounded-full" />

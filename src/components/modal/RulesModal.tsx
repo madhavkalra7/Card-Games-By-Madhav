@@ -12,8 +12,14 @@ export const RulesModal: React.FC<RulesModalProps> = ({ isOpen, onClose }) => {
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-black/80 backdrop-blur-md animate-in fade-in duration-200 overflow-y-auto">
-      <div className="relative w-full max-w-2xl max-h-[92vh] bg-zinc-950 border-2 border-gold/70 rounded-2xl sm:rounded-3xl p-3.5 sm:p-7 shadow-2xl flex flex-col overflow-hidden">
+    <div
+      onClick={onClose}
+      className="fixed inset-0 z-[120] flex items-center justify-center p-2 sm:p-4 bg-black/80 backdrop-blur-md animate-in fade-in duration-200 overflow-y-auto"
+    >
+      <div
+        onClick={(e) => e.stopPropagation()}
+        className="relative w-full max-w-2xl max-h-[92vh] bg-zinc-950 border-2 border-gold/70 rounded-2xl sm:rounded-3xl p-3.5 sm:p-7 shadow-2xl flex flex-col overflow-hidden"
+      >
         
         {/* Close Button */}
         <button

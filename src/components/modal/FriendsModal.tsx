@@ -117,8 +117,14 @@ export const FriendsModal: React.FC<FriendsModalProps> = ({ currentRoomCode }) =
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-black/85 backdrop-blur-md animate-in fade-in zoom-in duration-200 select-none overflow-y-auto">
-      <div className="relative w-full max-w-2xl max-h-[92vh] flex flex-col bg-gradient-to-b from-zinc-950 via-[#18110b] to-[#0d0a06] border-2 border-gold/70 rounded-2xl sm:rounded-3xl shadow-[0_0_50px_rgba(212,175,55,0.35)] overflow-hidden">
+    <div
+      onClick={handleClose}
+      className="fixed inset-0 z-[120] flex items-center justify-center p-2 sm:p-4 bg-black/85 backdrop-blur-md animate-in fade-in zoom-in duration-200 select-none overflow-y-auto"
+    >
+      <div
+        onClick={(e) => e.stopPropagation()}
+        className="relative w-full max-w-2xl max-h-[92vh] flex flex-col bg-gradient-to-b from-zinc-950 via-[#18110b] to-[#0d0a06] border-2 border-gold/70 rounded-2xl sm:rounded-3xl shadow-[0_0_50px_rgba(212,175,55,0.35)] overflow-hidden"
+      >
         
         {/* Glow Header Accent */}
         <div className="absolute top-0 left-1/2 -translate-x-1/2 w-64 h-16 bg-gold/20 blur-2xl pointer-events-none rounded-full" />
@@ -249,11 +255,11 @@ export const FriendsModal: React.FC<FriendsModalProps> = ({ currentRoomCode }) =
                         {/* Rank Badge */}
                         <div
                           className={cn(
-                            'w-8 h-8 sm:w-9 sm:h-9 rounded-xl flex items-center justify-center font-black text-xs sm:text-sm shrink-0 shadow-md',
-                            isFirst && 'bg-gradient-to-br from-yellow-300 to-amber-500 text-black shadow-gold-glow ring-2 ring-yellow-200',
-                            isSecond && 'bg-gradient-to-br from-slate-200 to-slate-400 text-black ring-1 ring-white',
-                            isThird && 'bg-gradient-to-br from-amber-600 to-amber-800 text-white ring-1 ring-amber-300',
-                            player.rank > 3 && 'bg-zinc-800 text-zinc-400 border border-zinc-700 font-mono'
+                            'w-8 h-8 sm:w-9 sm:h-9 rounded-xl flex items-center justify-center shrink-0 shadow-md',
+                            isFirst && 'bg-amber-500/20 border border-amber-400/80 shadow-gold-glow text-base',
+                            isSecond && 'bg-slate-400/20 border border-slate-300/80 text-base',
+                            isThird && 'bg-amber-800/25 border border-amber-700/80 text-base',
+                            player.rank > 3 && 'bg-zinc-900 text-zinc-400 border border-zinc-800 font-mono text-xs font-bold'
                           )}
                         >
                           {isFirst ? '🥇' : isSecond ? '🥈' : isThird ? '🥉' : `#${player.rank}`}

@@ -50,8 +50,14 @@ export const ProfileModal: React.FC = () => {
   };
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center p-2 sm:p-4 bg-black/85 backdrop-blur-md animate-fadeIn select-none overflow-y-auto">
-      <div className="relative w-full max-w-xl max-h-[94vh] overflow-y-auto bg-gradient-to-b from-zinc-950 via-[#18110b] to-[#0c0805] border-2 border-gold/50 rounded-2xl sm:rounded-3xl shadow-[0_0_60px_rgba(212,175,55,0.35)] p-4 sm:p-7">
+    <div
+      onClick={() => setProfileModalOpen(false)}
+      className="fixed inset-0 z-[120] flex items-center justify-center p-2 sm:p-4 bg-black/85 backdrop-blur-md animate-fadeIn select-none overflow-y-auto"
+    >
+      <div
+        onClick={(e) => e.stopPropagation()}
+        className="relative w-full max-w-xl max-h-[94vh] overflow-y-auto bg-gradient-to-b from-zinc-950 via-[#18110b] to-[#0c0805] border-2 border-gold/50 rounded-2xl sm:rounded-3xl shadow-[0_0_60px_rgba(212,175,55,0.35)] p-4 sm:p-7"
+      >
         
         {/* Glow Ambient Top Accent */}
         <div className="absolute top-0 left-1/2 -translate-x-1/2 w-64 h-16 bg-amber-500/20 blur-3xl pointer-events-none rounded-full" />

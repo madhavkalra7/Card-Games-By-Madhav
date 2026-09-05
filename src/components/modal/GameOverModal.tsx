@@ -88,7 +88,7 @@ export const GameOverModal: React.FC<GameOverModalProps> = ({
   const firstWinner = standings.find(s => s.rank === 1) || standings[0];
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-black/85 backdrop-blur-md animate-in fade-in zoom-in duration-300 overflow-y-auto select-none">
+    <div className="fixed inset-0 z-[120] flex items-center justify-center p-2 sm:p-4 bg-black/85 backdrop-blur-md animate-in fade-in zoom-in duration-300 overflow-y-auto select-none">
       <div className="relative w-full max-w-lg max-h-[92vh] overflow-y-auto bg-gradient-to-b from-zinc-950 via-[#18110b] to-[#0d0a06] border-2 border-gold rounded-2xl sm:rounded-3xl p-4 sm:p-7 shadow-[0_0_50px_rgba(212,175,55,0.35)] flex flex-col items-center text-center">
         
         {/* Glow Header Accent */}

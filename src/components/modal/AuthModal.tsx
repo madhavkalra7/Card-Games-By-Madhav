@@ -143,8 +143,14 @@ export const AuthModal: React.FC = () => {
   };
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center p-3 sm:p-4 bg-black/80 backdrop-blur-md animate-fadeIn select-none">
-      <div className="relative w-full max-w-md bg-gradient-to-b from-zinc-900 via-[#18110b] to-[#0d0a06] border-2 border-gold/50 rounded-2xl sm:rounded-3xl shadow-[0_0_50px_rgba(212,175,55,0.3)] p-5 sm:p-7 overflow-hidden">
+    <div
+      onClick={() => setAuthModalOpen(false)}
+      className="fixed inset-0 z-[120] flex items-center justify-center p-3 sm:p-4 bg-black/80 backdrop-blur-md animate-fadeIn select-none"
+    >
+      <div
+        onClick={(e) => e.stopPropagation()}
+        className="relative w-full max-w-md bg-gradient-to-b from-zinc-900 via-[#18110b] to-[#0d0a06] border-2 border-gold/50 rounded-2xl sm:rounded-3xl shadow-[0_0_50px_rgba(212,175,55,0.3)] p-5 sm:p-7 overflow-hidden"
+      >
         
         {/* Glow Ambient Accent */}
         <div className="absolute top-0 left-1/2 -translate-x-1/2 w-48 h-12 bg-amber-500/20 blur-2xl pointer-events-none rounded-full" />

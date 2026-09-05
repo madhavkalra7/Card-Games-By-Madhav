@@ -34,8 +34,14 @@ export const PenaltyModal: React.FC<PenaltyModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-200 overflow-y-auto">
-      <div className="relative w-full max-w-md max-h-[92vh] overflow-y-auto bg-zinc-950 border-2 border-red-500/70 rounded-2xl sm:rounded-3xl p-4 sm:p-6 shadow-2xl">
+    <div
+      onClick={onClose}
+      className="fixed inset-0 z-[120] flex items-center justify-center p-2 sm:p-4 bg-black/80 backdrop-blur-md animate-in fade-in duration-200 overflow-y-auto"
+    >
+      <div
+        onClick={(e) => e.stopPropagation()}
+        className="relative w-full max-w-md max-h-[92vh] overflow-y-auto bg-zinc-950 border-2 border-red-500/70 rounded-2xl sm:rounded-3xl p-4 sm:p-6 shadow-2xl"
+      >
         {/* Close Button */}
         <button
           onClick={onClose}

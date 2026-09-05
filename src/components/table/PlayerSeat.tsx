@@ -5,7 +5,8 @@ import { motion, PanInfo } from 'framer-motion';
 import { PlayerClientView, Card } from '@/lib/types';
 import { CardStack } from '../card/CardStack';
 import { cn } from '@/lib/utils';
-import { Crown, Sparkles, WifiOff, Grab } from 'lucide-react';
+import { Crown, Sparkles, WifiOff, Grab, Mic, MicOff } from 'lucide-react';
+import { useVoiceStore } from '@/store/voiceStore';
 
 interface PlayerSeatProps {
   player: PlayerClientView;
@@ -37,6 +38,20 @@ export const PlayerSeat: React.FC<PlayerSeatProps> = ({
   positionClass,
 }) => {
   const [isDraggingRight, setIsDraggingRight] = useState(false);
+
+  // Voice chat speaking & mute status
+  const speakingPeers = useVoiceStore((s) => s.speakingPeers);
+  const peerStates = useVoiceStore((s) => s.peerStates);
+  const isInVoice = useVoiceStore((s) => s.isInVoice);
+  const isMicMuted = useVoiceStore((s) => s.isMicMuted);
+
+  const isSpeaking = isSelf
+    ? isInVoice && !isMicMuted && !!speakingPeers['me']
+    : !!speakingPeers[player.id];
+
+  const isMuted = isSelf
+    ? isInVoice && isMicMuted
+    : !!peerStates[player.id]?.isMuted;
 
   const handleRightDeckDragEnd = (event: MouseEvent | TouchEvent | PointerEvent, info: PanInfo) => {
     setIsDraggingRight(false);
@@ -83,13 +98,30 @@ export const PlayerSeat: React.FC<PlayerSeatProps> = ({
       >
         {/* Avatar Circle */}
         <div
-          className="relative w-7 h-7 sm:w-8 sm:h-8 rounded-full flex items-center justify-center font-bold text-white text-xs shadow-md border border-white/30"
+          className={cn(
+            'relative w-7 h-7 sm:w-8 sm:h-8 rounded-full flex items-center justify-center font-bold text-white text-xs shadow-md border border-white/30 transition-all duration-200',
+            isSpeaking && 'ring-3 ring-emerald-400 shadow-[0_0_12px_rgba(52,211,153,0.85)] scale-110'
+          )}
           style={{ backgroundColor: player.avatarColor || '#3b82f6' }}
         >
           {player.name.charAt(0).toUpperCase()}
           {player.isHost && (
             <span className="absolute -top-2.5 -right-1 text-gold filter drop-shadow">
               <Crown className="w-4 h-4 fill-gold text-amber-900" />
+            </span>
+          )}
+
+          {/* Voice Chat Muted Status Badge */}
+          {isMuted && (
+            <span className="absolute -bottom-1 -right-1 bg-red-600/95 text-white p-0.5 rounded-full shadow border border-black/40 z-10">
+              <MicOff className="w-2.5 h-2.5" />
+            </span>
+          )}
+
+          {/* Voice Chat Speaking Audio Wave Badge */}
+          {isSpeaking && (
+            <span className="absolute -bottom-1 -right-1 bg-emerald-500 text-black p-0.5 rounded-full shadow border border-black/40 z-10 animate-bounce">
+              <Mic className="w-2.5 h-2.5" />
             </span>
           )}
         </div>

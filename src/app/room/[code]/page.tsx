@@ -9,6 +9,8 @@ import { PenaltyModal } from '@/components/modal/PenaltyModal';
 import { GameOverModal } from '@/components/modal/GameOverModal';
 import { RulesModal } from '@/components/modal/RulesModal';
 import { Toast } from '@/components/ui/Toast';
+import { VoiceControls } from '@/components/voice/VoiceControls';
+import { voiceManager } from '@/lib/voice/voiceManager';
 import { Copy, Crown, Play, ShieldAlert, Sparkles, UserMinus, Users, WifiOff } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -44,6 +46,9 @@ export default function RoomPage({ params }: { params: Promise<{ code: string }>
 
   useEffect(() => {
     initSocketListeners();
+    return () => {
+      voiceManager.leaveVoice();
+    };
   }, [initSocketListeners]);
 
   // If user opened URL directly and has not joined the room state
@@ -176,11 +181,16 @@ export default function RoomPage({ params }: { params: Promise<{ code: string }>
                 </h1>
               </div>
 
-              {/* Player Count Badge */}
-              <div className="flex items-center gap-2 bg-black/60 px-4 py-2 rounded-2xl border border-white/10 text-xs sm:text-sm font-bold">
-                <Users className="w-4 h-4 text-gold" />
-                <span className="text-white">{gameState.players.length} / 5 Players</span>
-                <span className="text-zinc-400">(Min 3 to start)</span>
+              <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+                {/* Lobby Voice Chat */}
+                <VoiceControls roomCode={roomCode} />
+
+                {/* Player Count Badge */}
+                <div className="flex items-center gap-2 bg-black/60 px-4 py-2 rounded-2xl border border-white/10 text-xs sm:text-sm font-bold">
+                  <Users className="w-4 h-4 text-gold" />
+                  <span className="text-white">{gameState.players.length} / 5 Players</span>
+                  <span className="text-zinc-400">(Min 3 to start)</span>
+                </div>
               </div>
             </div>
 

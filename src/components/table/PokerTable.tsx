@@ -10,6 +10,7 @@ import { FlyingPenaltyOverlay } from './FlyingPenaltyOverlay';
 import { canPlayOnAnyCenterDeck, canPlayOnOtherRightDeck } from '@/lib/validator';
 import { sounds } from '@/lib/sound';
 import { useGameStore } from '@/store/gameStore';
+import { VoiceControls } from '../voice/VoiceControls';
 import { BookOpen, Check, Copy, LogOut, Volume2, VolumeX } from 'lucide-react';
 
 interface PokerTableProps {
@@ -135,8 +136,11 @@ export const PokerTable: React.FC<PokerTableProps> = ({
             </button>
           </div>
 
-          {/* Minimal Floating HUD (Top Right: Rules, Audio, Exit) */}
+          {/* Minimal Floating HUD (Top Right: Voice Controls, Rules, Audio, Exit) */}
           <div className="absolute top-1.5 sm:top-3 right-1.5 sm:right-3 z-30 flex items-center gap-1 sm:gap-1.5">
+            {/* Real-Time Voice Chat Controls */}
+            <VoiceControls roomCode={roomCode} />
+
             <button
               onClick={() => setRulesModalOpen(true)}
               title="View Rules"

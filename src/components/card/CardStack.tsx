@@ -45,14 +45,14 @@ export const CardStack: React.FC<CardStackProps> = ({
             className={cn(
               'border-2 border-dashed border-amber-400/25 rounded-[8px] sm:rounded-[12px] bg-black/20 flex flex-col items-center justify-center p-0.5 sm:p-1',
               size === 'xxs'
-                ? 'w-8 h-11'
+                ? 'w-[32px] h-[45px]'
                 : size === 'xs'
-                ? 'w-9 h-13 sm:w-10 sm:h-14'
+                ? 'w-[38px] h-[53px] sm:w-[44px] sm:h-[62px]'
                 : size === 'sm'
-                ? 'w-10 h-14 sm:w-12 sm:h-16 md:w-14 md:h-20'
+                ? 'w-[44px] h-[62px] sm:w-[54px] sm:h-[76px] md:w-[62px] md:h-[87px]'
                 : size === 'md'
-                ? 'w-12 h-16 sm:w-16 sm:h-22 md:w-20 md:h-28'
-                : 'w-16 h-22 sm:w-22 sm:h-32 md:w-28 md:h-40'
+                ? 'w-[54px] h-[76px] sm:w-[68px] sm:h-[95px] md:w-[80px] md:h-[112px]'
+                : 'w-[72px] h-[100px] sm:w-[90px] sm:h-[126px] md:w-[110px] md:h-[154px]'
             )}
           >
             <span className="text-[7px] sm:text-[9px] text-amber-200/40 text-center font-medium uppercase tracking-wider">

@@ -325,12 +325,19 @@ export default function RoomPage({ params }: { params: Promise<{ code: string }>
         </div>
       )}
 
-      {/* Game Over Scoreboard Modal */}
+      {/* Game Over Leaderboard Modal */}
       <GameOverModal
+        status={gameState.status}
         winner={gameState.winner}
+        rankings={gameState.rankings}
         players={gameState.players}
+        myPlayerId={gameState.myPlayerId}
         isHost={isHost}
         onPlayAgain={playAgain}
+        onExit={() => {
+          useGameStore.getState().leaveRoom();
+          router.push('/');
+        }}
       />
 
       {/* Rules Modal */}

@@ -20,6 +20,8 @@ export interface Player {
   rightDeck: Card[];   // Server-side right deck stack
   isBazaarOpen: boolean;
   floatingCard: Card | null;
+  isFinished?: boolean;
+  rank?: number | null;
 }
 
 export interface PlayerClientView {
@@ -35,6 +37,8 @@ export interface PlayerClientView {
   rightDeckCount: number;
   isBazaarOpen: boolean;
   hasFloatingCard: boolean;
+  isFinished?: boolean;
+  rank?: number | null;
 }
 
 export interface PenaltyReason {
@@ -97,4 +101,10 @@ export interface GameStateClientView {
     name: string;
     avatarColor: string;
   } | null;
+  rankings?: Array<{
+    playerId: string;
+    name: string;
+    avatarColor: string;
+    rank: number;
+  }>;
 }

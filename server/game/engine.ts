@@ -27,6 +27,7 @@ export class DukkiBazaarRoom {
   } | null = null;
   public penaltyHistory: PenaltyLog[] = [];
   public winner: Player | null = null;
+  public rankings: Array<{ playerId: string; name: string; avatarColor: string; rank: number }> = [];
   public activePenaltyAnimation: {
     fromPlayerIds: string[];
     toPlayerId: string;
@@ -74,6 +75,8 @@ export class DukkiBazaarRoom {
       rightDeck: [],
       isBazaarOpen: false,
       floatingCard: null,
+      isFinished: false,
+      rank: null,
     };
 
     this.players.push(player);
@@ -124,9 +127,9 @@ export class DukkiBazaarRoom {
     const wasHost = leavingPlayer.isHost;
     const wasCurrentTurn = (this.currentTurnIndex === idx);
 
-    // If game was playing, collect all cards of the leaving player
+    // If game was playing and player was still active (not finished), collect their cards
     const abandonedCards: Card[] = [];
-    if (this.status === 'PLAYING') {
+    if (this.status === 'PLAYING' && !leavingPlayer.isFinished) {
       if (leavingPlayer.hiddenCards.length > 0) {
         abandonedCards.push(...leavingPlayer.hiddenCards);
       }
@@ -157,26 +160,41 @@ export class DukkiBazaarRoom {
 
     // If game was playing, handle remaining game flow
     if (this.status === 'PLAYING') {
-      // If only 1 player remains, they win automatically!
-      if (this.players.length === 1) {
+      const remainingActive = this.players.filter(p => !p.isFinished);
+
+      // If 1 or 0 active players remain, wrap up the game!
+      if (remainingActive.length <= 1) {
+        if (remainingActive.length === 1) {
+          const lastPlayer = remainingActive[0];
+          lastPlayer.isFinished = true;
+          const finalRank = this.rankings.length + 1;
+          lastPlayer.rank = finalRank;
+          this.rankings.push({
+            playerId: lastPlayer.id,
+            name: lastPlayer.name,
+            avatarColor: lastPlayer.avatarColor,
+            rank: finalRank,
+          });
+          if (!this.winner) {
+            this.winner = lastPlayer;
+          }
+        }
         this.status = 'GAME_OVER';
-        this.winner = this.players[0];
         this.stopTurnTimer();
         this.notifyState();
         return;
       }
 
-      // Distribute abandoned cards among remaining players:
-      // "jo us user ke cards honge vo cards baki players mein half half chle jayenge (if odd then jiske paas cards sbse km honge uspe chla jayega extra)"
-      if (abandonedCards.length > 0) {
+      // Distribute abandoned cards only among ACTIVE (non-finished) remaining players!
+      if (abandonedCards.length > 0 && remainingActive.length > 0) {
         const shuffledAbandoned = shuffleDeck(abandonedCards);
-        const remCount = this.players.length;
+        const remCount = remainingActive.length;
         const baseCardsPerPlayer = Math.floor(shuffledAbandoned.length / remCount);
         const remainderCards = shuffledAbandoned.length % remCount;
 
-        // 1. Distribute equal base cards to each player's hidden deck
+        // 1. Distribute equal base cards to each active player's hidden deck
         let cardIdx = 0;
-        for (const remPlayer of this.players) {
+        for (const remPlayer of remainingActive) {
           const slice = shuffledAbandoned.slice(cardIdx, cardIdx + baseCardsPerPlayer);
           remPlayer.hiddenCards.push(...slice);
           cardIdx += baseCardsPerPlayer;
@@ -184,8 +202,7 @@ export class DukkiBazaarRoom {
 
         // 2. Distribute remainder cards to players with the fewest cards
         if (remainderCards > 0) {
-          // Sort remaining players by total cards (hidden + rightDeck) ascending
-          const sortedByCards = [...this.players].sort(
+          const sortedByCards = [...remainingActive].sort(
             (a, b) => (a.hiddenCards.length + a.rightDeck.length) - (b.hiddenCards.length + b.rightDeck.length)
           );
 
@@ -198,14 +215,15 @@ export class DukkiBazaarRoom {
 
       // Handle turn advancement
       if (wasCurrentTurn) {
-        // Turn was on the leaving player, advance to next player at this index
-        this.currentTurnIndex = idx % this.players.length;
-        this.startTurnTimer();
+        this.advanceTurn();
       } else if (idx < this.currentTurnIndex) {
         this.currentTurnIndex--;
-      }
-      if (this.currentTurnIndex >= this.players.length) {
-        this.currentTurnIndex = 0;
+        if (this.currentTurnIndex >= this.players.length) {
+          this.currentTurnIndex = 0;
+        }
+        if (this.players[this.currentTurnIndex]?.isFinished) {
+          this.advanceTurn();
+        }
       }
 
       this.lastMove = {
@@ -291,6 +309,8 @@ export class DukkiBazaarRoom {
       player.rightDeck = [];
       player.isBazaarOpen = false;
       player.floatingCard = null;
+      player.isFinished = false;
+      player.rank = null;
     }
 
     // Any remaining cards stay in unused stack
@@ -300,6 +320,7 @@ export class DukkiBazaarRoom {
     this.currentTurnIndex = 0;
     this.lastMove = null;
     this.winner = null;
+    this.rankings = [];
     this.penaltyHistory = [];
     this.activePenaltyAnimation = null;
 
@@ -507,10 +528,7 @@ export class DukkiBazaarRoom {
     };
 
     if (this.checkWinCondition(current)) {
-      this.status = 'GAME_OVER';
-      this.winner = current;
-      this.stopTurnTimer();
-      this.notifyState();
+      this.handlePlayerFinished(current);
       return { success: true, openedBazaar };
     }
 
@@ -593,10 +611,7 @@ export class DukkiBazaarRoom {
       };
 
       if (this.checkWinCondition(current)) {
-        this.status = 'GAME_OVER';
-        this.winner = current;
-        this.stopTurnTimer();
-        this.notifyState();
+        this.handlePlayerFinished(current);
         return { success: true };
       }
 
@@ -671,10 +686,7 @@ export class DukkiBazaarRoom {
       };
 
       if (this.checkWinCondition(current)) {
-        this.status = 'GAME_OVER';
-        this.winner = current;
-        this.stopTurnTimer();
-        this.notifyState();
+        this.handlePlayerFinished(current);
         return { success: true };
       }
 
@@ -789,7 +801,15 @@ export class DukkiBazaarRoom {
 
   private advanceTurn(): void {
     if (this.players.length === 0) return;
-    this.currentTurnIndex = (this.currentTurnIndex + 1) % this.players.length;
+    const activePlayers = this.players.filter(p => !p.isFinished);
+    if (activePlayers.length <= 1) return;
+
+    let attempts = 0;
+    do {
+      this.currentTurnIndex = (this.currentTurnIndex + 1) % this.players.length;
+      attempts++;
+    } while (this.players[this.currentTurnIndex]?.isFinished && attempts < this.players.length);
+
     this.startTurnTimer();
     this.notifyState();
   }
@@ -813,6 +833,51 @@ export class DukkiBazaarRoom {
 
   private checkWinCondition(player: Player): boolean {
     return player.hiddenCards.length === 0 && player.rightDeck.length === 0 && player.floatingCard === null;
+  }
+
+  public handlePlayerFinished(player: Player): boolean {
+    if (player.isFinished) return false;
+
+    player.isFinished = true;
+    const currentRank = this.rankings.length + 1;
+    player.rank = currentRank;
+    this.rankings.push({
+      playerId: player.id,
+      name: player.name,
+      avatarColor: player.avatarColor,
+      rank: currentRank,
+    });
+
+    if (!this.winner) {
+      this.winner = player;
+    }
+
+    const remainingActive = this.players.filter(p => !p.isFinished);
+
+    if (remainingActive.length <= 1) {
+      if (remainingActive.length === 1) {
+        const lastPlayer = remainingActive[0];
+        lastPlayer.isFinished = true;
+        const finalRank = this.rankings.length + 1;
+        lastPlayer.rank = finalRank;
+        this.rankings.push({
+          playerId: lastPlayer.id,
+          name: lastPlayer.name,
+          avatarColor: lastPlayer.avatarColor,
+          rank: finalRank,
+        });
+      }
+
+      this.status = 'GAME_OVER';
+      this.stopTurnTimer();
+      this.notifyState();
+      return true;
+    }
+
+    // Advance turn to next active player since this player is done
+    this.advanceTurn();
+    this.notifyState();
+    return false;
   }
 
   public passTurn(socketId: string): { success: boolean; error?: string } {
@@ -848,6 +913,8 @@ export class DukkiBazaarRoom {
       rightDeckCount: p.rightDeck.length,
       isBazaarOpen: p.isBazaarOpen,
       hasFloatingCard: p.floatingCard !== null,
+      isFinished: p.isFinished || false,
+      rank: p.rank || null,
     }));
 
     return {
@@ -869,6 +936,7 @@ export class DukkiBazaarRoom {
         name: this.winner.name,
         avatarColor: this.winner.avatarColor,
       } : null,
+      rankings: this.rankings,
     };
   }
 

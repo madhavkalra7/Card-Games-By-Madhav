@@ -20,6 +20,8 @@ export interface PlayerClientView {
   rightDeckCount: number;
   isBazaarOpen: boolean;
   hasFloatingCard: boolean;
+  isFinished?: boolean;
+  rank?: number | null;
 }
 
 export interface PenaltyLog {
@@ -77,4 +79,10 @@ export interface GameStateClientView {
     name: string;
     avatarColor: string;
   } | null;
+  rankings?: Array<{
+    playerId: string;
+    name: string;
+    avatarColor: string;
+    rank: number;
+  }>;
 }

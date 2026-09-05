@@ -14,6 +14,7 @@ import { useGameStore } from '@/store/gameStore';
 import { VoiceControls } from '../voice/VoiceControls';
 import { useViewportOrientation } from '@/hooks/useViewportOrientation';
 import { BookOpen, Check, Copy, LogOut, Volume2, VolumeX } from 'lucide-react';
+import { cn } from '@/lib/utils';
 
 interface PokerTableProps {
   state: GameStateClientView;
@@ -78,7 +79,9 @@ export const PokerTable: React.FC<PokerTableProps> = ({
   const getSeatPositionClass = (idx: number, count: number): string => {
     // Current player (Self) is always at bottom center
     if (idx === 0) {
-      return 'bottom-1 sm:bottom-2 md:bottom-4 left-1/2 -translate-x-1/2';
+      return isLandscape
+        ? 'bottom-0.5 sm:bottom-1 md:bottom-3 left-1/2 -translate-x-1/2'
+        : 'bottom-1 sm:bottom-2 md:bottom-4 left-1/2 -translate-x-1/2';
     }
 
     // 2-Player (Self + 1 Opponent)
@@ -92,8 +95,8 @@ export const PokerTable: React.FC<PokerTableProps> = ({
     if (count === 3) {
       if (isLandscape) {
         // Landscape: Opponents on Left and Right flanks
-        if (idx === 1) return 'top-1/2 -translate-y-1/2 left-1 sm:left-4 md:left-8';
-        if (idx === 2) return 'top-1/2 -translate-y-1/2 right-1 sm:right-4 md:right-8';
+        if (idx === 1) return 'top-1/2 -translate-y-1/2 left-1.5 sm:left-4 md:left-8';
+        if (idx === 2) return 'top-1/2 -translate-y-1/2 right-1.5 sm:right-4 md:right-8';
       } else {
         // Portrait: Opponents arched across the top
         if (idx === 1) return 'top-10 sm:top-14 left-1 sm:left-4 md:left-8';
@@ -105,11 +108,11 @@ export const PokerTable: React.FC<PokerTableProps> = ({
     if (count === 4) {
       if (isLandscape) {
         // Landscape: Left flank, Top center (compact), Right flank
-        if (idx === 1) return 'top-1/2 -translate-y-1/2 left-1 sm:left-3 md:left-8';
+        if (idx === 1) return 'top-1/2 -translate-y-1/2 left-1.5 sm:left-3 md:left-8';
         if (idx === 2) return 'top-1 sm:top-2 left-1/2 -translate-x-1/2';
-        if (idx === 3) return 'top-1/2 -translate-y-1/2 right-1 sm:right-3 md:right-8';
+        if (idx === 3) return 'top-1/2 -translate-y-1/2 right-1.5 sm:right-3 md:right-8';
       } else {
-        // Portrait: 3 opponents arched across the top (zero collision with center bazaar!)
+        // Portrait: 3 opponents arched across the top
         if (idx === 1) return 'top-14 sm:top-16 left-1 sm:left-3';
         if (idx === 2) return 'top-9 sm:top-11 left-1/2 -translate-x-1/2';
         if (idx === 3) return 'top-14 sm:top-16 right-1 sm:right-3';
@@ -120,11 +123,10 @@ export const PokerTable: React.FC<PokerTableProps> = ({
     if (count >= 5) {
       if (isLandscape) {
         // Landscape: 2 on Left flank (top & bottom), 2 on Right flank (top & bottom)
-        // Leaving vertical center channel 100% CLEAR for Center Bazaar!
-        if (idx === 1) return 'top-[20%] -translate-y-1/2 left-1 sm:left-3 md:left-6';
-        if (idx === 2) return 'top-[74%] -translate-y-1/2 left-1 sm:left-3 md:left-6';
-        if (idx === 3) return 'top-[20%] -translate-y-1/2 right-1 sm:right-3 md:right-6';
-        if (idx === 4) return 'top-[74%] -translate-y-1/2 right-1 sm:right-3 md:right-6';
+        if (idx === 1) return 'top-[22%] -translate-y-1/2 left-1.5 sm:left-3 md:left-6';
+        if (idx === 2) return 'top-[72%] -translate-y-1/2 left-1.5 sm:left-3 md:left-6';
+        if (idx === 3) return 'top-[22%] -translate-y-1/2 right-1.5 sm:right-3 md:right-6';
+        if (idx === 4) return 'top-[72%] -translate-y-1/2 right-1.5 sm:right-3 md:right-6';
       } else {
         // Portrait: 4 opponents in an arched semi-circle across the top
         if (idx === 1) return 'top-[16%] left-0.5 sm:left-2';
@@ -139,9 +141,11 @@ export const PokerTable: React.FC<PokerTableProps> = ({
 
   // Card size calculation per seat
   const getPlayerCardSize = (isSelf: boolean, total: number): 'xxs' | 'xs' | 'sm' | 'md' => {
-    if (isSelf) return 'sm';
+    if (isSelf) {
+      if (isLandscape && isMobile) return 'xs';
+      return 'sm';
+    }
     if (total >= 5 && isMobile) return 'xxs';
-    if (isMobile) return 'xs';
     return 'xs';
   };
 
@@ -211,7 +215,14 @@ export const PokerTable: React.FC<PokerTableProps> = ({
           </div>
 
           {/* Center Bazaar with 4 Center Decks - Centered in Felt */}
-          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-10 pointer-events-auto">
+          <div
+            className={cn(
+              "absolute left-1/2 -translate-x-1/2 z-10 pointer-events-auto transition-all",
+              isLandscape
+                ? "top-[36%] -translate-y-1/2 scale-[0.88] sm:scale-100"
+                : "top-1/2 -translate-y-1/2"
+            )}
+          >
             <CenterBazaar
               centerDecks={centerDecks || []}
               baseRank={centerBaseRank}
@@ -219,6 +230,7 @@ export const PokerTable: React.FC<PokerTableProps> = ({
               floatingCard={myFloatingCard}
               isMyTurn={isMyTurn}
               onPlaceCenter={onPlaceCenter}
+              cardSize={isLandscape && isMobile ? 'xs' : 'sm'}
             />
           </div>
 

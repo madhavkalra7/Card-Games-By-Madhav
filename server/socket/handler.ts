@@ -90,15 +90,25 @@ export function setupSocketHandlers(io: SocketIOServer) {
           return callback({ success: false, error: 'Room not found. Check the 6-character code.' });
         }
 
-        // Cancel any pending 60s disconnect timer for this session
+        // Cancel any pending disconnect timer for this session
         const timerKey = `${code}:${data.sessionId}`;
         if (disconnectTimers.has(timerKey)) {
           clearTimeout(disconnectTimers.get(timerKey)!);
           disconnectTimers.delete(timerKey);
         }
 
-        // Check if player is reconnecting
-        const reconnected = room.reconnectPlayer(data.sessionId, socket.id);
+        // Check if player is reconnecting (by sessionId first, then by name fallback)
+        let reconnected = room.reconnectPlayer(data.sessionId, socket.id);
+        if (!reconnected && data.name) {
+          const matchedPlayer = room.players.find(
+            p => p.name.trim().toLowerCase() === data.name.trim().toLowerCase()
+          );
+          if (matchedPlayer) {
+            matchedPlayer.sessionId = data.sessionId;
+            reconnected = room.reconnectPlayer(data.sessionId, socket.id);
+          }
+        }
+
         if (!reconnected) {
           // New player joining
           room.addPlayer({
@@ -359,25 +369,29 @@ export function setupSocketHandlers(io: SocketIOServer) {
           room.markDisconnected(socket.id);
           broadcastRoomState(room);
 
-          // 60-second reconnect window
-          const timerKey = `${currentRoomCode}:${playerSessionId}`;
-          const timer = setTimeout(() => {
-            disconnectTimers.delete(timerKey);
-            const targetRoom = activeRooms.get(currentRoomCode!);
-            if (targetRoom) {
-              const disconnectedPlayer = targetRoom.players.find(p => p.sessionId === playerSessionId);
-              if (disconnectedPlayer && !disconnectedPlayer.isConnected) {
-                targetRoom.removePlayer(disconnectedPlayer.id);
-                if (targetRoom.players.length === 0) {
-                  activeRooms.delete(currentRoomCode!);
-                } else {
-                  broadcastRoomState(targetRoom);
+          // Only auto-remove disconnected players during LOBBY phase!
+          // During active PLAYING game, DO NOT kick players on disconnect to prevent premature victory.
+          // Players can seamlessly reconnect back to their ongoing match anytime.
+          if (room.status === 'LOBBY') {
+            const timerKey = `${currentRoomCode}:${playerSessionId}`;
+            const timer = setTimeout(() => {
+              disconnectTimers.delete(timerKey);
+              const targetRoom = activeRooms.get(currentRoomCode!);
+              if (targetRoom && targetRoom.status === 'LOBBY') {
+                const disconnectedPlayer = targetRoom.players.find(p => p.sessionId === playerSessionId);
+                if (disconnectedPlayer && !disconnectedPlayer.isConnected) {
+                  targetRoom.removePlayer(disconnectedPlayer.id);
+                  if (targetRoom.players.length === 0) {
+                    activeRooms.delete(currentRoomCode!);
+                  } else {
+                    broadcastRoomState(targetRoom);
+                  }
                 }
               }
-            }
-          }, 60000);
+            }, 60000);
 
-          disconnectTimers.set(timerKey, timer);
+            disconnectTimers.set(timerKey, timer);
+          }
         }
       }
     });

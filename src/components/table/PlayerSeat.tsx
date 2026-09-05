@@ -148,15 +148,32 @@ export const PlayerSeat: React.FC<PlayerSeatProps> = ({
 
         {/* Disconnected Indicator */}
         {!player.isConnected && (
-          <div title="Player disconnected (60s reconnect grace)">
+          <div title="Player disconnected (can reconnect anytime)">
             <WifiOff className="w-3 h-3 text-red-400 animate-pulse" />
           </div>
         )}
 
         {/* Turn indicator glow pill */}
-        {isCurrentTurn && (
+        {isCurrentTurn && !player.isFinished && (
           <div className="absolute -top-2 left-1/2 -translate-x-1/2 bg-gold text-black text-[8px] sm:text-[9px] font-black px-1.5 py-0.2 rounded-full uppercase tracking-wider shadow">
             Turn
+          </div>
+        )}
+
+        {/* Finished / Winner Podium Badge */}
+        {player.isFinished && player.rank && (
+          <div
+            className={cn(
+              'absolute -top-3 sm:-top-3.5 left-1/2 -translate-x-1/2 z-30 flex items-center gap-1 px-2 sm:px-2.5 py-0.5 rounded-full font-black text-[8px] sm:text-[10px] tracking-wider uppercase shadow-xl whitespace-nowrap border',
+              player.rank === 1 && 'bg-gradient-to-r from-amber-400 via-yellow-300 to-amber-500 text-black border-yellow-100 shadow-gold-glow animate-pulse',
+              player.rank === 2 && 'bg-gradient-to-r from-slate-200 via-zinc-100 to-slate-300 text-zinc-900 border-white shadow-lg',
+              player.rank === 3 && 'bg-gradient-to-r from-amber-700 via-orange-600 to-amber-800 text-amber-100 border-amber-400/60 shadow-lg',
+              player.rank > 3 && 'bg-zinc-800 text-zinc-300 border-zinc-600'
+            )}
+          >
+            <span>
+              {player.rank === 1 ? '🥇 1st Place' : player.rank === 2 ? '🥈 2nd Place' : player.rank === 3 ? '🥉 3rd Place' : `${player.rank}th Place`}
+            </span>
           </div>
         )}
       </div>

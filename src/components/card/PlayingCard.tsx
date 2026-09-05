@@ -54,12 +54,12 @@ export const PlayingCard: React.FC<PlayingCardProps> = ({
 }) => {
   // Dimension scale based on authentic poker card ratio (~2.5 x 3.5 inches -> 1:1.4)
   const sizeClasses = {
-    xxs: 'w-8 h-11 text-[8px]',
-    xs: 'w-9 h-13 sm:w-10 sm:h-14 text-[8px] sm:text-[9px]',
-    sm: 'w-10 h-14 sm:w-12 sm:h-16 md:w-14 md:h-20 text-[9px] sm:text-[10px] md:text-xs',
-    md: 'w-12 h-16 sm:w-16 sm:h-22 md:w-20 md:h-28 text-[10px] sm:text-xs md:text-sm',
-    lg: 'w-16 h-22 sm:w-22 sm:h-32 md:w-28 md:h-40 text-xs sm:text-sm md:text-lg',
-    xl: 'w-24 h-34 sm:w-36 sm:h-52 text-sm sm:text-2xl',
+    xxs: 'w-[32px] h-[45px] text-[8px]',
+    xs: 'w-[38px] h-[53px] sm:w-[44px] sm:h-[62px] text-[8px] sm:text-[9px]',
+    sm: 'w-[44px] h-[62px] sm:w-[54px] sm:h-[76px] md:w-[62px] md:h-[87px] text-[9px] sm:text-[10px] md:text-xs',
+    md: 'w-[54px] h-[76px] sm:w-[68px] sm:h-[95px] md:w-[80px] md:h-[112px] text-[10px] sm:text-xs md:text-sm',
+    lg: 'w-[72px] h-[100px] sm:w-[90px] sm:h-[126px] md:w-[110px] md:h-[154px] text-xs sm:text-sm md:text-lg',
+    xl: 'w-[100px] h-[140px] sm:w-[150px] sm:h-[210px] text-sm sm:text-2xl',
   }[size];
 
   if (faceDown || !card) {

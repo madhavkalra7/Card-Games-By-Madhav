@@ -109,6 +109,10 @@ export function setupSocketHandlers(io: SocketIOServer) {
           });
         }
 
+        if (currentRoomCode && currentRoomCode !== code) {
+          socket.leave(currentRoomCode);
+        }
+
         currentRoomCode = code;
         playerSessionId = data.sessionId;
 
@@ -284,6 +288,58 @@ export function setupSocketHandlers(io: SocketIOServer) {
       if (callback) callback({ success: true });
     });
 
+    // ==========================================
+    // Explicit Player Leave Room
+    // ==========================================
+    socket.on('leaveRoom', (data: { roomCode: string }, callback) => {
+      try {
+        const code = data.roomCode?.trim().toUpperCase();
+        if (code) {
+          const room = activeRooms.get(code);
+          if (room) {
+            // Cancel any pending disconnect timer for this session
+            if (playerSessionId) {
+              const timerKey = `${code}:${playerSessionId}`;
+              if (disconnectTimers.has(timerKey)) {
+                clearTimeout(disconnectTimers.get(timerKey)!);
+                disconnectTimers.delete(timerKey);
+              }
+            }
+
+            // Remove player from game engine (distributing cards if PLAYING)
+            room.removePlayer(socket.id);
+
+            // Clean up voice participation
+            if (voiceRooms.has(code)) {
+              const voiceRoom = voiceRooms.get(code)!;
+              if (voiceRoom.has(socket.id)) {
+                voiceRoom.delete(socket.id);
+                socket.to(code).emit('voice:peer-left', { peerId: socket.id });
+                if (voiceRoom.size === 0) {
+                  voiceRooms.delete(code);
+                }
+              }
+            }
+
+            // Unsubscribe socket from room channel
+            socket.leave(code);
+
+            // Broadcast new state to remaining players
+            if (room.players.length === 0) {
+              activeRooms.delete(code);
+            } else {
+              broadcastRoomState(room);
+            }
+          }
+        }
+
+        currentRoomCode = null;
+        if (callback) callback({ success: true });
+      } catch (err: any) {
+        if (callback) callback({ success: false, error: err.message });
+      }
+    });
+
     socket.on('disconnect', () => {
       // Clean up voice chat participation on disconnect
       if (currentRoomCode && voiceRooms.has(currentRoomCode)) {
@@ -311,10 +367,12 @@ export function setupSocketHandlers(io: SocketIOServer) {
             if (targetRoom) {
               const disconnectedPlayer = targetRoom.players.find(p => p.sessionId === playerSessionId);
               if (disconnectedPlayer && !disconnectedPlayer.isConnected) {
-                if (targetRoom.status === 'LOBBY') {
-                  targetRoom.removePlayer(disconnectedPlayer.id);
+                targetRoom.removePlayer(disconnectedPlayer.id);
+                if (targetRoom.players.length === 0) {
+                  activeRooms.delete(currentRoomCode!);
+                } else {
+                  broadcastRoomState(targetRoom);
                 }
-                broadcastRoomState(targetRoom);
               }
             }
           }, 60000);

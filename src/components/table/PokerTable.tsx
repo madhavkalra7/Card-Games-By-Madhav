@@ -1,12 +1,13 @@
 'use client';
 
 import React, { useState } from 'react';
-import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { GameStateClientView, PlayerClientView } from '@/lib/types';
 import { PlayerSeat } from './PlayerSeat';
 import { CenterBazaar } from './CenterBazaar';
 import { DraggableTurnCard } from '../card/DraggableTurnCard';
 import { FlyingPenaltyOverlay } from './FlyingPenaltyOverlay';
+import { ExitConfirmModal } from '../modal/ExitConfirmModal';
 import { canPlayOnAnyCenterDeck, canPlayOnOtherRightDeck } from '@/lib/validator';
 import { sounds } from '@/lib/sound';
 import { useGameStore } from '@/store/gameStore';
@@ -42,10 +43,12 @@ export const PokerTable: React.FC<PokerTableProps> = ({
     activePenaltyAnimation,
   } = state;
 
-  const { setRulesModalOpen, showToast } = useGameStore();
+  const { setRulesModalOpen, showToast, leaveRoom } = useGameStore();
+  const router = useRouter();
   const { isLandscape, isMobile } = useViewportOrientation();
   const [copied, setCopied] = useState(false);
   const [isMuted, setIsMuted] = useState(sounds.getMuted());
+  const [showExitModal, setShowExitModal] = useState(false);
 
   const me = players.find(p => p.id === myPlayerId);
   const isMyTurn = currentTurnPlayerId === myPlayerId;
@@ -198,13 +201,13 @@ export const PokerTable: React.FC<PokerTableProps> = ({
             >
               {isMuted ? <VolumeX className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-red-400" /> : <Volume2 className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-emerald-400" />}
             </button>
-            <Link
-              href="/"
+            <button
+              onClick={() => setShowExitModal(true)}
               title="Leave Room"
-              className="p-1 sm:p-1.5 rounded-full bg-red-950/60 backdrop-blur-md border border-red-800/60 text-red-300 hover:text-white shadow transition-all"
+              className="p-1 sm:p-1.5 rounded-full bg-red-950/60 backdrop-blur-md border border-red-800/60 text-red-300 hover:text-white shadow transition-all active:scale-95"
             >
               <LogOut className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
-            </Link>
+            </button>
           </div>
 
           {/* Center Bazaar with 4 Center Decks - Centered in Felt */}
@@ -284,6 +287,18 @@ export const PokerTable: React.FC<PokerTableProps> = ({
 
       {/* Auto-Penalty Flying Cards Animation Overlay */}
       <FlyingPenaltyOverlay animationData={activePenaltyAnimation || null} />
+
+      {/* Clean Exit Confirmation Modal */}
+      <ExitConfirmModal
+        isOpen={showExitModal}
+        onClose={() => setShowExitModal(false)}
+        onConfirm={() => {
+          setShowExitModal(false);
+          leaveRoom();
+          router.push('/');
+        }}
+        isPlaying={state.status === 'PLAYING'}
+      />
     </div>
   );
 };

@@ -11,7 +11,7 @@ interface DraggableTurnCardProps {
   card: Card | null;
   onDropCenter: (targetSuit?: any) => void;
   onDropRightDeck: (targetPlayerId: string) => void;
-  timeRemaining: number;
+  timeRemaining?: number;
   isLandscape?: boolean;
 }
 
@@ -19,14 +19,11 @@ export const DraggableTurnCard: React.FC<DraggableTurnCardProps> = ({
   card,
   onDropCenter,
   onDropRightDeck,
-  timeRemaining,
   isLandscape = true,
 }) => {
   const [isDragging, setIsDragging] = useState(false);
 
   if (!card) return null;
-
-  const isTimerLow = timeRemaining <= 10;
 
   const handleDragEnd = (event: MouseEvent | TouchEvent | PointerEvent, info: PanInfo) => {
     setIsDragging(false);
@@ -66,16 +63,11 @@ export const DraggableTurnCard: React.FC<DraggableTurnCardProps> = ({
           : 'bottom-20 sm:bottom-28 md:bottom-32'
       )}
     >
-      {/* 30s Turn Timer Pill */}
-      <div className="mb-1 flex items-center gap-1 sm:gap-1.5 bg-black/85 backdrop-blur-md px-2 sm:px-3 py-0.5 rounded-full border border-gold/50 shadow-xl">
-        <span className="text-[9px] sm:text-[10px] text-zinc-300 font-semibold">Your Turn:</span>
-        <span
-          className={cn(
-            'text-[9px] sm:text-[10px] font-black px-1.5 py-0.2 rounded-full font-mono',
-            isTimerLow ? 'bg-red-600 text-white animate-pulse' : 'bg-gold text-black'
-          )}
-        >
-          {timeRemaining}s
+      {/* Turn Status Pill */}
+      <div className="mb-1 flex items-center gap-1.5 bg-black/85 backdrop-blur-md px-3 py-0.5 rounded-full border border-gold/50 shadow-xl">
+        <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+        <span className="text-[9px] sm:text-[10px] font-black text-gold uppercase tracking-wider">
+          Your Turn
         </span>
       </div>
 

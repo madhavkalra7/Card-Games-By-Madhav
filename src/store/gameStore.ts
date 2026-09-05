@@ -37,6 +37,7 @@ interface GameStore {
   requestPenalty: (targetPlayerId: string, reason: 'MISSED_CENTER' | 'WRONG_CARD_PLAYED' | 'INVALID_SEQUENCE') => Promise<{ success: boolean; error?: string }>;
   kickPlayer: (targetPlayerId: string) => void;
   playAgain: () => void;
+  leaveRoom: () => void;
 }
 
 const saved = getSavedProfile();
@@ -93,6 +94,13 @@ export const useGameStore = create<GameStore>((set, get) => ({
       });
 
       s.on('syncState', (state: GameStateClientView) => {
+        const currentRoomCode = get().roomCode;
+
+        // Isolate room state: Drop updates for rooms the client is not in
+        if (currentRoomCode && state.roomCode !== currentRoomCode) {
+          return;
+        }
+
         const prevState = get().gameState;
 
         // Detect sounds and transitions
@@ -361,6 +369,20 @@ export const useGameStore = create<GameStore>((set, get) => ({
       if (!res.success) {
         get().showToast(res.error || 'Could not restart match', 'error');
       }
+    });
+  },
+
+  leaveRoom: () => {
+    const socket = getSocket();
+    const { roomCode } = get();
+    if (roomCode) {
+      socket.emit('leaveRoom', { roomCode }, () => {});
+    }
+    set({
+      gameState: null,
+      roomCode: '',
+      isPenaltyModalOpen: false,
+      isRulesModalOpen: false,
     });
   },
 }));

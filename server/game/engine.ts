@@ -118,19 +118,104 @@ export class DukkiBazaarRoom {
 
   public removePlayer(socketId: string): void {
     const idx = this.players.findIndex(p => p.id === socketId);
-    if (idx !== -1) {
-      const wasHost = this.players[idx].isHost;
-      this.players.splice(idx, 1);
-      if (wasHost && this.players.length > 0) {
-        this.players[0].isHost = true;
+    if (idx === -1) return;
+
+    const leavingPlayer = this.players[idx];
+    const wasHost = leavingPlayer.isHost;
+    const wasCurrentTurn = (this.currentTurnIndex === idx);
+
+    // If game was playing, collect all cards of the leaving player
+    const abandonedCards: Card[] = [];
+    if (this.status === 'PLAYING') {
+      if (leavingPlayer.hiddenCards.length > 0) {
+        abandonedCards.push(...leavingPlayer.hiddenCards);
       }
-      this.players.forEach((p, i) => { p.seatIndex = i; });
-      if (this.players.length === 0) {
-        this.cleanup();
-      } else {
-        this.notifyState();
+      if (leavingPlayer.rightDeck.length > 0) {
+        abandonedCards.push(...leavingPlayer.rightDeck);
+      }
+      if (leavingPlayer.floatingCard) {
+        abandonedCards.push(leavingPlayer.floatingCard);
       }
     }
+
+    // Remove player from room
+    this.players.splice(idx, 1);
+
+    // Handle host reassignment
+    if (wasHost && this.players.length > 0) {
+      this.players[0].isHost = true;
+    }
+
+    // Re-index seats
+    this.players.forEach((p, i) => { p.seatIndex = i; });
+
+    // If no players remain
+    if (this.players.length === 0) {
+      this.cleanup();
+      return;
+    }
+
+    // If game was playing, handle remaining game flow
+    if (this.status === 'PLAYING') {
+      // If only 1 player remains, they win automatically!
+      if (this.players.length === 1) {
+        this.status = 'GAME_OVER';
+        this.winner = this.players[0];
+        this.stopTurnTimer();
+        this.notifyState();
+        return;
+      }
+
+      // Distribute abandoned cards among remaining players:
+      // "jo us user ke cards honge vo cards baki players mein half half chle jayenge (if odd then jiske paas cards sbse km honge uspe chla jayega extra)"
+      if (abandonedCards.length > 0) {
+        const shuffledAbandoned = shuffleDeck(abandonedCards);
+        const remCount = this.players.length;
+        const baseCardsPerPlayer = Math.floor(shuffledAbandoned.length / remCount);
+        const remainderCards = shuffledAbandoned.length % remCount;
+
+        // 1. Distribute equal base cards to each player's hidden deck
+        let cardIdx = 0;
+        for (const remPlayer of this.players) {
+          const slice = shuffledAbandoned.slice(cardIdx, cardIdx + baseCardsPerPlayer);
+          remPlayer.hiddenCards.push(...slice);
+          cardIdx += baseCardsPerPlayer;
+        }
+
+        // 2. Distribute remainder cards to players with the fewest cards
+        if (remainderCards > 0) {
+          // Sort remaining players by total cards (hidden + rightDeck) ascending
+          const sortedByCards = [...this.players].sort(
+            (a, b) => (a.hiddenCards.length + a.rightDeck.length) - (b.hiddenCards.length + b.rightDeck.length)
+          );
+
+          for (let r = 0; r < remainderCards; r++) {
+            const recipient = sortedByCards[r % sortedByCards.length];
+            recipient.hiddenCards.push(shuffledAbandoned[cardIdx + r]);
+          }
+        }
+      }
+
+      // Handle turn advancement
+      if (wasCurrentTurn) {
+        // Turn was on the leaving player, advance to next player at this index
+        this.currentTurnIndex = idx % this.players.length;
+        this.startTurnTimer();
+      } else if (idx < this.currentTurnIndex) {
+        this.currentTurnIndex--;
+      }
+      if (this.currentTurnIndex >= this.players.length) {
+        this.currentTurnIndex = 0;
+      }
+
+      this.lastMove = {
+        playerId: leavingPlayer.id,
+        action: 'TIMEOUT',
+        timestamp: Date.now(),
+      };
+    }
+
+    this.notifyState();
   }
 
   public startGame(hostSocketId: string): { success: boolean; error?: string } {
@@ -711,16 +796,8 @@ export class DukkiBazaarRoom {
 
   private startTurnTimer(): void {
     this.stopTurnTimer();
-    this.turnTimeRemaining = 30;
-
-    this.turnInterval = setInterval(() => {
-      this.turnTimeRemaining -= 1;
-      if (this.turnTimeRemaining <= 0) {
-        this.handleTimeout();
-      } else {
-        this.notifyState();
-      }
-    }, 1000);
+    // Turn timer completely disabled per rules: Cards never disappear or expire
+    this.turnTimeRemaining = 0;
   }
 
   private stopTurnTimer(): void {
@@ -731,22 +808,7 @@ export class DukkiBazaarRoom {
   }
 
   private handleTimeout(): void {
-    const current = this.getCurrentPlayer();
-    if (current && current.floatingCard) {
-      // Put card back into hidden deck
-      current.hiddenCards.unshift(current.floatingCard);
-      current.floatingCard = null;
-    }
-
-    if (current) {
-      this.lastMove = {
-        playerId: current.id,
-        action: 'TIMEOUT',
-        timestamp: Date.now(),
-      };
-    }
-
-    this.advanceTurn();
+    // Disabled: Turn does not time out automatically
   }
 
   private checkWinCondition(player: Player): boolean {

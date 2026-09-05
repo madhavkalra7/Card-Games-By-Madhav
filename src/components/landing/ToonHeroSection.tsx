@@ -2,10 +2,11 @@
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { ArrowLeft, ArrowRight, Gamepad2, Plus, Users, Music, User } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Gamepad2, Plus, Users, Music, User, Trophy } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { funkyMusic } from '@/lib/funkyMusic';
 import { useAuthStore } from '@/store/authStore';
+import { useFriendsStore } from '@/store/friendsStore';
 import { getAvatarById } from '@/lib/avatars';
 
 const IMAGES = [
@@ -74,6 +75,7 @@ export const ToonHeroSection: React.FC<ToonHeroSectionProps> = ({
   const checkAuth = useAuthStore((s) => s.checkAuth);
   const setAuthModalOpen = useAuthStore((s) => s.setAuthModalOpen);
   const setProfileModalOpen = useAuthStore((s) => s.setProfileModalOpen);
+  const setFriendsModalOpen = useFriendsStore((s) => s.setFriendsModalOpen);
 
   // Preload all 4 images on mount and manage background funky music & auth check
   useEffect(() => {
@@ -273,6 +275,18 @@ export const ToonHeroSection: React.FC<ToonHeroSectionProps> = ({
                   <span className="text-[10px] sm:text-xs tracking-wider">PLAY MUSIC</span>
                 </>
               )}
+            </button>
+
+            {/* Rankings & Friends Modal Button */}
+            <button
+              type="button"
+              onClick={() => setFriendsModalOpen(true, 'leaderboard')}
+              className="flex items-center gap-1 sm:gap-1.5 px-3 sm:px-3.5 py-1 sm:py-1.5 rounded-full bg-white/15 hover:bg-white/25 backdrop-blur-md border border-white/25 text-white text-[11px] sm:text-xs font-bold transition-all shadow-sm active:scale-95 cursor-pointer"
+              title="Global Tournament Rankings & Friends"
+            >
+              <Trophy className="w-3.5 h-3.5 text-amber-300" />
+              <span className="hidden sm:inline">Rankings</span>
+              <span className="sm:hidden">Wins</span>
             </button>
 
             <Link

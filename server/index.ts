@@ -8,8 +8,9 @@ import next from 'next';
 import cors from 'cors';
 import { setupSocketHandlers } from './socket/handler';
 import net from 'net';
-import { connectDB } from './db';
+import { connectDB, getGlobalLeaderboard, getUserFriendsList, addUserFriend } from './db';
 import { authRouter } from './routes/auth';
+import { verifyAuthToken } from '../src/lib/auth-token';
 
 const defaultPort = parseInt(process.env.PORT || '3000', 10);
 const dev = process.env.NODE_ENV !== 'production';
@@ -101,6 +102,56 @@ async function bootstrap() {
 
   // Authentication & Profile endpoints
   app.use('/api/auth', authRouter);
+
+  // Global Leaderboard endpoint
+  app.get('/api/leaderboard', async (req, res) => {
+    try {
+      const leaderboard = await getGlobalLeaderboard(50);
+      res.json({ success: true, leaderboard });
+    } catch (err: any) {
+      res.status(500).json({ success: false, error: err.message });
+    }
+  });
+
+  // Friends endpoints
+  app.get('/api/friends', async (req, res) => {
+    try {
+      const authHeader = req.headers.authorization;
+      let token = authHeader?.startsWith('Bearer ') ? authHeader.substring(7) : null;
+      if (!token && req.headers.cookie) {
+        const match = req.headers.cookie.match(/cg_auth_token=([^;]+)/);
+        if (match) token = match[1];
+      }
+      if (!token) return res.json({ success: false, friends: [] });
+      const payload = verifyAuthToken(token);
+      if (!payload) return res.json({ success: false, friends: [] });
+      const friends = await getUserFriendsList(payload.userId);
+      res.json({ success: true, friends });
+    } catch (err: any) {
+      res.status(500).json({ success: false, error: err.message });
+    }
+  });
+
+  app.post('/api/friends', async (req, res) => {
+    try {
+      const authHeader = req.headers.authorization;
+      let token = authHeader?.startsWith('Bearer ') ? authHeader.substring(7) : null;
+      if (!token && req.headers.cookie) {
+        const match = req.headers.cookie.match(/cg_auth_token=([^;]+)/);
+        if (match) token = match[1];
+      }
+      if (!token) return res.status(401).json({ success: false, error: 'Unauthorized' });
+      const payload = verifyAuthToken(token);
+      if (!payload) return res.status(401).json({ success: false, error: 'Unauthorized' });
+
+      const { friendEmailOrName } = req.body || {};
+      if (!friendEmailOrName) return res.status(400).json({ success: false, error: 'Provide friend name or email' });
+      const result = await addUserFriend(payload.userId, friendEmailOrName);
+      res.json(result);
+    } catch (err: any) {
+      res.status(500).json({ success: false, error: err.message });
+    }
+  });
 
   // Next.js App Router & Pages
   app.all('*', (req, res) => {

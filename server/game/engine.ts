@@ -2,6 +2,30 @@ import { Card, GameStateClientView, PenaltyLog, Player, PlayerClientView, Rank, 
 import { createDeck, getNextRank, shuffleDeck } from './deck';
 import { canPlayOnAnyCenterDeck, canPlayOnCenterDeck, canPlayOnOtherRightDeck } from './validator';
 
+export function calculateRankPoints(rank: number, totalPlayers: number): number {
+  if (totalPlayers >= 5) {
+    if (rank === 1) return 2000;
+    if (rank === 2) return 1000;
+    if (rank === 3) return 500;
+    if (rank === 4) return 250;
+    if (rank === 5) return 100;
+  } else if (totalPlayers === 4) {
+    if (rank === 1) return 2000;
+    if (rank === 2) return 1000;
+    if (rank === 3) return 500;
+    if (rank === 4) return 250;
+  } else if (totalPlayers === 3) {
+    if (rank === 1) return 2000;
+    if (rank === 2) return 1000;
+    if (rank === 3) return 500;
+  } else {
+    // 2 players
+    if (rank === 1) return 2000;
+    if (rank === 2) return 500;
+  }
+  return 100;
+}
+
 export class DukkiBazaarRoom {
   public roomCode: string;
   public status: 'LOBBY' | 'PLAYING' | 'GAME_OVER' = 'LOBBY';
@@ -27,7 +51,14 @@ export class DukkiBazaarRoom {
   } | null = null;
   public penaltyHistory: PenaltyLog[] = [];
   public winner: Player | null = null;
-  public rankings: Array<{ playerId: string; name: string; avatarColor: string; rank: number }> = [];
+  public rankings: Array<{ 
+    playerId: string; 
+    name: string; 
+    avatarColor: string; 
+    rank: number;
+    scoreEarned?: number;
+    totalScore?: number;
+  }> = [];
   public activePenaltyAnimation: {
     fromPlayerIds: string[];
     toPlayerId: string;
@@ -39,10 +70,12 @@ export class DukkiBazaarRoom {
 
   private turnInterval: NodeJS.Timeout | null = null;
   private onStateChange: () => void;
+  private onGameOver?: (room: DukkiBazaarRoom) => void;
 
-  constructor(roomCode: string, onStateChange: () => void) {
+  constructor(roomCode: string, onStateChange: () => void, onGameOver?: (room: DukkiBazaarRoom) => void) {
     this.roomCode = roomCode;
     this.onStateChange = onStateChange;
+    this.onGameOver = onGameOver;
   }
 
   public addPlayer(data: { id: string; sessionId: string; name: string; avatarColor: string }): Player {
@@ -179,9 +212,15 @@ export class DukkiBazaarRoom {
             this.winner = lastPlayer;
           }
         }
+        // Compute score rewards for all players
+        const totalMatchPlayers = this.players.length;
+        for (const r of this.rankings) {
+          r.scoreEarned = calculateRankPoints(r.rank, totalMatchPlayers);
+        }
         this.status = 'GAME_OVER';
         this.stopTurnTimer();
         this.notifyState();
+        this.onGameOver?.(this);
         return;
       }
 
@@ -868,9 +907,16 @@ export class DukkiBazaarRoom {
         });
       }
 
+      // Compute score rewards for all players
+      const totalMatchPlayers = this.players.length;
+      for (const r of this.rankings) {
+        r.scoreEarned = calculateRankPoints(r.rank, totalMatchPlayers);
+      }
+
       this.status = 'GAME_OVER';
       this.stopTurnTimer();
       this.notifyState();
+      this.onGameOver?.(this);
       return true;
     }
 

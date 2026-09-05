@@ -8,16 +8,19 @@ import { PokerTable } from '@/components/table/PokerTable';
 import { PenaltyModal } from '@/components/modal/PenaltyModal';
 import { GameOverModal } from '@/components/modal/GameOverModal';
 import { RulesModal } from '@/components/modal/RulesModal';
+import { InviteFriendsModal } from '@/components/modal/InviteFriendsModal';
 import { Toast } from '@/components/ui/Toast';
 import { VoiceControls } from '@/components/voice/VoiceControls';
 import { voiceManager } from '@/lib/voice/voiceManager';
-import { Copy, Crown, Play, ShieldAlert, Sparkles, UserMinus, Users, WifiOff } from 'lucide-react';
+import { useFriendsStore } from '@/store/friendsStore';
+import { Copy, Crown, Play, ShieldAlert, Sparkles, UserMinus, Users, WifiOff, UserPlus } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 export default function RoomPage({ params }: { params: Promise<{ code: string }> }) {
   const resolvedParams = use(params);
   const roomCode = resolvedParams.code.toUpperCase();
   const router = useRouter();
+  const { setInviteModalOpen } = useFriendsStore();
 
   const {
     gameState,
@@ -204,6 +207,16 @@ export default function RoomPage({ params }: { params: Promise<{ code: string }>
                 {/* Lobby Voice Chat */}
                 <VoiceControls roomCode={roomCode} />
 
+                {/* Direct Invite Friends Button */}
+                <button
+                  onClick={() => setInviteModalOpen(true)}
+                  className="flex items-center gap-2 px-3.5 py-2 rounded-2xl bg-gradient-to-r from-amber-500 to-yellow-400 hover:from-amber-400 hover:to-yellow-300 text-black font-black text-xs uppercase tracking-wider shadow-gold-glow transition-all active:scale-95 cursor-pointer"
+                  title="Invite Friends directly without typing codes"
+                >
+                  <UserPlus className="w-4 h-4" />
+                  <span>Invite Friends</span>
+                </button>
+
                 {/* Player Count Badge */}
                 <div className="flex items-center gap-2 bg-black/60 px-4 py-2 rounded-2xl border border-white/10 text-xs sm:text-sm font-bold">
                   <Users className="w-4 h-4 text-gold" />
@@ -264,14 +277,18 @@ export default function RoomPage({ params }: { params: Promise<{ code: string }>
                   </div>
                 ))}
 
-                {/* Empty seat placeholders */}
+                {/* Empty seat placeholders with 1-click Invite */}
                 {Array.from({ length: 5 - gameState.players.length }).map((_, i) => (
-                  <div
+                  <button
+                    type="button"
                     key={`empty-${i}`}
-                    className="flex items-center justify-center p-3 rounded-2xl border border-dashed border-zinc-800 bg-black/20 text-zinc-600 text-xs font-medium"
+                    onClick={() => setInviteModalOpen(true)}
+                    className="flex items-center justify-center gap-2 p-3.5 rounded-2xl border border-dashed border-zinc-700/80 hover:border-gold/60 bg-black/20 hover:bg-gold/5 text-zinc-500 hover:text-gold text-xs font-bold transition-all group cursor-pointer"
+                    title="Click to invite a friend to this empty seat"
                   >
-                    Waiting for player to join...
-                  </div>
+                    <UserPlus className="w-3.5 h-3.5 text-zinc-500 group-hover:text-gold transition-colors" />
+                    <span>+ Invite Friend to Seat</span>
+                  </button>
                 ))}
               </div>
             </div>
@@ -345,6 +362,9 @@ export default function RoomPage({ params }: { params: Promise<{ code: string }>
         isOpen={isRulesModalOpen}
         onClose={() => setRulesModalOpen(false)}
       />
+
+      {/* Invite Friends Modal */}
+      <InviteFriendsModal roomCode={roomCode} />
 
       {isLobby && (
         <div className="w-full text-center py-2 text-[10px] text-zinc-600">

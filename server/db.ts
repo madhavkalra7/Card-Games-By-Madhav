@@ -54,6 +54,7 @@ const userSchema = new mongoose.Schema({
   totalScore: { type: Number, default: 100 },
   totalGamesWon: { type: Number, default: 0 },
   totalGamesPlayed: { type: Number, default: 0 },
+  friends: [{ type: String }],
   createdAt: { type: Date, default: Date.now },
 });
 
@@ -125,3 +126,180 @@ export async function connectDB(): Promise<boolean> {
     return false;
   }
 }
+
+// Update player stats after match ends
+export async function updatePlayerStats(nameOrEmailOrId: string, scoreEarned: number, won: boolean): Promise<any> {
+  const isConnected = await connectDB();
+  if (!isConnected) return null;
+
+  try {
+    const isObjectId = mongoose.isValidObjectId(nameOrEmailOrId);
+    let user;
+    if (isObjectId) {
+      user = await UserModel.findById(nameOrEmailOrId);
+    }
+    if (!user) {
+      user = await UserModel.findOne({
+        $or: [
+          { email: nameOrEmailOrId.toLowerCase() },
+          { name: nameOrEmailOrId },
+        ],
+      });
+    }
+
+    if (user) {
+      user.totalScore = (user.totalScore || 100) + scoreEarned;
+      user.totalGamesPlayed = (user.totalGamesPlayed || 0) + 1;
+      if (won) {
+        user.totalGamesWon = (user.totalGamesWon || 0) + 1;
+      }
+      await user.save();
+      return user;
+    }
+  } catch (err: any) {
+    console.warn('⚠️ Could not update user stats in MongoDB:', err.message);
+  }
+  return null;
+}
+
+// Get global leaderboard sorted by totalGamesWon descending, then totalScore descending
+export async function getGlobalLeaderboard(limit = 50) {
+  const isConnected = await connectDB();
+  if (isConnected) {
+    try {
+      const users = await UserModel.find({})
+        .sort({ totalGamesWon: -1, totalScore: -1 })
+        .limit(limit)
+        .lean();
+
+      return users.map((u: any, idx: number) => ({
+        rank: idx + 1,
+        id: u._id.toString(),
+        name: u.name,
+        email: u.email,
+        avatarUrl: u.avatarUrl,
+        avatarColor: u.avatarColor,
+        avatarId: u.avatarId || 'toon-orange',
+        totalScore: u.totalScore || 100,
+        totalGamesWon: u.totalGamesWon || 0,
+        totalGamesPlayed: u.totalGamesPlayed || 0,
+        winRate: u.totalGamesPlayed > 0 ? Math.round((u.totalGamesWon / u.totalGamesPlayed) * 100) : 0,
+      }));
+    } catch (err: any) {
+      console.warn('⚠️ Error fetching leaderboard:', err.message);
+    }
+  }
+
+  return [];
+}
+
+// Get friends for a user
+export async function getUserFriendsList(userIdOrEmail: string) {
+  const isConnected = await connectDB();
+  if (!isConnected) return [];
+
+  try {
+    const isObjectId = mongoose.isValidObjectId(userIdOrEmail);
+    let user;
+    if (isObjectId) {
+      user = await UserModel.findById(userIdOrEmail);
+    }
+    if (!user) {
+      user = await UserModel.findOne({
+        $or: [{ email: userIdOrEmail.toLowerCase() }, { name: userIdOrEmail }],
+      });
+    }
+
+    if (!user || !user.friends || user.friends.length === 0) {
+      return [];
+    }
+
+    const friendsList = await UserModel.find({
+      $or: [
+        { _id: { $in: user.friends.filter((f: string) => mongoose.isValidObjectId(f)) } },
+        { email: { $in: user.friends.map((f: string) => f.toLowerCase()) } },
+        { name: { $in: user.friends } },
+      ],
+    }).lean();
+
+    return friendsList.map((f: any) => ({
+      id: f._id.toString(),
+      name: f.name,
+      email: f.email,
+      avatarUrl: f.avatarUrl,
+      avatarColor: f.avatarColor,
+      avatarId: f.avatarId || 'toon-orange',
+      totalScore: f.totalScore || 100,
+      totalGamesWon: f.totalGamesWon || 0,
+      totalGamesPlayed: f.totalGamesPlayed || 0,
+      winRate: f.totalGamesPlayed > 0 ? Math.round((f.totalGamesWon / f.totalGamesPlayed) * 100) : 0,
+    }));
+  } catch (err: any) {
+    console.warn('⚠️ Error fetching user friends:', err.message);
+    return [];
+  }
+}
+
+// Add friend for a user
+export async function addUserFriend(userIdOrEmail: string, friendEmailOrName: string) {
+  const isConnected = await connectDB();
+  if (!isConnected) return { success: false, error: 'Database not connected' };
+
+  try {
+    const cleanTarget = friendEmailOrName.trim().toLowerCase();
+    const friendUser = await UserModel.findOne({
+      $or: [
+        { email: cleanTarget },
+        { name: friendEmailOrName.trim() },
+      ],
+    });
+
+    if (!friendUser) {
+      return { success: false, error: 'Player not found with that name or email.' };
+    }
+
+    const isObjectId = mongoose.isValidObjectId(userIdOrEmail);
+    let user;
+    if (isObjectId) {
+      user = await UserModel.findById(userIdOrEmail);
+    }
+    if (!user) {
+      user = await UserModel.findOne({
+        $or: [{ email: userIdOrEmail.toLowerCase() }, { name: userIdOrEmail }],
+      });
+    }
+
+    if (!user) {
+      return { success: false, error: 'User not found' };
+    }
+
+    if (user._id.toString() === friendUser._id.toString()) {
+      return { success: false, error: 'You cannot add yourself as a friend.' };
+    }
+
+    user.friends = user.friends || [];
+    const friendId = friendUser._id.toString();
+    if (!user.friends.includes(friendId) && !user.friends.includes(friendUser.email)) {
+      user.friends.push(friendId);
+      await user.save();
+    }
+
+    return {
+      success: true,
+      friend: {
+        id: friendUser._id.toString(),
+        name: friendUser.name,
+        email: friendUser.email,
+        avatarUrl: friendUser.avatarUrl,
+        avatarColor: friendUser.avatarColor,
+        avatarId: friendUser.avatarId,
+        totalScore: friendUser.totalScore,
+        totalGamesWon: friendUser.totalGamesWon,
+        totalGamesPlayed: friendUser.totalGamesPlayed,
+      },
+    };
+  } catch (err: any) {
+    return { success: false, error: err.message };
+  }
+}
+

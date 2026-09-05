@@ -13,7 +13,8 @@ import { sounds } from '@/lib/sound';
 import { useGameStore } from '@/store/gameStore';
 import { VoiceControls } from '../voice/VoiceControls';
 import { useViewportOrientation } from '@/hooks/useViewportOrientation';
-import { BookOpen, Check, Copy, LogOut, Volume2, VolumeX } from 'lucide-react';
+import { useFriendsStore } from '@/store/friendsStore';
+import { BookOpen, Check, Copy, LogOut, Volume2, VolumeX, UserPlus } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface PokerTableProps {
@@ -45,9 +46,11 @@ export const PokerTable: React.FC<PokerTableProps> = ({
   } = state;
 
   const { setRulesModalOpen, showToast, leaveRoom } = useGameStore();
+  const { setInviteModalOpen } = useFriendsStore();
   const router = useRouter();
   const { isLandscape, isMobile } = useViewportOrientation();
   const [copied, setCopied] = useState(false);
+  const [showInviteModal, setShowInviteModal] = useState(false);
   const [isMuted, setIsMuted] = useState(sounds.getMuted());
   const [showExitModal, setShowExitModal] = useState(false);
 
@@ -172,16 +175,27 @@ export const PokerTable: React.FC<PokerTableProps> = ({
         {/* Physical Felt Taash Table Inner Area Filling 100% of Screen */}
         <div className="relative w-full h-full rounded-[8px] sm:rounded-[18px] md:rounded-[32px] poker-felt-bg shadow-poker-felt border border-emerald-500/25 flex items-center justify-center overflow-hidden">
           
-          {/* Minimal Floating HUD (Top Left: Room Code) */}
-          <div className="absolute top-1 sm:top-2.5 left-1 sm:left-3 z-30 flex items-center gap-1 sm:gap-2 bg-black/75 backdrop-blur-md px-1.5 sm:px-3 py-0.5 sm:py-1 rounded-full border border-gold/40 shadow-lg">
-            <span className="text-[8px] sm:text-[10px] text-zinc-400 font-bold uppercase tracking-wider">Room</span>
-            <span className="font-mono font-black text-[11px] sm:text-sm text-gold tracking-wider">{roomCode}</span>
+          {/* Minimal Floating HUD (Top Left: Room Code & Invite) */}
+          <div className="absolute top-1 sm:top-2.5 left-1 sm:left-3 z-30 flex items-center gap-1 sm:gap-2">
+            <div className="flex items-center gap-1 sm:gap-2 bg-black/75 backdrop-blur-md px-1.5 sm:px-3 py-0.5 sm:py-1 rounded-full border border-gold/40 shadow-lg">
+              <span className="text-[8px] sm:text-[10px] text-zinc-400 font-bold uppercase tracking-wider">Room</span>
+              <span className="font-mono font-black text-[11px] sm:text-sm text-gold tracking-wider">{roomCode}</span>
+              <button
+                onClick={handleCopy}
+                title="Copy Room Code"
+                className="p-0.5 sm:p-1 rounded-full text-zinc-400 hover:text-white hover:bg-white/10 active:scale-95 transition-all cursor-pointer"
+              >
+                {copied ? <Check className="w-2.5 h-2.5 sm:w-3 sm:h-3 text-green-400" /> : <Copy className="w-2.5 h-2.5 sm:w-3 sm:h-3" />}
+              </button>
+            </div>
+
             <button
-              onClick={handleCopy}
-              title="Copy Room Code"
-              className="p-0.5 sm:p-1 rounded-full text-zinc-400 hover:text-white hover:bg-white/10 active:scale-95 transition-all"
+              onClick={() => setInviteModalOpen(true)}
+              title="Direct Invite Friends"
+              className="flex items-center gap-1 bg-black/75 hover:bg-gold/20 backdrop-blur-md px-2 sm:px-2.5 py-0.5 sm:py-1 rounded-full border border-gold/50 text-gold text-[9px] sm:text-[11px] font-bold shadow-lg transition-all active:scale-95 cursor-pointer"
             >
-              {copied ? <Check className="w-2.5 h-2.5 sm:w-3 sm:h-3 text-green-400" /> : <Copy className="w-2.5 h-2.5 sm:w-3 sm:h-3" />}
+              <UserPlus className="w-2.5 h-2.5 sm:w-3 sm:h-3" />
+              <span className="hidden sm:inline">Invite</span>
             </button>
           </div>
 

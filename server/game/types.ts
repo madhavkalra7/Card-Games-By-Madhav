@@ -106,5 +106,7 @@ export interface GameStateClientView {
     name: string;
     avatarColor: string;
     rank: number;
+    scoreEarned?: number;
+    totalScore?: number;
   }>;
 }

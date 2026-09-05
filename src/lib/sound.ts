@@ -60,6 +60,11 @@ class SoundManager {
     }
   }
 
+  // Alias for drawing cards
+  public playCardDraw() {
+    this.playCardSlide();
+  }
+
   // Card snap / flip sound (crisp high click)
   public playCardFlip() {
     if (this.isMuted) return;

@@ -6,7 +6,9 @@ import { useRouter } from 'next/navigation';
 import { useGameStore } from '@/store/gameStore';
 import { sounds } from '@/lib/sound';
 import { ExitConfirmModal } from '../modal/ExitConfirmModal';
-import { BookOpen, Check, Copy, LogOut, Volume2, VolumeX } from 'lucide-react';
+import { InviteFriendsModal } from '../modal/InviteFriendsModal';
+import { useFriendsStore } from '@/store/friendsStore';
+import { BookOpen, Check, Copy, LogOut, Volume2, VolumeX, UserPlus } from 'lucide-react';
 
 interface HeaderProps {
   roomCode?: string;
@@ -14,6 +16,7 @@ interface HeaderProps {
 
 export const Header: React.FC<HeaderProps> = ({ roomCode }) => {
   const { setRulesModalOpen, showToast, leaveRoom, gameState } = useGameStore();
+  const { setInviteModalOpen } = useFriendsStore();
   const router = useRouter();
   const [copied, setCopied] = useState(false);
   const [isMuted, setIsMuted] = useState(sounds.getMuted());
@@ -78,6 +81,18 @@ export const Header: React.FC<HeaderProps> = ({ roomCode }) => {
             </button>
           )}
 
+          {/* Direct Invite Friends button */}
+          {roomCode && (
+            <button
+              onClick={() => setInviteModalOpen(true)}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-gradient-to-r from-amber-500/20 to-yellow-500/20 border border-gold/60 hover:border-gold text-gold hover:bg-gold/25 text-xs font-bold transition-all shadow active:scale-95 cursor-pointer"
+              title="Direct Invite Friends to Room"
+            >
+              <UserPlus className="w-3.5 h-3.5" />
+              <span className="hidden sm:inline">Invite Friends</span>
+            </button>
+          )}
+
           {/* Rules button */}
           <button
             onClick={() => setRulesModalOpen(true)}
@@ -116,6 +131,9 @@ export const Header: React.FC<HeaderProps> = ({ roomCode }) => {
         onConfirm={handleConfirmExit}
         isPlaying={gameState?.status === 'PLAYING'}
       />
+
+      {/* Invite Friends Modal */}
+      {roomCode && <InviteFriendsModal roomCode={roomCode} />}
     </>
   );
 };

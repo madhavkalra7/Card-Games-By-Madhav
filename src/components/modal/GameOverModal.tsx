@@ -10,7 +10,7 @@ import { sounds } from '@/lib/sound';
 interface GameOverModalProps {
   status: 'LOBBY' | 'PLAYING' | 'GAME_OVER';
   winner: { id: string; name: string; avatarColor: string } | null;
-  rankings?: Array<{ playerId: string; name: string; avatarColor: string; rank: number }>;
+  rankings?: Array<{ playerId: string; name: string; avatarColor: string; rank: number; scoreEarned?: number; totalScore?: number }>;
   players: PlayerClientView[];
   myPlayerId?: string;
   isHost: boolean;
@@ -52,18 +52,15 @@ export const GameOverModal: React.FC<GameOverModalProps> = ({
     }
   }, [status]);
 
-  // CRITICAL: Only render when game is officially GAME_OVER!
-  // When 1 player finishes, status remains PLAYING and game continues without popup interruption!
   if (status !== 'GAME_OVER') return null;
 
-  // Compile final standings:
-  // If server provided rankings list, use it!
-  // Fallback: sort by rank or cards remaining
   let standings: Array<{
     id: string;
     name: string;
     avatarColor: string;
     rank: number;
+    scoreEarned?: number;
+    totalScore?: number;
     cardsLeft?: number;
   }> = [];
 
@@ -73,9 +70,10 @@ export const GameOverModal: React.FC<GameOverModalProps> = ({
       name: r.name,
       avatarColor: r.avatarColor,
       rank: r.rank,
+      scoreEarned: r.scoreEarned,
+      totalScore: r.totalScore,
     }));
   } else {
-    // Fallback based on players
     const sorted = [...players].sort((a, b) => (a.hiddenCount + a.rightDeckCount) - (b.hiddenCount + b.rightDeckCount));
     standings = sorted.map((p, idx) => ({
       id: p.id,
@@ -86,7 +84,6 @@ export const GameOverModal: React.FC<GameOverModalProps> = ({
     }));
   }
 
-  // Sort by rank ascending (1, 2, 3...)
   standings.sort((a, b) => a.rank - b.rank);
   const firstWinner = standings.find(s => s.rank === 1) || standings[0];
 
@@ -127,8 +124,8 @@ export const GameOverModal: React.FC<GameOverModalProps> = ({
             <span className="font-extrabold text-gold text-sm sm:text-base">
               🏆 {firstWinner.name}
             </span>
-            <span className="text-[10px] sm:text-xs text-zinc-300 font-medium">
-              1st Winner!
+            <span className="text-[10px] sm:text-xs text-amber-300 font-bold bg-amber-400/20 px-2 py-0.5 rounded-full border border-amber-400/40">
+              +{firstWinner.scoreEarned || 2000} PTS
             </span>
           </div>
         )}
@@ -136,7 +133,7 @@ export const GameOverModal: React.FC<GameOverModalProps> = ({
         {/* Standings List */}
         <div className="w-full mt-3 sm:mt-5 bg-zinc-900/70 rounded-xl sm:rounded-2xl border border-zinc-800/80 p-2.5 sm:p-4">
           <h3 className="text-[10px] sm:text-xs font-bold uppercase tracking-wider text-zinc-400 text-left mb-2 sm:mb-2.5">
-            Final Standings
+            Final Standings & Rewards
           </h3>
           <div className="space-y-1.5 sm:space-y-2">
             {standings.map((p) => {
@@ -176,7 +173,7 @@ export const GameOverModal: React.FC<GameOverModalProps> = ({
 
                     {/* Name */}
                     <div className="flex items-center gap-1.5 min-w-0">
-                      <span className="truncate max-w-[110px] sm:max-w-[150px]">{p.name}</span>
+                      <span className="truncate max-w-[100px] sm:max-w-[140px]">{p.name}</span>
                       {isSelf && (
                         <span className="text-[8px] sm:text-[9px] bg-white/20 text-white px-1 py-0.2 rounded font-mono">
                           YOU
@@ -185,8 +182,13 @@ export const GameOverModal: React.FC<GameOverModalProps> = ({
                     </div>
                   </div>
 
-                  {/* Rank Tag */}
-                  <div className="shrink-0">
+                  {/* Rank Tag & Points */}
+                  <div className="flex items-center gap-1.5 shrink-0">
+                    {p.scoreEarned !== undefined && (
+                      <span className="px-2 py-0.5 rounded-full font-black text-[10px] sm:text-[11px] bg-amber-400/20 border border-amber-400/50 text-amber-300 font-mono">
+                        +{p.scoreEarned.toLocaleString()} PTS
+                      </span>
+                    )}
                     <span
                       className={cn(
                         'px-2 py-0.5 rounded-full font-black text-[9px] sm:text-[10px] uppercase tracking-wider',

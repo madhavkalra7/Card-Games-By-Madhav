@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import './globals.css';
 import { Toast } from '@/components/ui/Toast';
+import { GlobalModals } from '@/components/providers/GlobalModals';
 
 export const metadata: Metadata = {
   title: 'Card Games By Madhav | Traditional Indian 52-Card Platform',
@@ -24,6 +25,7 @@ export default function RootLayout({
       </head>
       <body className="antialiased selection:bg-gold-bright selection:text-black">
         <Toast />
+        <GlobalModals />
         {children}
       </body>
     </html>

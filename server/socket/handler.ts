@@ -1,9 +1,21 @@
 import { Server as SocketIOServer, Socket } from 'socket.io';
 import { DukkiBazaarRoom } from '../game/engine';
-import { RoomModel } from '../db';
+import { RoomModel, GameHistoryModel, updatePlayerStats } from '../db';
 
 const activeRooms = new Map<string, DukkiBazaarRoom>();
 const disconnectTimers = new Map<string, NodeJS.Timeout>();
+
+interface OnlineUser {
+  socketId: string;
+  userId?: string;
+  sessionId?: string;
+  name: string;
+  avatarUrl?: string;
+  avatarColor?: string;
+  currentRoomCode?: string | null;
+}
+
+const onlineUsers = new Map<string, OnlineUser>();
 
 interface VoiceParticipant {
   socketId: string;
@@ -43,9 +55,33 @@ export function setupSocketHandlers(io: SocketIOServer) {
           code = generateRoomCode();
         }
 
-        const room = new DukkiBazaarRoom(code, () => {
-          broadcastRoomState(room);
-        });
+        const room = new DukkiBazaarRoom(
+          code,
+          () => {
+            broadcastRoomState(room);
+          },
+          async (finishedRoom) => {
+            try {
+              for (const r of finishedRoom.rankings) {
+                if (r.scoreEarned) {
+                  await updatePlayerStats(r.name, r.scoreEarned, r.rank === 1);
+                }
+              }
+              const winner = finishedRoom.rankings.find(r => r.rank === 1) || finishedRoom.winner;
+              if (winner) {
+                await GameHistoryModel.create({
+                  roomCode: code,
+                  winnerName: winner.name,
+                  roundsCount: finishedRoom.rankings.length,
+                  playerCount: finishedRoom.players.length,
+                  summary: finishedRoom.rankings.map(r => `#${r.rank} ${r.name} (+${r.scoreEarned || 0} PTS)`).join(', '),
+                });
+              }
+            } catch (err: any) {
+              console.warn('Game over score persistence warning:', err.message);
+            }
+          }
+        );
 
         const player = room.addPlayer({
           id: socket.id,
@@ -350,7 +386,62 @@ export function setupSocketHandlers(io: SocketIOServer) {
       }
     });
 
+    // Register online user for direct friend invites
+    socket.on('register_user', (userData: { userId?: string; sessionId?: string; name: string; avatarUrl?: string; avatarColor?: string }) => {
+      onlineUsers.set(socket.id, {
+        socketId: socket.id,
+        userId: userData.userId,
+        sessionId: userData.sessionId,
+        name: userData.name,
+        avatarUrl: userData.avatarUrl,
+        avatarColor: userData.avatarColor,
+        currentRoomCode,
+      });
+    });
+
+    // Send direct room invite to another online player
+    socket.on('send_room_invite', (data: { targetUserIdOrName: string; roomCode: string; hostName: string; hostAvatar?: string; hostAvatarColor?: string }, callback) => {
+      const target = data.targetUserIdOrName?.toLowerCase();
+      let targetSocketId: string | null = null;
+
+      for (const [sId, u] of onlineUsers.entries()) {
+        if (
+          (u.userId && u.userId.toLowerCase() === target) ||
+          (u.name && u.name.toLowerCase() === target)
+        ) {
+          targetSocketId = sId;
+          break;
+        }
+      }
+
+      if (targetSocketId) {
+        io.to(targetSocketId).emit('room_invite_received', {
+          roomCode: data.roomCode,
+          hostName: data.hostName,
+          hostAvatar: data.hostAvatar,
+          hostAvatarColor: data.hostAvatarColor,
+          gameType: 'DUKKI_BAZAAR',
+        });
+        if (callback) callback({ success: true, online: true });
+      } else {
+        if (callback) callback({ success: true, online: false, message: 'Player is not currently online' });
+      }
+    });
+
+    // Get list of online players for quick invite
+    socket.on('get_online_players', (callback) => {
+      const list = Array.from(onlineUsers.values()).map(u => ({
+        userId: u.userId,
+        name: u.name,
+        avatarUrl: u.avatarUrl,
+        avatarColor: u.avatarColor,
+        inRoom: !!u.currentRoomCode,
+      }));
+      if (callback) callback(list);
+    });
+
     socket.on('disconnect', () => {
+      onlineUsers.delete(socket.id);
       // Clean up voice chat participation on disconnect
       if (currentRoomCode && voiceRooms.has(currentRoomCode)) {
         const voiceRoom = voiceRooms.get(currentRoomCode)!;

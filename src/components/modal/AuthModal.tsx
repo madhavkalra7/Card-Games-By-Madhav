@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import { useAuthStore } from '@/store/authStore';
-import { X, Mail, Lock, User, Eye, EyeOff, Sparkles, ArrowRight, CheckCircle2 } from 'lucide-react';
+import { X, Mail, Lock, User, Eye, EyeOff, Sparkles, ArrowRight } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 export const AuthModal: React.FC = () => {
@@ -10,6 +10,7 @@ export const AuthModal: React.FC = () => {
     isAuthModalOpen,
     authMode,
     setAuthModalOpen,
+    checkAuth,
     login,
     signup,
     loginWithGoogle,
@@ -30,30 +31,23 @@ export const AuthModal: React.FC = () => {
     setError(null);
   }, [authMode, isAuthModalOpen]);
 
-  // Hook 2: Initialize Google Identity Services when modal opens (BEFORE ANY CONDITIONAL RETURN)
+  // Hook 2: Listen for Google OAuth popup success message
   React.useEffect(() => {
-    const googleClientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID?.trim();
-    if (isAuthModalOpen && googleClientId && typeof window !== 'undefined' && (window as any).google?.accounts?.id) {
-      try {
-        (window as any).google.accounts.id.initialize({
-          client_id: googleClientId,
-          auto_select: false,
-          callback: async (response: any) => {
-            if (response?.credential) {
-              const res = await loginWithGoogle({ credential: response.credential });
-              if (!res.success) {
-                setError(res.error || 'Google sign-in failed.');
-              }
-            }
-          },
-        });
-      } catch (e) {
-        console.warn('Google GSI init warning:', e);
+    const handleAuthMessage = async (event: MessageEvent) => {
+      if (event.data?.type === 'GOOGLE_AUTH_SUCCESS') {
+        if (event.data?.token) {
+          localStorage.setItem('cg_auth_token', event.data.token);
+        }
+        await checkAuth();
+        setAuthModalOpen(false);
       }
-    }
-  }, [isAuthModalOpen]);
+    };
 
-  // STRICT RULE: Return early ONLY AFTER ALL HOOKS HAVE BEEN CALLED
+    window.addEventListener('message', handleAuthMessage);
+    return () => window.removeEventListener('message', handleAuthMessage);
+  }, [checkAuth, setAuthModalOpen]);
+
+  // STRICT HOOK RULE: Return early ONLY after all hooks are declared
   if (!isAuthModalOpen) return null;
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -105,84 +99,48 @@ export const AuthModal: React.FC = () => {
     }
   };
 
-  const handleGoogleAuth = async () => {
+  const handleGoogleAuth = () => {
     setError(null);
     const googleClientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID?.trim();
 
-    // 1. Live Google OAuth using GIS token client if configured
-    if (googleClientId && googleClientId !== 'your-google-client-id.apps.googleusercontent.com') {
-      if (typeof window !== 'undefined') {
-        // Ensure script is ready
-        if (!(window as any).google?.accounts) {
-          await new Promise<void>((resolve) => {
-            const s = document.createElement('script');
-            s.src = 'https://accounts.google.com/gsi/client';
-            s.async = true;
-            s.onload = () => resolve();
-            s.onerror = () => resolve();
-            document.head.appendChild(s);
-          });
+    if (googleClientId && !googleClientId.includes('your-google-client-id')) {
+      const redirectUri = `${window.location.origin}/api/auth/callback/google`;
+      const googleAuthUrl = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${encodeURIComponent(
+        googleClientId
+      )}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=code&scope=openid%20profile%20email&prompt=select_account`;
+
+      // 1. Open popup synchronously in direct response to user click
+      const width = 500;
+      const height = 650;
+      const left = window.screenX + (window.outerWidth - width) / 2;
+      const top = window.screenY + (window.outerHeight - height) / 2;
+
+      try {
+        const popup = window.open(
+          googleAuthUrl,
+          'google_login_popup',
+          `width=${width},height=${height},left=${left},top=${top},status=no,menubar=no,toolbar=no`
+        );
+
+        // 2. If popup was blocked by browser, navigate directly
+        if (!popup || popup.closed || typeof popup.closed === 'undefined') {
+          window.location.href = googleAuthUrl;
+          return;
         }
 
-        if ((window as any).google?.accounts?.oauth2) {
-          try {
-            const tokenClient = (window as any).google.accounts.oauth2.initTokenClient({
-              client_id: googleClientId,
-              scope: 'email profile openid',
-              callback: async (tokenResponse: any) => {
-                if (tokenResponse.error) {
-                  if (tokenResponse.error === 'access_denied') {
-                    setError('Google sign-in was cancelled.');
-                  } else {
-                    setError(`Google error: ${tokenResponse.error_description || tokenResponse.error}`);
-                  }
-                  return;
-                }
-
-                if (tokenResponse.access_token) {
-                  try {
-                    const userRes = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
-                      headers: { Authorization: `Bearer ${tokenResponse.access_token}` },
-                    });
-                    const googleProfile = await userRes.json();
-
-                    const res = await loginWithGoogle({
-                      email: googleProfile.email,
-                      name: googleProfile.name,
-                      googleId: googleProfile.sub,
-                      avatarUrl: googleProfile.picture,
-                    });
-
-                    if (!res.success) {
-                      setError(res.error || 'Failed to complete Google sign in.');
-                    }
-                  } catch (err: any) {
-                    setError(err.message || 'Failed to fetch Google profile.');
-                  }
-                }
-              },
-            });
-            tokenClient.requestAccessToken();
-            return;
-          } catch (err: any) {
-            console.error('Google token client error:', err);
-          }
-        }
+        popup.focus();
+        return;
+      } catch {
+        window.location.href = googleAuthUrl;
+        return;
       }
     }
 
-    // 2. Instant Google Sign-In fallback (if Client ID not yet pasted in .env.local)
-    const res = await loginWithGoogle();
-    if (!res.success) {
-      setError(res.error || 'Google login failed.');
-    }
+    // Fallback demo account if Client ID not set
+    loginWithGoogle().then((res) => {
+      if (!res.success) setError(res.error || 'Google login failed.');
+    });
   };
-
-  const isGoogleConfigured = Boolean(
-    process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID &&
-    process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID.trim() !== '' &&
-    !process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID.includes('your-google-client-id')
-  );
 
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center p-3 sm:p-4 bg-black/80 backdrop-blur-md animate-fadeIn select-none">
@@ -280,13 +238,6 @@ export const AuthModal: React.FC = () => {
           </svg>
           <span>Continue with Google</span>
         </button>
-
-        {isGoogleConfigured && (
-          <p className="text-[10px] text-emerald-400 text-center flex items-center justify-center gap-1 mb-2">
-            <CheckCircle2 className="w-3 h-3" />
-            <span>Google OAuth Ready (Popup Enabled)</span>
-          </p>
-        )}
 
         {/* Divider */}
         <div className="relative flex items-center justify-center my-3.5">

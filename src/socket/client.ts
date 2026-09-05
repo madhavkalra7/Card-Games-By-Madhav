@@ -11,28 +11,32 @@ let urlPromise: Promise<string> | null = null;
  * 3. Falls back to `window.location.origin` (or localhost for dev)
  */
 export async function resolveBackendUrl(): Promise<string> {
-  // If already resolved to a remote backend, return it immediately
-  if (currentTargetUrl && !currentTargetUrl.includes('localhost') && !currentTargetUrl.includes('vercel.app')) {
-    return currentTargetUrl;
-  }
-
-  // 1. Check build-time public env variable
-  const envPublic = process.env.NEXT_PUBLIC_SOCKET_URL;
-  if (envPublic && envPublic.trim() !== '') {
-    currentTargetUrl = envPublic.trim().replace(/\/$/, '');
-    return currentTargetUrl;
-  }
-
-  // 2. Query runtime server endpoint (works even if user used NEXT_SOCKET_URL in Vercel)
+  // If in browser:
   if (typeof window !== 'undefined') {
+    const isLocalhostClient = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+
+    // 1. Check build-time public env variable
+    const envPublic = process.env.NEXT_PUBLIC_SOCKET_URL;
+    if (envPublic && envPublic.trim() !== '') {
+      const trimmed = envPublic.trim().replace(/\/$/, '');
+      if (isLocalhostClient || (!trimmed.includes('localhost') && !trimmed.includes('127.0.0.1'))) {
+        currentTargetUrl = trimmed;
+        return currentTargetUrl;
+      }
+    }
+
+    // 2. Query runtime server endpoint
     if (!urlPromise) {
       urlPromise = fetch('/api/socket-url')
         .then((res) => res.json())
         .then((data) => {
           if (data?.socketUrl && typeof data.socketUrl === 'string' && data.socketUrl.trim() !== '') {
             const url = data.socketUrl.trim().replace(/\/$/, '');
-            currentTargetUrl = url;
-            return url;
+            // Only use if client is localhost OR socketUrl is not localhost
+            if (isLocalhostClient || (!url.includes('localhost') && !url.includes('127.0.0.1'))) {
+              currentTargetUrl = url;
+              return url;
+            }
           }
           return window.location.origin;
         })
@@ -53,6 +57,14 @@ export async function resolveBackendUrl(): Promise<string> {
 export function getSocket(overrideUrl?: string): Socket {
   let targetUrl = overrideUrl || currentTargetUrl || process.env.NEXT_PUBLIC_SOCKET_URL;
   
+  // Mobile / Remote LAN safety: Never allow localhost targetUrl when client is on a mobile device or remote host
+  if (typeof window !== 'undefined') {
+    const isLocalhostClient = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+    if (!isLocalhostClient && targetUrl && (targetUrl.includes('localhost') || targetUrl.includes('127.0.0.1'))) {
+      targetUrl = window.location.origin;
+    }
+  }
+
   if (!targetUrl) {
     targetUrl = typeof window !== 'undefined' ? window.location.origin : `http://localhost:${process.env.PORT || '3000'}`;
   }

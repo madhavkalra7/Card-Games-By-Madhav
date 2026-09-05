@@ -107,9 +107,6 @@ async function bootstrap() {
   const activePort = await listenServer(server, targetPort);
 
   process.env.PORT = String(activePort);
-  if (!process.env.SOCKET_URL && !process.env.NEXT_PUBLIC_SOCKET_URL) {
-    process.env.SOCKET_URL = `http://localhost:${activePort}`;
-  }
 
   console.log(`\n======================================================`);
   console.log(`♠ ♥ CARD GAMES BY MADHAV - GAME SERVER ACTIVE ♦ ♣`);

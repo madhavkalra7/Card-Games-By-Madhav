@@ -146,11 +146,6 @@ export const useGameStore = create<GameStore>((set, get) => ({
       const sessionId = getOrCreateSessionId();
       get().setProfile(name, avatar);
 
-      // Trigger connection if disconnected
-      if (!socket.connected) {
-        socket.connect();
-      }
-
       let settled = false;
 
       // 25-second fail-safe timeout prevents infinite loading while allowing Render cold starts
@@ -166,20 +161,29 @@ export const useGameStore = create<GameStore>((set, get) => ({
         }
       }, 25000);
 
-      socket.emit('createRoom', { name, avatarColor: avatar, sessionId }, (res: any) => {
-        if (settled) return;
-        settled = true;
-        clearTimeout(timer);
+      const doEmit = () => {
+        socket.emit('createRoom', { name, avatarColor: avatar, sessionId }, (res: any) => {
+          if (settled) return;
+          settled = true;
+          clearTimeout(timer);
 
-        if (res && res.success) {
-          set({ gameState: res.state, roomCode: res.roomCode });
-          resolve({ success: true, code: res.roomCode });
-        } else {
-          const errMsg = res?.error || 'Failed to create room';
-          get().showToast(errMsg, 'error');
-          resolve({ success: false, error: errMsg });
-        }
-      });
+          if (res && res.success) {
+            set({ gameState: res.state, roomCode: res.roomCode });
+            resolve({ success: true, code: res.roomCode });
+          } else {
+            const errMsg = res?.error || 'Failed to create room';
+            get().showToast(errMsg, 'error');
+            resolve({ success: false, error: errMsg });
+          }
+        });
+      };
+
+      if (socket.connected) {
+        doEmit();
+      } else {
+        socket.connect();
+        socket.once('connect', doEmit);
+      }
     });
   },
 
@@ -189,10 +193,6 @@ export const useGameStore = create<GameStore>((set, get) => ({
       const socket = getSocket();
       const sessionId = getOrCreateSessionId();
       get().setProfile(name, avatar);
-
-      if (!socket.connected) {
-        socket.connect();
-      }
 
       let settled = false;
 
@@ -208,20 +208,29 @@ export const useGameStore = create<GameStore>((set, get) => ({
         }
       }, 25000);
 
-      socket.emit('joinRoom', { roomCode: code.toUpperCase(), name, avatarColor: avatar, sessionId }, (res: any) => {
-        if (settled) return;
-        settled = true;
-        clearTimeout(timer);
+      const doEmit = () => {
+        socket.emit('joinRoom', { roomCode: code.toUpperCase(), name, avatarColor: avatar, sessionId }, (res: any) => {
+          if (settled) return;
+          settled = true;
+          clearTimeout(timer);
 
-        if (res && res.success) {
-          set({ gameState: res.state, roomCode: res.roomCode });
-          resolve({ success: true });
-        } else {
-          const errMsg = res?.error || 'Failed to join room';
-          get().showToast(errMsg, 'error');
-          resolve({ success: false, error: errMsg });
-        }
-      });
+          if (res && res.success) {
+            set({ gameState: res.state, roomCode: res.roomCode });
+            resolve({ success: true });
+          } else {
+            const errMsg = res?.error || 'Failed to join room';
+            get().showToast(errMsg, 'error');
+            resolve({ success: false, error: errMsg });
+          }
+        });
+      };
+
+      if (socket.connected) {
+        doEmit();
+      } else {
+        socket.connect();
+        socket.once('connect', doEmit);
+      }
     });
   },
 

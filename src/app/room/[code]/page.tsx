@@ -23,6 +23,7 @@ export default function RoomPage({ params }: { params: Promise<{ code: string }>
     gameState,
     myName,
     myAvatar,
+    isConnected,
     initSocketListeners,
     joinRoom,
     startGame,
@@ -42,6 +43,7 @@ export default function RoomPage({ params }: { params: Promise<{ code: string }>
   const [directName, setDirectName] = useState(myName || '');
   const [directAvatar, setDirectAvatar] = useState(myAvatar || '#2563eb');
   const [isJoining, setIsJoining] = useState(false);
+  const [joinError, setJoinError] = useState<string | null>(null);
   const [hasPromptedJoin, setHasPromptedJoin] = useState(false);
 
   useEffect(() => {
@@ -66,14 +68,18 @@ export default function RoomPage({ params }: { params: Promise<{ code: string }>
     e.preventDefault();
     if (!directName.trim()) return;
     setIsJoining(true);
-    await joinRoom(roomCode, directName.trim(), directAvatar);
+    setJoinError(null);
+    const res = await joinRoom(roomCode, directName.trim(), directAvatar);
     setIsJoining(false);
+    if (!res.success) {
+      setJoinError(res.error || 'Failed to join table. Please check the code or try again.');
+    }
   };
 
   // Direct join prompt modal if state is empty
   if (!gameState) {
     return (
-      <main className="min-h-screen bg-[#070d09] text-zinc-100 flex flex-col justify-between overflow-y-auto">
+      <main className="min-h-screen min-h-[100dvh] bg-[#070d09] text-zinc-100 flex flex-col justify-between overflow-y-auto">
         <Header roomCode={roomCode} />
 
         <div className="flex-1 flex items-center justify-center p-2 sm:p-4">
@@ -89,6 +95,19 @@ export default function RoomPage({ params }: { params: Promise<{ code: string }>
                 Enter your details to take a seat at the table
               </p>
             </div>
+
+            {!isConnected && (
+              <div className="mb-3.5 p-2.5 rounded-xl bg-amber-500/15 border border-amber-500/40 text-amber-300 text-[11px] flex items-center justify-center gap-2">
+                <span className="w-2 h-2 rounded-full bg-amber-400 animate-ping" />
+                <span>Connecting to game server...</span>
+              </div>
+            )}
+
+            {joinError && (
+              <div className="mb-3.5 p-2.5 rounded-xl bg-red-500/20 border border-red-500/50 text-red-300 text-xs font-medium text-center">
+                {joinError}
+              </div>
+            )}
 
             <form onSubmit={handleDirectJoin} className="space-y-3 sm:space-y-4">
               <div>

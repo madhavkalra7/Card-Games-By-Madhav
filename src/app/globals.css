@@ -89,3 +89,14 @@ body {
     3px 3px 0px #0b1a11,
     4px 4px 12px rgba(0,0,0,0.6);
 }
+
+/* 8-bit Retro Page Utilities */
+.pixelated {
+  image-rendering: pixelated;
+  image-rendering: -moz-crisp-edges;
+  image-rendering: crisp-edges;
+}
+
+.retro {
+  font-family: 'Press Start 2P', monospace, Anton, system-ui, sans-serif;
+}

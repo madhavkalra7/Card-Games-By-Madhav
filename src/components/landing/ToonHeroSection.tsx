@@ -225,39 +225,43 @@ export const ToonHeroSection: React.FC<ToonHeroSectionProps> = ({
           </svg>
         </div>
 
-        {/* 3. Top Header: Brand Label + Navigation */}
+        {/* 3. Top Header: Brand Label + Navigation (Ultra-responsive on all screen sizes) */}
         <header className={cn(
-          "absolute left-3 sm:left-8 right-3 sm:right-8 z-[60] flex items-center justify-between",
-          isShortHeight ? "top-2 sm:top-3" : "top-4 sm:top-6"
+          "absolute left-2.5 sm:left-8 right-2.5 sm:right-8 z-[60] flex items-center justify-between",
+          isShortHeight ? "top-2 sm:top-3" : "top-3 sm:top-6"
         )}>
-          <div className="flex items-center gap-2 sm:gap-2.5">
-            <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg bg-white/20 backdrop-blur-md flex items-center justify-center text-white font-black text-xs sm:text-sm border border-white/30 shadow-sm">
+          {/* Brand Logo & Name */}
+          <div className="flex items-center gap-1.5 sm:gap-2.5 shrink-0 min-w-0">
+            <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg bg-white/20 backdrop-blur-md flex items-center justify-center text-white font-black text-xs sm:text-sm border border-white/30 shadow-sm shrink-0">
               ♠
             </div>
-            <div>
+            <div className="flex flex-col min-w-0 justify-center">
               <span
-                className="text-[10px] sm:text-xs font-semibold uppercase text-white tracking-[0.16em] sm:tracking-[0.18em]"
-                style={{ opacity: 0.9 }}
+                className="text-[10px] sm:text-xs font-black uppercase text-white tracking-[0.1em] sm:tracking-[0.18em] whitespace-nowrap"
+                style={{ opacity: 0.95 }}
               >
-                CARD GAMES BY MADHAV
+                <span className="sm:hidden">CARD GAMES</span>
+                <span className="hidden sm:inline">CARD GAMES BY MADHAV</span>
               </span>
-              <span className="hidden sm:block text-[9px] text-white/75 font-medium tracking-wider uppercase">
+              <span className="hidden md:block text-[9px] text-white/75 font-medium tracking-wider uppercase whitespace-nowrap">
                 Traditional Indian 52-Card Platform
               </span>
             </div>
           </div>
 
-          <div className="flex items-center gap-2 sm:gap-3">
+          {/* Action Buttons Group */}
+          <div className="flex items-center gap-1.5 sm:gap-2.5 shrink-0">
             {/* Funky Music Toggle Button */}
             <button
               type="button"
               onClick={handleToggleMusic}
               title={isMusicPlaying ? 'Pause Funky Music' : 'Play Funky Music'}
               className={cn(
-                "flex items-center gap-1.5 px-3 sm:px-3.5 py-1 sm:py-1.5 rounded-full backdrop-blur-md transition-all shadow-sm active:scale-95 cursor-pointer",
+                "flex items-center justify-center rounded-full backdrop-blur-md transition-all shadow-sm active:scale-95 cursor-pointer shrink-0",
                 isMusicPlaying
                   ? "bg-amber-400 text-black border border-yellow-200 font-extrabold shadow-lg"
-                  : "bg-white/15 hover:bg-white/25 border border-white/25 text-white font-bold"
+                  : "bg-white/15 hover:bg-white/25 border border-white/25 text-white font-bold",
+                "w-8 h-8 sm:w-auto sm:h-9 p-0 sm:px-3.5"
               )}
             >
               {isMusicPlaying ? (
@@ -267,12 +271,12 @@ export const ToonHeroSection: React.FC<ToonHeroSectionProps> = ({
                     <span className="w-0.5 sm:w-1 bg-black rounded-full animate-bounce" style={{ height: '100%', animationDuration: '280ms' }} />
                     <span className="w-0.5 sm:w-1 bg-black rounded-full animate-bounce" style={{ height: '50%', animationDuration: '500ms' }} />
                   </div>
-                  <span className="text-[10px] sm:text-xs font-black tracking-wider">FUNKY BEATS</span>
+                  <span className="hidden md:inline ml-1.5 text-[10px] sm:text-xs font-black tracking-wider">FUNKY BEATS</span>
                 </>
               ) : (
                 <>
-                  <Music className="w-3.5 h-3.5 text-white" />
-                  <span className="text-[10px] sm:text-xs tracking-wider">PLAY MUSIC</span>
+                  <Music className="w-3.5 h-3.5 text-white shrink-0" />
+                  <span className="hidden md:inline ml-1.5 text-[10px] sm:text-xs tracking-wider">MUSIC</span>
                 </>
               )}
             </button>
@@ -281,20 +285,21 @@ export const ToonHeroSection: React.FC<ToonHeroSectionProps> = ({
             <button
               type="button"
               onClick={() => setFriendsModalOpen(true, 'leaderboard')}
-              className="flex items-center gap-1 sm:gap-1.5 px-3 sm:px-3.5 py-1 sm:py-1.5 rounded-full bg-white/15 hover:bg-white/25 backdrop-blur-md border border-white/25 text-white text-[11px] sm:text-xs font-bold transition-all shadow-sm active:scale-95 cursor-pointer"
+              className="flex items-center justify-center w-8 h-8 sm:w-auto sm:h-9 p-0 sm:px-3.5 rounded-full bg-white/15 hover:bg-white/25 backdrop-blur-md border border-white/25 text-white text-[11px] sm:text-xs font-bold transition-all shadow-sm active:scale-95 cursor-pointer shrink-0"
               title="Global Tournament Rankings & Friends"
             >
-              <Trophy className="w-3.5 h-3.5 text-amber-300" />
-              <span className="hidden sm:inline">Rankings</span>
-              <span className="sm:hidden">Wins</span>
+              <Trophy className="w-3.5 h-3.5 text-amber-300 shrink-0" />
+              <span className="hidden sm:inline ml-1.5">Rankings</span>
             </button>
 
+            {/* Catalog Link */}
             <Link
               href="/games"
-              className="flex items-center gap-1 sm:gap-1.5 px-3 sm:px-3.5 py-1 sm:py-1.5 rounded-full bg-white/15 hover:bg-white/25 backdrop-blur-md border border-white/25 text-white text-[11px] sm:text-xs font-bold transition-all shadow-sm active:scale-95"
+              className="flex items-center justify-center w-8 h-8 sm:w-auto sm:h-9 p-0 sm:px-3.5 rounded-full bg-white/15 hover:bg-white/25 backdrop-blur-md border border-white/25 text-white text-[11px] sm:text-xs font-bold transition-all shadow-sm active:scale-95 shrink-0"
+              title="View Games Catalog"
             >
-              <Gamepad2 className="w-3.5 h-3.5 text-white" />
-              <span>Catalog</span>
+              <Gamepad2 className="w-3.5 h-3.5 text-white shrink-0" />
+              <span className="hidden sm:inline ml-1.5">Catalog</span>
             </Link>
 
             {/* Top-Right Circular Cartoon Avatar or Sign In Button */}
@@ -302,12 +307,12 @@ export const ToonHeroSection: React.FC<ToonHeroSectionProps> = ({
               <button
                 type="button"
                 onClick={() => setProfileModalOpen(true)}
-                className="flex items-center gap-1.5 sm:gap-2 pl-1 pr-2.5 sm:pr-3.5 py-1 rounded-full bg-black/45 hover:bg-black/70 border border-gold/60 backdrop-blur-md transition-all shadow-md active:scale-95 cursor-pointer group"
+                className="flex items-center gap-1.5 sm:gap-2 h-8 sm:h-9 p-0.5 sm:pl-1 sm:pr-3 rounded-full bg-black/45 hover:bg-black/70 border border-gold/60 backdrop-blur-md transition-all shadow-md active:scale-95 cursor-pointer group shrink-0"
                 title="View Profile & Game Stats"
               >
                 {/* Circular Cartoon Avatar */}
                 <div
-                  className="w-7 h-7 sm:w-8 sm:h-8 rounded-full border-2 border-amber-300 p-0.5 flex items-center justify-center overflow-hidden shrink-0 shadow-gold-glow group-hover:scale-105 transition-transform"
+                  className="w-7 h-7 sm:w-7 sm:h-7 rounded-full border-2 border-amber-300 p-0.5 flex items-center justify-center overflow-hidden shrink-0 shadow-gold-glow group-hover:scale-105 transition-transform"
                   style={{ backgroundColor: `${getAvatarById(user.avatarId).color}40` }}
                 >
                   <img
@@ -317,7 +322,7 @@ export const ToonHeroSection: React.FC<ToonHeroSectionProps> = ({
                   />
                 </div>
 
-                <div className="flex flex-col items-start text-left leading-none">
+                <div className="hidden sm:flex flex-col items-start text-left leading-none pr-1">
                   <span className="text-[10px] sm:text-xs font-bold text-white max-w-[70px] sm:max-w-[110px] truncate">
                     {user.name}
                   </span>
@@ -330,10 +335,11 @@ export const ToonHeroSection: React.FC<ToonHeroSectionProps> = ({
               <button
                 type="button"
                 onClick={() => setAuthModalOpen(true, 'login')}
-                className="flex items-center gap-1.5 px-3 sm:px-3.5 py-1 sm:py-1.5 rounded-full bg-gradient-to-r from-amber-500 via-yellow-400 to-amber-500 hover:from-amber-400 hover:to-yellow-300 text-black text-[11px] sm:text-xs font-black tracking-wider uppercase backdrop-blur-md shadow-gold-glow transition-all active:scale-95 cursor-pointer"
+                className="flex items-center justify-center w-8 h-8 sm:w-auto sm:h-9 p-0 sm:px-3.5 rounded-full bg-gradient-to-r from-amber-500 via-yellow-400 to-amber-500 hover:from-amber-400 hover:to-yellow-300 text-black text-[11px] sm:text-xs font-black tracking-wider uppercase backdrop-blur-md shadow-gold-glow transition-all active:scale-95 cursor-pointer shrink-0"
+                title="Sign In / Create Account"
               >
-                <User className="w-3.5 h-3.5 stroke-[2.5]" />
-                <span>Sign In</span>
+                <User className="w-3.5 h-3.5 stroke-[2.5] shrink-0" />
+                <span className="hidden sm:inline ml-1">Sign In</span>
               </button>
             )}
           </div>
@@ -474,14 +480,14 @@ export const ToonHeroSection: React.FC<ToonHeroSectionProps> = ({
           className={cn(
             "absolute z-[60] flex flex-col",
             isShortHeight
-              ? "bottom-2 left-3 sm:left-6 max-w-[280px] sm:max-w-[340px]"
-              : "bottom-4 sm:bottom-16 left-3 sm:left-12 lg:left-24 max-w-[340px] sm:max-w-[380px]"
+              ? "bottom-2 left-2.5 sm:left-6 max-w-[270px] sm:max-w-[340px]"
+              : "bottom-3 sm:bottom-16 left-2.5 sm:left-12 lg:left-24 max-w-[calc(100vw-20px)] xs:max-w-[320px] sm:max-w-[380px]"
           )}
         >
           {/* Glass Card Container */}
           <div className={cn(
             "bg-black/30 backdrop-blur-md rounded-2xl sm:rounded-3xl border border-white/15 shadow-2xl",
-            isShortHeight ? "p-2.5 sm:p-3.5 mb-2" : "p-3.5 sm:p-5 mb-3"
+            isShortHeight ? "p-2.5 sm:p-3.5 mb-2" : "p-3 sm:p-5 mb-2.5 sm:mb-3"
           )}>
             {/* Game Badge & Tagline */}
             <div className="flex items-center gap-2 mb-1.5 sm:mb-2">
@@ -511,7 +517,7 @@ export const ToonHeroSection: React.FC<ToonHeroSectionProps> = ({
               {currentItem.gameTitle}
             </h2>
 
-            {/* Card Game Description - Hidden on ultra-short landscape screens to prevent overflow */}
+            {/* Card Game Description - Hidden on mobile screens to keep card compact and prevent overlap */}
             {!isShortHeight && (
               <p className="hidden sm:block text-xs sm:text-sm text-white/90 leading-[1.5] mb-3">
                 {currentItem.description}
@@ -544,14 +550,14 @@ export const ToonHeroSection: React.FC<ToonHeroSectionProps> = ({
           </div>
 
           {/* Two circular navigation buttons */}
-          <div className="flex items-center gap-2.5">
+          <div className="flex items-center gap-2 sm:gap-2.5">
             <button
               onClick={() => navigate('prev')}
               disabled={isAnimating}
               title="Previous Game"
               className={cn(
                 "rounded-full border-2 border-white flex items-center justify-center text-white transition-all active:scale-95",
-                isShortHeight ? "w-8 h-8 sm:w-10 sm:h-10" : "w-11 h-11 sm:w-14 sm:h-14"
+                isShortHeight ? "w-8 h-8 sm:w-10 sm:h-10" : "w-10 h-10 sm:w-14 sm:h-14"
               )}
               style={{
                 backgroundColor: 'transparent',
@@ -566,7 +572,7 @@ export const ToonHeroSection: React.FC<ToonHeroSectionProps> = ({
                 e.currentTarget.style.backgroundColor = 'transparent';
               }}
             >
-              <ArrowLeft size={isShortHeight ? 18 : 24} strokeWidth={2.25} />
+              <ArrowLeft className={cn(isShortHeight ? "w-4 h-4" : "w-4 h-4 sm:w-6 sm:h-6")} strokeWidth={2.25} />
             </button>
 
             <button
@@ -575,7 +581,7 @@ export const ToonHeroSection: React.FC<ToonHeroSectionProps> = ({
               title="Next Game"
               className={cn(
                 "rounded-full border-2 border-white flex items-center justify-center text-white transition-all active:scale-95",
-                isShortHeight ? "w-8 h-8 sm:w-10 sm:h-10" : "w-11 h-11 sm:w-14 sm:h-14"
+                isShortHeight ? "w-8 h-8 sm:w-10 sm:h-10" : "w-10 h-10 sm:w-14 sm:h-14"
               )}
               style={{
                 backgroundColor: 'transparent',
@@ -590,7 +596,7 @@ export const ToonHeroSection: React.FC<ToonHeroSectionProps> = ({
                 e.currentTarget.style.backgroundColor = 'transparent';
               }}
             >
-              <ArrowRight size={isShortHeight ? 18 : 24} strokeWidth={2.25} />
+              <ArrowRight className={cn(isShortHeight ? "w-4 h-4" : "w-4 h-4 sm:w-6 sm:h-6")} strokeWidth={2.25} />
             </button>
           </div>
         </div>

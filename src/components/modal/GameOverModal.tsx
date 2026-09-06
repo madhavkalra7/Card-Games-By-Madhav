@@ -198,7 +198,15 @@ export const GameOverModal: React.FC<GameOverModalProps> = ({
                         p.rank > 3 && 'bg-zinc-800 text-zinc-400'
                       )}
                     >
-                      {isFirst ? '1st Place' : isSecond ? '2nd Place' : isThird ? '3rd Place' : `${p.rank}th Place`}
+                      {isFirst ? (
+                        <>1st<span className="hidden xs:inline"> Place</span></>
+                      ) : isSecond ? (
+                        <>2nd<span className="hidden xs:inline"> Place</span></>
+                      ) : isThird ? (
+                        <>3rd<span className="hidden xs:inline"> Place</span></>
+                      ) : (
+                        <>{p.rank}th<span className="hidden xs:inline"> Place</span></>
+                      )}
                     </span>
                   </div>
                 </div>

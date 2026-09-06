@@ -7,6 +7,7 @@ import { PlayerSeat } from './PlayerSeat';
 import { CenterBazaar } from './CenterBazaar';
 import { DraggableTurnCard } from '../card/DraggableTurnCard';
 import { FlyingPenaltyOverlay } from './FlyingPenaltyOverlay';
+import { ThrowablesOverlay } from './ThrowablesOverlay';
 import { ExitConfirmModal } from '../modal/ExitConfirmModal';
 import { canPlayOnAnyCenterDeck, canPlayOnOtherRightDeck } from '@/lib/validator';
 import { sounds } from '@/lib/sound';
@@ -313,6 +314,9 @@ export const PokerTable: React.FC<PokerTableProps> = ({
 
       {/* Auto-Penalty Flying Cards Animation Overlay */}
       <FlyingPenaltyOverlay animationData={activePenaltyAnimation || null} />
+
+      {/* Interactive Desi Throwables Flying Overlay */}
+      <ThrowablesOverlay />
 
       {/* Clean Exit Confirmation Modal */}
       <ExitConfirmModal

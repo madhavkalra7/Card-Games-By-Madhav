@@ -7,6 +7,8 @@ import { CardStack } from '../card/CardStack';
 import { cn } from '@/lib/utils';
 import { Crown, Sparkles, WifiOff, Grab, Mic, MicOff } from 'lucide-react';
 import { useVoiceStore } from '@/store/voiceStore';
+import { useGameStore } from '@/store/gameStore';
+import { ThrowablePicker } from './ThrowablePicker';
 
 interface PlayerSeatProps {
   player: PlayerClientView;
@@ -36,11 +38,23 @@ export const PlayerSeat: React.FC<PlayerSeatProps> = ({
   onDropCenterFromRightDeck,
   onDropRightDeckFromRightDeck,
   className,
-  positionClass,
+  positionClass = '',
   cardSize,
 }) => {
   const [isDraggingRight, setIsDraggingRight] = useState(false);
+  const [showThrowPicker, setShowThrowPicker] = useState(false);
   const activeCardSize = cardSize || (isSelf ? 'sm' : 'xs');
+
+  // Throwables state from gameStore
+  const activeImpacts = useGameStore((s) => s.activeImpacts);
+  const throwItem = useGameStore((s) => s.throwItem);
+  const currentImpact = activeImpacts[player.id];
+
+  // Position and alignment awareness for picker popup & impact badge
+  const isTopSeat = positionClass.includes('top-') || positionClass.includes('top-[');
+  const isLeftFlank = positionClass.includes('left-1') || positionClass.includes('left-0') || positionClass.includes('left-[1') || positionClass.includes('left-[2');
+  const isRightFlank = positionClass.includes('right-1') || positionClass.includes('right-0') || positionClass.includes('right-[1') || positionClass.includes('right-[2');
+  const pickerAlign: 'center' | 'left' | 'right' = isLeftFlank ? 'left' : isRightFlank ? 'right' : 'center';
 
   // Voice chat speaking & mute status
   const speakingPeers = useVoiceStore((s) => s.speakingPeers);
@@ -82,14 +96,68 @@ export const PlayerSeat: React.FC<PlayerSeatProps> = ({
       }
     }
   };
+
   return (
-    <div
+    <motion.div
+      id={`player-seat-${player.id}`}
+      animate={currentImpact ? {
+        x: [-12, 12, -8, 8, -4, 4, 0],
+        y: [-6, 6, -4, 4, 0],
+        rotate: [-6, 6, -3, 3, 0],
+      } : {}}
+      transition={{ duration: 0.5, ease: 'easeOut' }}
       className={cn(
-        'flex flex-col items-center select-none transition-all duration-300 z-20',
+        'relative flex flex-col items-center select-none transition-all duration-300 z-20',
         positionClass,
         className
       )}
     >
+      {/* Real-Time Impact Splatters / Decals when Hit */}
+      {currentImpact && (
+        <div className={cn(
+          "absolute left-1/2 -translate-x-1/2 pointer-events-none z-50 flex items-center justify-center animate-bounce",
+          isTopSeat ? "top-full mt-1 sm:mt-1.5" : "-top-7 sm:-top-9"
+        )}>
+          {currentImpact.itemType === 'chappal' && (
+            <div className="flex items-center gap-1 bg-red-600/90 text-white font-black text-[10px] sm:text-xs px-2 py-0.5 rounded-full border border-yellow-300 shadow-xl animate-pulse whitespace-nowrap">
+              <span>PHATAK! 🩴💥</span>
+            </div>
+          )}
+          {currentImpact.itemType === 'chai' && (
+            <div className="flex items-center gap-1 bg-amber-700/90 text-white font-black text-[10px] sm:text-xs px-2 py-0.5 rounded-full border border-amber-300 shadow-xl whitespace-nowrap">
+              <span>GARAM CHAI! ☕♨️</span>
+            </div>
+          )}
+          {currentImpact.itemType === 'tomato' && (
+            <div className="flex items-center gap-1 bg-red-700/90 text-white font-black text-[10px] sm:text-xs px-2 py-0.5 rounded-full border border-red-300 shadow-xl whitespace-nowrap">
+              <span>SPLATTER! 🍅💦</span>
+            </div>
+          )}
+          {currentImpact.itemType === 'cash' && (
+            <div className="flex items-center gap-1 bg-emerald-600/90 text-white font-black text-[10px] sm:text-xs px-2 py-0.5 rounded-full border border-yellow-200 shadow-xl whitespace-nowrap">
+              <span>PAISA HI PAISA! 💸✨</span>
+            </div>
+          )}
+          {currentImpact.itemType === 'rose' && (
+            <div className="flex items-center gap-1 bg-pink-600/90 text-white font-black text-[10px] sm:text-xs px-2 py-0.5 rounded-full border border-pink-200 shadow-xl whitespace-nowrap">
+              <span>PYAAR SE! 🌹💖</span>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Throwable Target Picker Menu */}
+      {!isSelf && (
+        <ThrowablePicker
+          targetPlayerId={player.id}
+          targetPlayerName={player.name}
+          isOpen={showThrowPicker}
+          onClose={() => setShowThrowPicker(false)}
+          onSelect={(type) => throwItem(player.id, type)}
+          position={isTopSeat ? 'bottom' : 'top'}
+          align={pickerAlign}
+        />
+      )}
       {/* Player Header Capsule */}
       <div
         className={cn(
@@ -132,7 +200,7 @@ export const PlayerSeat: React.FC<PlayerSeatProps> = ({
         {/* Player Name & Tag */}
         <div className="flex flex-col items-start leading-none sm:leading-tight">
           <div className="flex items-center gap-1 sm:gap-1.5">
-            <span className="font-semibold text-[10px] sm:text-xs md:text-sm text-zinc-100 max-w-[65px] sm:max-w-[85px] md:max-w-[110px] truncate">
+            <span className="font-semibold text-[10px] sm:text-xs md:text-sm text-zinc-100 max-w-[50px] xs:max-w-[70px] sm:max-w-[85px] md:max-w-[110px] truncate">
               {player.name}
             </span>
             {isSelf && (
@@ -145,6 +213,21 @@ export const PlayerSeat: React.FC<PlayerSeatProps> = ({
             {player.hiddenCount} cards
           </span>
         </div>
+
+        {/* Quick Throw Button (Only on opponents) */}
+        {!isSelf && (
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              setShowThrowPicker(!showThrowPicker);
+            }}
+            title={`Throw item at ${player.name}`}
+            className="w-5 h-5 sm:w-6 sm:h-6 rounded-full bg-gradient-to-r from-amber-500/30 to-yellow-500/30 hover:from-amber-500 hover:to-yellow-400 hover:text-black border border-gold/50 flex items-center justify-center text-[10px] sm:text-xs transition-all active:scale-95 cursor-pointer shadow-sm ml-0.5 group"
+          >
+            <span className="group-hover:scale-125 transition-transform">🩴</span>
+          </button>
+        )}
 
         {/* Disconnected Indicator */}
         {!player.isConnected && (
@@ -256,6 +339,6 @@ export const PlayerSeat: React.FC<PlayerSeatProps> = ({
           </div>
         </div>
       </div>
-    </div>
+    </motion.div>
   );
 };

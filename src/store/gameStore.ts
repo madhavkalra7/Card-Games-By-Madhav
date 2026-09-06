@@ -3,6 +3,7 @@ import { GameStateClientView } from '@/lib/types';
 import { getSocket, resolveBackendUrl } from '@/socket/client';
 import { getOrCreateSessionId, saveProfile, getSavedProfile } from '@/lib/utils';
 import { sounds } from '@/lib/sound';
+import { ThrownItemEvent, ThrowableType } from '@/lib/throwables';
 
 interface ToastData {
   id: number;
@@ -19,6 +20,8 @@ interface GameStore {
   isPenaltyModalOpen: boolean;
   isRulesModalOpen: boolean;
   toast: ToastData | null;
+  activeThrowables: ThrownItemEvent[];
+  activeImpacts: Record<string, { itemType: ThrowableType; id: string }>;
 
   // Actions
   initSocketListeners: () => void;
@@ -38,6 +41,12 @@ interface GameStore {
   kickPlayer: (targetPlayerId: string) => void;
   playAgain: () => void;
   leaveRoom: () => void;
+
+  // Throwables Actions
+  throwItem: (targetPlayerId: string, itemType: ThrowableType) => void;
+  removeThrowable: (id: string) => void;
+  triggerImpact: (targetPlayerId: string, itemType: ThrowableType) => void;
+  clearImpact: (targetPlayerId: string) => void;
 }
 
 const saved = getSavedProfile();
@@ -51,6 +60,8 @@ export const useGameStore = create<GameStore>((set, get) => ({
   isPenaltyModalOpen: false,
   isRulesModalOpen: false,
   toast: null,
+  activeThrowables: [],
+  activeImpacts: {},
 
   setProfile: (name, avatar) => {
     saveProfile(name, avatar);
@@ -76,6 +87,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
       s.off('connect');
       s.off('disconnect');
       s.off('connect_error');
+      s.off('item_thrown');
 
       // Set current connection status immediately
       set({ isConnected: s.connected });
@@ -91,6 +103,14 @@ export const useGameStore = create<GameStore>((set, get) => ({
       s.on('connect_error', (err: any) => {
         set({ isConnected: false });
         console.warn('Socket connection error:', err.message);
+      });
+
+      // Listen for real-time throwables across the table
+      s.on('item_thrown', (item: ThrownItemEvent) => {
+        sounds.playThrowWhoosh();
+        set((prev) => ({
+          activeThrowables: [...prev.activeThrowables, item],
+        }));
       });
 
       s.on('syncState', (state: GameStateClientView) => {
@@ -383,6 +403,66 @@ export const useGameStore = create<GameStore>((set, get) => ({
       roomCode: '',
       isPenaltyModalOpen: false,
       isRulesModalOpen: false,
+    });
+  },
+
+  // ==========================================
+  // Desi Virtual Throwables Actions
+  // ==========================================
+  throwItem: (targetPlayerId: string, itemType: ThrowableType) => {
+    const { gameState, roomCode } = get();
+    const myPlayerId = gameState?.myPlayerId;
+    if (!roomCode || !myPlayerId) return;
+
+    const socket = getSocket();
+    socket.emit('throw_item', {
+      roomCode,
+      fromPlayerId: myPlayerId,
+      toPlayerId: targetPlayerId,
+      itemType,
+    });
+  },
+
+  removeThrowable: (id: string) => {
+    set((prev) => ({
+      activeThrowables: prev.activeThrowables.filter((t) => t.id !== id),
+    }));
+  },
+
+  triggerImpact: (targetPlayerId: string, itemType: ThrowableType) => {
+    const impactId = `${Date.now()}-${Math.random()}`;
+    set((prev) => ({
+      activeImpacts: {
+        ...prev.activeImpacts,
+        [targetPlayerId]: { itemType, id: impactId },
+      },
+    }));
+
+    // Trigger designated synthesized impact audio
+    if (itemType === 'chappal') sounds.playChappalSlap();
+    else if (itemType === 'chai') sounds.playChaiSplash();
+    else if (itemType === 'tomato') sounds.playTomatoSquish();
+    else if (itemType === 'cash') sounds.playCashChime();
+    else if (itemType === 'rose') sounds.playRoseChime();
+
+    // Auto-clear impact decal after 2.8 seconds
+    setTimeout(() => {
+      set((prev) => {
+        if (prev.activeImpacts[targetPlayerId]?.id === impactId) {
+          const copy = { ...prev.activeImpacts };
+          delete copy[targetPlayerId];
+          return { activeImpacts: copy };
+        }
+        return prev;
+      });
+    }, 2800);
+  },
+
+  clearImpact: (targetPlayerId: string) => {
+    set((prev) => {
+      const copy = { ...prev.activeImpacts };
+      delete copy[targetPlayerId];
+      return { activeImpacts: copy };
     });
   },
 }));

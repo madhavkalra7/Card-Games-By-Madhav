@@ -266,6 +266,30 @@ export function setupSocketHandlers(io: SocketIOServer) {
     });
 
     // ==========================================
+    // Interactive Felt Throwables (Chappal, Chai, Tomato, Cash, Rose)
+    // ==========================================
+    socket.on('throw_item', (data: { roomCode: string; fromPlayerId: string; toPlayerId: string; itemType: string }, callback) => {
+      try {
+        const code = data.roomCode?.trim().toUpperCase();
+        if (code && activeRooms.has(code)) {
+          const payload = {
+            id: `${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
+            fromPlayerId: data.fromPlayerId,
+            toPlayerId: data.toPlayerId,
+            itemType: data.itemType,
+            timestamp: Date.now(),
+          };
+          io.to(code).emit('item_thrown', payload);
+          if (callback) callback({ success: true });
+        } else {
+          if (callback) callback({ success: false, error: 'Room not found' });
+        }
+      } catch (err: any) {
+        if (callback) callback({ success: false, error: err?.message || 'Failed to throw item' });
+      }
+    });
+
+    // ==========================================
     // Real-Time WebRTC Voice Chat Signaling
     // ==========================================
     socket.on('voice:join', (data: { roomCode: string }, callback) => {

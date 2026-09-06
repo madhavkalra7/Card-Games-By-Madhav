@@ -19,11 +19,11 @@ export function calculateRankPoints(rank: number, totalPlayers: number): number 
     if (rank === 2) return 1000;
     if (rank === 3) return 500;
   } else {
-    // 2 players
-    if (rank === 1) return 2000;
-    if (rank === 2) return 500;
+    // 2 players: Winner gets 1000, Loser (2nd place) gets 10 only
+    if (rank === 1) return 1000;
+    if (rank === 2) return 10;
   }
-  return 100;
+  return 10;
 }
 
 export class DukkiBazaarRoom {
@@ -281,8 +281,8 @@ export class DukkiBazaarRoom {
       return { success: false, error: "Only the host can start the game." };
     }
 
-    if (this.players.length < 3) {
-      return { success: false, error: "Minimum 3 players required to start Dukki Bazaar." };
+    if (this.players.length < 2) {
+      return { success: false, error: "Minimum 2 players required to start Dukki Bazaar." };
     }
 
     if (this.players.length > 5) {

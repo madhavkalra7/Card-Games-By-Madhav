@@ -307,9 +307,9 @@ export default function RoomPage({ params }: { params: Promise<{ code: string }>
             {/* Start Game Action */}
             <div className="mt-6 sm:mt-10 pt-4 sm:pt-6 border-t border-white/10 flex flex-col sm:flex-row items-center justify-between gap-3 sm:gap-4">
               <div className="text-xs text-zinc-400 text-center sm:text-left">
-                {gameState.players.length < 3 ? (
+                {gameState.players.length < 2 ? (
                   <span className="text-amber-400 font-semibold">
-                    Need at least {3 - gameState.players.length} more player(s) to start.
+                    Need at least {2 - gameState.players.length} more player(s) to start.
                   </span>
                 ) : (
                   <span className="text-emerald-400 font-semibold">
@@ -321,10 +321,10 @@ export default function RoomPage({ params }: { params: Promise<{ code: string }>
               {isHost ? (
                 <button
                   onClick={startGame}
-                  disabled={gameState.players.length < 3}
+                  disabled={gameState.players.length < 2}
                   className={cn(
                     'w-full sm:w-auto flex items-center justify-center gap-2 px-6 sm:px-8 py-2.5 sm:py-3.5 rounded-xl sm:rounded-2xl font-black text-xs sm:text-sm uppercase tracking-wider transition-all shadow-gold-glow',
-                    gameState.players.length >= 3
+                    gameState.players.length >= 2
                       ? 'bg-gradient-to-r from-amber-500 to-yellow-400 text-black hover:from-amber-400 hover:to-yellow-300 active:scale-95'
                       : 'bg-zinc-800 text-zinc-500 cursor-not-allowed border border-zinc-700'
                   )}

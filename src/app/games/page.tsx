@@ -43,7 +43,7 @@ const GAMES: GameItem[] = [
     title: 'DUKKI BAZAAR',
     subtitle: 'Classic Indian Table Game',
     tagline: 'Match Center Bazaar, open your stall & build 4 suit rails!',
-    players: '3 - 5 Players',
+    players: '2 - 5 Players',
     deck: '52 Cards',
     status: 'available',
     badge: 'Available Now',

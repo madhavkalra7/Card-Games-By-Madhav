@@ -91,8 +91,8 @@ export const PokerTable: React.FC<PokerTableProps> = ({
     // 2-Player (Self + 1 Opponent)
     if (count === 2) {
       return isLandscape
-        ? 'top-1 sm:top-2 left-1/2 -translate-x-1/2'
-        : 'top-10 sm:top-12 left-1/2 -translate-x-1/2';
+        ? 'top-1 sm:top-2 left-1/2 -translate-x-1/2 scale-90 sm:scale-100'
+        : 'top-8 sm:top-12 left-1/2 -translate-x-1/2';
     }
 
     // 3-Player (Self + 2 Opponents)
@@ -244,7 +244,9 @@ export const PokerTable: React.FC<PokerTableProps> = ({
             className={cn(
               "absolute left-1/2 -translate-x-1/2 z-10 pointer-events-auto transition-all",
               isLandscape
-                ? "top-[36%] -translate-y-1/2 scale-[0.88] sm:scale-100"
+                ? totalPlayers === 2
+                  ? "top-[44%] -translate-y-1/2 scale-[0.84] sm:scale-95"
+                  : "top-[36%] -translate-y-1/2 scale-[0.88] sm:scale-100"
                 : "top-1/2 -translate-y-1/2"
             )}
           >

@@ -1,6 +1,7 @@
 import { Card, GameStateClientView, PenaltyLog, Player, PlayerClientView, Rank, Suit, CenterDeck } from './types';
 import { createDeck, getNextRank, isNextRank, shuffleDeck } from './deck';
 import { canPlayOnAnyCenterDeck, canPlayOnCenterDeck, canPlayOnOtherRightDeck } from './validator';
+import { drawRandomRewardCard, CollectibleRewardInfo } from '../../src/lib/collectibles';
 
 export function calculateRankPoints(rank: number, totalPlayers: number): number {
   if (totalPlayers >= 5) {
@@ -58,6 +59,7 @@ export class DukkiBazaarRoom {
     rank: number;
     scoreEarned?: number;
     totalScore?: number;
+    rewardCard?: CollectibleRewardInfo;
   }> = [];
   public activePenaltyAnimation: {
     fromPlayerIds: string[];
@@ -212,10 +214,13 @@ export class DukkiBazaarRoom {
             this.winner = lastPlayer;
           }
         }
-        // Compute score rewards for all players
+        // Compute score rewards & card collectibles for 1st and 2nd place
         const totalMatchPlayers = this.players.length;
         for (const r of this.rankings) {
           r.scoreEarned = calculateRankPoints(r.rank, totalMatchPlayers);
+          if (r.rank === 1 || r.rank === 2) {
+            r.rewardCard = drawRandomRewardCard(r.rank);
+          }
         }
         this.status = 'GAME_OVER';
         this.stopTurnTimer();
@@ -385,16 +390,12 @@ export class DukkiBazaarRoom {
       return { success: false, error: "You already have an active card drawn." };
     }
 
-    if (current.hiddenCards.length === 0) {
-      return { success: false, error: "No hidden cards remaining." };
-    }
-
     // RULE: If player has a top card on their Right Deck that can be played to Center or to an Opponent's Right Deck,
     // they MUST play that card first! Drawing a new card is a priority violation (Auto-Penalty!).
     if (current.rightDeck.length > 0) {
       const rightTop = current.rightDeck[current.rightDeck.length - 1];
 
-      // 1. Check if right deck top could be played to Center
+      // 1. Check if right deck top could be played to Center (ALWAYS MANDATORY)
       const centerPlayable = canPlayOnAnyCenterDeck(rightTop, this.centerDecks, this.baseRank);
       if (centerPlayable.canPlay) {
         const reason = `Missed Center! Your Right Deck card ${rightTop.rank}${rightTop.suit} was playable on Center Deck ${centerPlayable.targetDeckId !== undefined ? (centerPlayable.targetDeckId + 1) : ''} before drawing.`;
@@ -415,28 +416,43 @@ export class DukkiBazaarRoom {
       }
 
       // 2. Check if right deck top could be played to ANY Opponent's Right Deck
-      for (const p of this.players) {
-        if (p.id !== current.id && p.rightDeck.length > 0) {
-          const oppTop = p.rightDeck[p.rightDeck.length - 1];
-          if (isNextRank(oppTop.rank, rightTop.rank)) {
-            const reason = `Missed Opponent! Your Right Deck card ${rightTop.rank}${rightTop.suit} was playable on ${p.name}'s Right Deck (Top was ${oppTop.rank}) before drawing.`;
-            this.triggerAutoPenalty(current, reason);
+      // CRITICAL RULE: ONLY MANDATORY IF CURRENT PLAYER'S BAZAAR IS OPEN!
+      // If Bazaar is NOT open, player cannot play on opponents anyway, so they are free to draw!
+      if (current.isBazaarOpen) {
+        for (const p of this.players) {
+          if (p.id !== current.id && p.rightDeck.length > 0) {
+            const oppTop = p.rightDeck[p.rightDeck.length - 1];
+            if (isNextRank(oppTop.rank, rightTop.rank)) {
+              const reason = `Missed Opponent! Your Right Deck card ${rightTop.rank}${rightTop.suit} was playable on ${p.name}'s Right Deck (Top was ${oppTop.rank}) before drawing.`;
+              this.triggerAutoPenalty(current, reason);
 
-            this.lastMove = {
-              playerId: current.id,
-              action: 'RIGHT_DECK',
-              targetPlayerId: current.id,
-              card: rightTop,
-              wasPriorityViolation: true,
-              timestamp: Date.now(),
-            };
+              this.lastMove = {
+                playerId: current.id,
+                action: 'RIGHT_DECK',
+                targetPlayerId: current.id,
+                card: rightTop,
+                wasPriorityViolation: true,
+                timestamp: Date.now(),
+              };
 
-            this.advanceTurn();
-            this.notifyState();
-            return { success: false, error: reason };
+              this.advanceTurn();
+              this.notifyState();
+              return { success: false, error: reason };
+            }
           }
         }
       }
+    }
+
+    // DECK REFILL / FLIP LOGIC:
+    // If hiddenCards is empty but player has cards on right deck, flip right deck face-down into hiddenCards!
+    if (current.hiddenCards.length === 0 && current.rightDeck.length > 0) {
+      current.hiddenCards = current.rightDeck.slice().reverse();
+      current.rightDeck = [];
+    }
+
+    if (current.hiddenCards.length === 0) {
+      return { success: false, error: "No hidden cards remaining." };
     }
 
     const drawn = current.hiddenCards.pop()!;
@@ -455,13 +471,18 @@ export class DukkiBazaarRoom {
   private triggerAutoPenalty(offender: Player, reason: string): { cardsTransferred: number } {
     // Only players who have OPENED the bazaar donate 1 card to the penalized player
     const bazaarOpenDonors = this.players.filter(
-      p => p.id !== offender.id && p.isBazaarOpen && p.hiddenCards.length > 0
+      p => p.id !== offender.id && p.isBazaarOpen && (p.hiddenCards.length > 0 || p.rightDeck.length > 0)
     );
 
     let transferredCount = 0;
     const fromPlayerIds: string[] = [];
 
     for (const donor of bazaarOpenDonors) {
+      if (donor.hiddenCards.length === 0 && donor.rightDeck.length > 0) {
+        // Physical flip without shuffle: oldest rightDeck card becomes top of hidden deck
+        donor.hiddenCards = donor.rightDeck.slice().reverse();
+        donor.rightDeck = [];
+      }
       const card = donor.hiddenCards.pop();
       if (card) {
         offender.hiddenCards.unshift(card); // goes to bottom of offender's hidden deck
@@ -689,34 +710,36 @@ export class DukkiBazaarRoom {
         return { success: true, autoPenalized: true, reason };
       }
 
-      // Check if card could have been played on any opponent's right deck (e.g. 4 on 3)
-      let missedOpponent: Player | undefined;
-      for (const p of this.players) {
-        if (p.id !== current.id && p.rightDeck.length > 0) {
-          const oppTop = p.rightDeck[p.rightDeck.length - 1];
-          if (isNextRank(oppTop.rank, card.rank)) {
-            missedOpponent = p;
-            break;
+      // Check if card could have been played on any opponent's right deck (ONLY IF BAZAAR IS OPEN!)
+      if (current.isBazaarOpen) {
+        let missedOpponent: Player | undefined;
+        for (const p of this.players) {
+          if (p.id !== current.id && p.rightDeck.length > 0) {
+            const oppTop = p.rightDeck[p.rightDeck.length - 1];
+            if (isNextRank(oppTop.rank, card.rank)) {
+              missedOpponent = p;
+              break;
+            }
           }
         }
-      }
 
-      if (missedOpponent) {
-        const oppTop = missedOpponent.rightDeck[missedOpponent.rightDeck.length - 1];
-        const reason = `Missed Opponent! ${card.rank}${card.suit} was playable on ${missedOpponent.name}'s Right Deck (Top was ${oppTop.rank}).`;
-        this.triggerAutoPenalty(current, reason);
+        if (missedOpponent) {
+          const oppTop = missedOpponent.rightDeck[missedOpponent.rightDeck.length - 1];
+          const reason = `Missed Opponent! ${card.rank}${card.suit} was playable on ${missedOpponent.name}'s Right Deck (Top was ${oppTop.rank}).`;
+          this.triggerAutoPenalty(current, reason);
 
-        this.lastMove = {
-          playerId: current.id,
-          action: 'RIGHT_DECK',
-          targetPlayerId: target.id,
-          card,
-          wasPriorityViolation: true,
-          timestamp: Date.now(),
-        };
+          this.lastMove = {
+            playerId: current.id,
+            action: 'RIGHT_DECK',
+            targetPlayerId: target.id,
+            card,
+            wasPriorityViolation: true,
+            timestamp: Date.now(),
+          };
 
-        this.advanceTurn();
-        return { success: true, autoPenalized: true, reason };
+          this.advanceTurn();
+          return { success: true, autoPenalized: true, reason };
+        }
       }
 
       // Valid discard on own right deck - ENDS TURN!
@@ -862,12 +885,17 @@ export class DukkiBazaarRoom {
     // If valid -> target is punished
     // If invalid -> accuser is punished (false accusation penalty)
     const punishedPlayer = isValid ? target : accuser;
-    const fromPlayers = this.players.filter(p => p.id !== punishedPlayer.id && p.hiddenCards.length > 0);
+    const fromPlayers = this.players.filter(p => p.id !== punishedPlayer.id && (p.hiddenCards.length > 0 || p.rightDeck.length > 0));
 
     let transferredCount = 0;
     const fromPlayerIds: string[] = [];
 
     for (const donor of fromPlayers) {
+      if (donor.hiddenCards.length === 0 && donor.rightDeck.length > 0) {
+        // Physical flip without shuffle: oldest rightDeck card becomes top of hidden deck
+        donor.hiddenCards = donor.rightDeck.slice().reverse();
+        donor.rightDeck = [];
+      }
       const card = donor.hiddenCards.pop();
       if (card) {
         punishedPlayer.hiddenCards.unshift(card); // Put into bottom of hidden deck
@@ -987,10 +1015,13 @@ export class DukkiBazaarRoom {
         });
       }
 
-      // Compute score rewards for all players
+      // Compute score rewards & card collectibles for 1st and 2nd place
       const totalMatchPlayers = this.players.length;
       for (const r of this.rankings) {
         r.scoreEarned = calculateRankPoints(r.rank, totalMatchPlayers);
+        if (r.rank === 1 || r.rank === 2) {
+          r.rewardCard = drawRandomRewardCard(r.rank);
+        }
       }
 
       this.status = 'GAME_OVER';
@@ -1011,7 +1042,9 @@ export class DukkiBazaarRoom {
     const current = this.getCurrentPlayer();
     if (!current || current.id !== socketId) return { success: false, error: "It is not your turn." };
     if (current.floatingCard) return { success: false, error: "Must play your drawn card first." };
-    if (current.hiddenCards.length > 0) return { success: false, error: "You still have cards in your hidden deck to draw." };
+    if (current.hiddenCards.length > 0 || current.rightDeck.length > 0) {
+      return { success: false, error: "You still have cards remaining to flip and draw." };
+    }
 
     this.advanceTurn();
     return { success: true };

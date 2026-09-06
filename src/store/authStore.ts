@@ -34,8 +34,20 @@ interface AuthState {
   logout: () => void;
 }
 
+function getInitialUser(): UserProfile | null {
+  if (typeof window === 'undefined') return null;
+  try {
+    const saved = localStorage.getItem('cg_user_profile');
+    if (saved) {
+      const parsed = JSON.parse(saved);
+      if (parsed && parsed.id && parsed.name) return parsed;
+    }
+  } catch {}
+  return null;
+}
+
 export const useAuthStore = create<AuthState>((set, get) => ({
-  user: null,
+  user: getInitialUser(),
   token: typeof window !== 'undefined' ? localStorage.getItem('cg_auth_token') : null,
   isLoading: false,
   isAuthModalOpen: false,
@@ -55,6 +67,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     const token = localStorage.getItem('cg_auth_token');
     if (!token) {
       set({ user: null, token: null });
+      localStorage.removeItem('cg_user_profile');
       return;
     }
 
@@ -63,18 +76,26 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       const res = await fetch('/api/auth/me', {
         headers: { Authorization: `Bearer ${token}` },
       });
+
+      // ONLY log out if the server explicitly tells us the token is invalid/expired (HTTP 401)
+      if (res.status === 401) {
+        localStorage.removeItem('cg_auth_token');
+        localStorage.removeItem('cg_user_profile');
+        set({ user: null, token: null });
+        return;
+      }
+
       const data = await res.json();
       if (data.success && data.user) {
         set({ user: data.user, token });
-        // Sync with game profile
+        localStorage.setItem('cg_user_profile', JSON.stringify(data.user));
         localStorage.setItem('cg_player_name', data.user.name);
         localStorage.setItem('cg_player_avatar', data.user.avatarColor);
-      } else {
-        localStorage.removeItem('cg_auth_token');
-        set({ user: null, token: null });
       }
+      // If server returned a 404 or 500 or offline, DO NOT kick the user out!
+      // Keep their verified local user cache intact so they never have to sign in again!
     } catch {
-      set({ user: null });
+      // Offline / network hiccup: keep cached user intact
     } finally {
       set({ isLoading: false });
     }
@@ -92,6 +113,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 
       if (data.success && data.user && data.token) {
         localStorage.setItem('cg_auth_token', data.token);
+        localStorage.setItem('cg_user_profile', JSON.stringify(data.user));
         localStorage.setItem('cg_player_name', data.user.name);
         localStorage.setItem('cg_player_avatar', data.user.avatarColor);
         set({ user: data.user, token: data.token, isAuthModalOpen: false });
@@ -117,6 +139,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 
       if (data.success && data.user && data.token) {
         localStorage.setItem('cg_auth_token', data.token);
+        localStorage.setItem('cg_user_profile', JSON.stringify(data.user));
         localStorage.setItem('cg_player_name', data.user.name);
         localStorage.setItem('cg_player_avatar', data.user.avatarColor);
         set({ user: data.user, token: data.token, isAuthModalOpen: false });
@@ -151,6 +174,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 
       if (data.success && data.user && data.token) {
         localStorage.setItem('cg_auth_token', data.token);
+        localStorage.setItem('cg_user_profile', JSON.stringify(data.user));
         localStorage.setItem('cg_player_name', data.user.name);
         localStorage.setItem('cg_player_avatar', data.user.avatarColor);
         set({ user: data.user, token: data.token, isAuthModalOpen: false });
@@ -221,6 +245,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 
       if (data.success && data.user) {
         set({ user: data.user });
+        localStorage.setItem('cg_user_profile', JSON.stringify(data.user));
         if (data.user.name) localStorage.setItem('cg_player_name', data.user.name);
         if (data.user.avatarColor) localStorage.setItem('cg_player_avatar', data.user.avatarColor);
         return { success: true };
@@ -236,6 +261,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   logout: () => {
     if (typeof window !== 'undefined') {
       localStorage.removeItem('cg_auth_token');
+      localStorage.removeItem('cg_user_profile');
       document.cookie = 'cg_auth_token=; Max-Age=0; path=/;';
     }
     set({ user: null, token: null, isProfileModalOpen: false });

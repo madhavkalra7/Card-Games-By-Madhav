@@ -43,7 +43,10 @@ export const CardStack: React.FC<CardStackProps> = ({
         {!hasCards ? (
           <div
             className={cn(
-              'border-2 border-dashed border-amber-400/25 rounded-[8px] sm:rounded-[12px] bg-black/20 flex flex-col items-center justify-center p-0.5 sm:p-1',
+              'border-2 border-dashed rounded-[8px] sm:rounded-[12px] flex flex-col items-center justify-center p-0.5 sm:p-1 transition-all',
+              isClickable && type === 'hidden'
+                ? 'border-amber-400 bg-amber-500/20 shadow-gold-glow animate-pulse'
+                : 'border-amber-400/25 bg-black/20',
               size === 'xxs'
                 ? 'w-[32px] h-[45px]'
                 : size === 'xs'
@@ -55,8 +58,11 @@ export const CardStack: React.FC<CardStackProps> = ({
                 : 'w-[72px] h-[100px] sm:w-[90px] sm:h-[126px] md:w-[110px] md:h-[154px]'
             )}
           >
-            <span className="text-[7px] sm:text-[9px] text-amber-200/40 text-center font-medium uppercase tracking-wider">
-              {type === 'hidden' ? 'Empty' : 'Right'}
+            <span className={cn(
+              "text-[7px] sm:text-[9px] text-center font-black uppercase tracking-wider",
+              isClickable && type === 'hidden' ? "text-amber-300 animate-bounce" : "text-amber-200/40 font-medium"
+            )}>
+              {type === 'hidden' ? (isClickable ? 'FLIP ↻' : 'Empty') : 'Right'}
             </span>
           </div>
         ) : (

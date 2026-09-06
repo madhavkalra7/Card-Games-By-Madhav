@@ -109,5 +109,19 @@ export interface GameStateClientView {
     rank: number;
     scoreEarned?: number;
     totalScore?: number;
+    rewardCard?: {
+      id: string;
+      name: string;
+      hindiName: string;
+      rank: string;
+      suit: string;
+      family: string;
+      rarity: string;
+      power: number;
+      collectorNumber: number;
+      specialEffect?: string;
+      accentColor: string;
+      glowColor: string;
+    };
   }>;
 }

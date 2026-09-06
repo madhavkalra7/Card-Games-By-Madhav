@@ -1,3 +1,5 @@
+import fs from 'fs';
+import path from 'path';
 import { UserModel, connectDB, hashPassword, verifyPassword } from '../../server/db';
 import { signAuthToken, verifyAuthToken } from './auth-token';
 import { DEFAULT_AVATAR, getAvatarById } from './avatars';
@@ -47,11 +49,44 @@ interface InMemoryUser {
   createdAt: Date;
 }
 
+const USERS_FILE = path.join(process.cwd(), 'server', 'data', 'users.json');
+
+function loadDiskUsers(): Map<string, InMemoryUser> {
+  const map = new Map<string, InMemoryUser>();
+  try {
+    if (fs.existsSync(USERS_FILE)) {
+      const raw = fs.readFileSync(USERS_FILE, 'utf-8');
+      const entries = JSON.parse(raw);
+      if (Array.isArray(entries)) {
+        for (const [key, val] of entries) {
+          map.set(key, val);
+        }
+      }
+    }
+  } catch (err: any) {
+    console.warn('⚠️ Could not load users from disk fallback:', err.message);
+  }
+  return map;
+}
+
+export function saveDiskUsers(map: Map<string, InMemoryUser>) {
+  try {
+    const dir = path.dirname(USERS_FILE);
+    if (!fs.existsSync(dir)) {
+      fs.mkdirSync(dir, { recursive: true });
+    }
+    const entries = Array.from(map.entries());
+    fs.writeFileSync(USERS_FILE, JSON.stringify(entries, null, 2), 'utf-8');
+  } catch (err: any) {
+    console.warn('⚠️ Could not save users to disk fallback:', err.message);
+  }
+}
+
 declare global {
   var inMemoryAuthUsers: Map<string, InMemoryUser> | undefined;
 }
 
-const memUsers = global.inMemoryAuthUsers || new Map<string, InMemoryUser>();
+const memUsers = global.inMemoryAuthUsers || loadDiskUsers();
 if (!global.inMemoryAuthUsers) {
   global.inMemoryAuthUsers = memUsers;
 }
@@ -146,6 +181,7 @@ export async function processSignup(data: {
     createdAt: new Date(),
   };
   memUsers.set(cleanEmail, memUser);
+  saveDiskUsers(memUsers);
 
   const token = signAuthToken({ userId: memUser.id, email: memUser.email });
   return {
@@ -329,9 +365,11 @@ export async function processGoogleAuth(data: {
       createdAt: new Date(),
     };
     memUsers.set(cleanEmail, memUser);
+    saveDiskUsers(memUsers);
   } else {
     if (avatarUrl) memUser.avatarUrl = avatarUrl;
     if (userName) memUser.name = userName;
+    saveDiskUsers(memUsers);
   }
 
   const token = signAuthToken({ userId: memUser.id, email: memUser.email });
@@ -388,7 +426,30 @@ export async function processGetMe(token: string | null) {
     }
   }
 
-  return { status: 404, data: { success: false, user: null } };
+  // Auto-recover user from cryptographically verified token so session is NEVER lost across restarts
+  const cleanEmail = payload.email.trim().toLowerCase();
+  const recoveredUser: InMemoryUser = {
+    id: payload.userId,
+    name: cleanEmail.split('@')[0],
+    email: cleanEmail,
+    avatarUrl: DEFAULT_AVATAR.image,
+    avatarColor: DEFAULT_AVATAR.color,
+    avatarId: DEFAULT_AVATAR.id,
+    totalScore: 100,
+    totalGamesWon: 0,
+    totalGamesPlayed: 0,
+    createdAt: new Date(),
+  };
+  memUsers.set(cleanEmail, recoveredUser);
+  saveDiskUsers(memUsers);
+
+  return {
+    status: 200,
+    data: {
+      success: true,
+      user: formatSafeUser(recoveredUser),
+    },
+  };
 }
 
 export async function processUpdateProfile(token: string | null, data: { name?: string; avatarId?: string }) {
@@ -447,6 +508,7 @@ export async function processUpdateProfile(token: string | null, data: { name?: 
         user.avatarUrl = avatarInfo.image;
         user.avatarColor = avatarInfo.color;
       }
+      saveDiskUsers(memUsers);
 
       return {
         status: 200,

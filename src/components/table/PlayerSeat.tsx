@@ -189,8 +189,6 @@ export const PlayerSeat: React.FC<PlayerSeatProps> = ({
           isOpen={showThrowPicker}
           onClose={() => setShowThrowPicker(false)}
           onSelect={(type) => throwItem(player.id, type)}
-          position={isTopSeat ? 'bottom' : 'top'}
-          align={pickerAlign}
         />
       )}
       {/* Player Header Capsule */}
@@ -249,7 +247,7 @@ export const PlayerSeat: React.FC<PlayerSeatProps> = ({
           </span>
         </div>
 
-        {/* Quick Throw Button (Only on opponents) */}
+        {/* Quick Throw Button (Only on opponents) - Touch Friendly */}
         {!isSelf && (
           <button
             type="button"
@@ -258,7 +256,7 @@ export const PlayerSeat: React.FC<PlayerSeatProps> = ({
               setShowThrowPicker(!showThrowPicker);
             }}
             title={`Throw item at ${player.name}`}
-            className="w-5 h-5 sm:w-6 sm:h-6 rounded-full bg-gradient-to-r from-amber-500/30 to-yellow-500/30 hover:from-amber-500 hover:to-yellow-400 hover:text-black border border-gold/50 flex items-center justify-center text-[10px] sm:text-xs transition-all active:scale-95 cursor-pointer shadow-sm ml-0.5 group"
+            className="w-6 h-6 sm:w-7 sm:h-7 rounded-full bg-gradient-to-r from-amber-500/40 to-yellow-500/40 hover:from-amber-500 hover:to-yellow-400 hover:text-black border border-gold/60 flex items-center justify-center text-xs sm:text-sm transition-all active:scale-90 cursor-pointer shadow-md ml-0.5 sm:ml-1 group touch-manipulation"
           >
             <span className="group-hover:scale-125 transition-transform">🩴</span>
           </button>

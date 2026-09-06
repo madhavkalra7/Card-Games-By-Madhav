@@ -57,7 +57,7 @@ export const PokerTable: React.FC<PokerTableProps> = ({
 
   const me = players.find(p => p.id === myPlayerId);
   const isMyTurn = currentTurnPlayerId === myPlayerId;
-  const canDraw = isMyTurn && !myFloatingCard && (me?.hiddenCount ?? 0) > 0;
+  const canDraw = isMyTurn && !myFloatingCard && ((me?.hiddenCount ?? 0) > 0 || (me?.rightDeckCount ?? 0) > 0);
 
   // Center deck validation for floating card
   const canPlayCenter = myFloatingCard && centerDecks
@@ -271,8 +271,8 @@ export const PokerTable: React.FC<PokerTableProps> = ({
             if (isMyTurn && myFloatingCard) {
               if (isSelf) {
                 canPlaceRight = true;
-              } else {
-                canPlaceRight = canPlayOnOtherRightDeck(myFloatingCard, player.rightDeckTop).valid;
+              } else if (me?.isBazaarOpen) {
+                canPlaceRight = canPlayOnOtherRightDeck(myFloatingCard, player.rightDeckTop, me.isBazaarOpen).valid;
               }
             }
 
@@ -297,18 +297,6 @@ export const PokerTable: React.FC<PokerTableProps> = ({
               </div>
             );
           })}
-
-          {/* Pass Turn button when hidden cards are exhausted and player cannot play their right deck */}
-          {isMyTurn && !myFloatingCard && (me?.hiddenCount ?? 0) === 0 && (me?.rightDeckCount ?? 0) > 0 && (
-            <div className="absolute bottom-20 sm:bottom-24 md:bottom-28 left-1/2 -translate-x-1/2 z-30">
-              <button
-                onClick={() => useGameStore.getState().passTurn()}
-                className="px-3 sm:px-4 py-1 sm:py-1.5 rounded-full bg-black/85 hover:bg-black text-amber-300 border border-amber-400/50 text-[10px] sm:text-xs font-black uppercase tracking-wider shadow-lg transition-all active:scale-95 flex items-center gap-1.5"
-              >
-                <span>Pass Turn</span>
-              </button>
-            </div>
-          )}
 
         </div>
       </div>

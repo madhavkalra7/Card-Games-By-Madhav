@@ -137,16 +137,17 @@ export default function GamesPage() {
 
       {/* 3. Top Navigation matching Landing Page */}
       <header className="relative z-30 w-full px-3 sm:px-8 py-3 sm:py-5 flex items-center justify-between border-b border-white/10 bg-black/30 backdrop-blur-md">
-        <Link href="/" className="flex items-center gap-2 sm:gap-2.5 group">
-          <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg bg-white/20 backdrop-blur-md flex items-center justify-center text-white font-black text-xs sm:text-sm border border-white/30 shadow-sm group-hover:scale-105 transition-transform">
+        <Link href="/" className="flex items-center gap-1.5 xs:gap-2 sm:gap-2.5 group min-w-0">
+          <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg bg-white/20 backdrop-blur-md flex items-center justify-center text-white font-black text-xs sm:text-sm border border-white/30 shadow-sm group-hover:scale-105 transition-transform shrink-0">
             ♠
           </div>
-          <div>
+          <div className="min-w-0">
             <span
-              className="text-[10px] sm:text-xs font-semibold uppercase text-white tracking-[0.16em] sm:tracking-[0.18em] block"
+              className="text-[10px] sm:text-xs font-semibold uppercase text-white tracking-[0.14em] sm:tracking-[0.18em] block truncate"
               style={{ opacity: 0.9 }}
             >
-              CARD GAMES BY MADHAV
+              <span className="hidden xs:inline">CARD GAMES BY MADHAV</span>
+              <span className="xs:hidden">CARD GAMES</span>
             </span>
             <span className="hidden sm:block text-[9px] text-white/70 font-medium tracking-wider uppercase">
               Traditional Indian 52-Card Platform
@@ -154,27 +155,35 @@ export default function GamesPage() {
           </div>
         </Link>
 
-        <div className="flex items-center gap-1.5 sm:gap-3">
+        <div className="flex items-center gap-1 xs:gap-1.5 sm:gap-3 shrink-0">
           <Link
             href="/"
-            className="flex items-center gap-1 sm:gap-1.5 px-3 sm:px-3.5 py-1 sm:py-1.5 rounded-full bg-white/10 hover:bg-white/20 backdrop-blur-md border border-white/20 text-white text-[11px] sm:text-xs font-bold transition-all shadow-sm active:scale-95"
+            className="flex items-center gap-1 sm:gap-1.5 px-2 xs:px-2.5 sm:px-3.5 py-1 sm:py-1.5 rounded-full bg-white/10 hover:bg-white/20 backdrop-blur-md border border-white/20 text-white text-[10px] xs:text-[11px] sm:text-xs font-bold transition-all shadow-sm active:scale-95 shrink-0"
           >
-            <ArrowLeft className="w-3.5 h-3.5 text-white" />
-            <span>Home</span>
+            <ArrowLeft className="w-3.5 h-3.5 text-white shrink-0" />
+            <span className="hidden xs:inline">Home</span>
           </Link>
 
           <button
             onClick={() => setRulesModalOpen(true)}
-            className="flex items-center gap-1 sm:gap-1.5 px-3 sm:px-3.5 py-1 sm:py-1.5 rounded-full bg-white/10 hover:bg-white/20 backdrop-blur-md border border-white/20 text-white text-[11px] sm:text-xs font-bold transition-all shadow-sm active:scale-95"
+            className="flex items-center gap-1 sm:gap-1.5 px-2 xs:px-2.5 sm:px-3.5 py-1 sm:py-1.5 rounded-full bg-white/10 hover:bg-white/20 backdrop-blur-md border border-white/20 text-white text-[10px] xs:text-[11px] sm:text-xs font-bold transition-all shadow-sm active:scale-95 shrink-0"
           >
-            <BookOpen className="w-3.5 h-3.5 text-white" />
+            <BookOpen className="w-3.5 h-3.5 text-white shrink-0" />
             <span className="hidden sm:inline">Rules</span>
           </button>
+
+          <Link
+            href="/album"
+            className="flex items-center gap-1 sm:gap-1.5 px-2 xs:px-2.5 sm:px-3.5 py-1 sm:py-1.5 rounded-full bg-gradient-to-r from-amber-500/25 via-yellow-500/20 to-amber-500/25 hover:from-amber-500/40 hover:to-yellow-500/30 backdrop-blur-md border border-amber-400/60 text-amber-300 text-[10px] xs:text-[11px] sm:text-xs font-black uppercase tracking-wider transition-all shadow-gold-glow active:scale-95 shrink-0"
+          >
+            <Sparkles className="w-3.5 h-3.5 text-amber-300 shrink-0" />
+            <span>Album</span>
+          </Link>
 
           <button
             onClick={handleToggleSound}
             title={isMuted ? 'Unmute Sound' : 'Mute Sound'}
-            className="p-1.5 sm:p-2 rounded-full bg-white/10 hover:bg-white/20 backdrop-blur-md border border-white/20 text-white transition-all active:scale-95"
+            className="p-1.5 sm:p-2 rounded-full bg-white/10 hover:bg-white/20 backdrop-blur-md border border-white/20 text-white transition-all active:scale-95 shrink-0"
           >
             {isMuted ? <VolumeX className="w-3.5 h-3.5 text-red-400" /> : <Volume2 className="w-3.5 h-3.5 text-emerald-400" />}
           </button>

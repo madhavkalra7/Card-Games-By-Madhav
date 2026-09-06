@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { ArrowLeft, ArrowRight, Gamepad2, Plus, Users, Music, User, Trophy } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Gamepad2, Plus, Users, Music, User, Trophy, BookOpen } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { funkyMusic } from '@/lib/funkyMusic';
 import { useAuthStore } from '@/store/authStore';
@@ -300,6 +300,16 @@ export const ToonHeroSection: React.FC<ToonHeroSectionProps> = ({
             >
               <Gamepad2 className="w-3.5 h-3.5 text-white shrink-0" />
               <span className="hidden sm:inline ml-1.5">Catalog</span>
+            </Link>
+
+            {/* Royal Collectibles Card Album Link */}
+            <Link
+              href="/album"
+              className="flex items-center justify-center w-8 h-8 sm:w-auto sm:h-9 p-0 sm:px-3.5 rounded-full bg-gradient-to-r from-amber-500/25 via-yellow-500/20 to-amber-500/25 hover:from-amber-500/40 hover:to-yellow-500/30 backdrop-blur-md border border-amber-400/60 text-amber-300 text-[11px] sm:text-xs font-black uppercase tracking-wider transition-all shadow-gold-glow active:scale-95 shrink-0 group"
+              title="View Royal Collectibles Card Album (Trump Cards Grimoire)"
+            >
+              <BookOpen className="w-3.5 h-3.5 text-amber-300 group-hover:scale-115 transition-transform shrink-0" />
+              <span className="hidden sm:inline ml-1.5">Album</span>
             </Link>
 
             {/* Top-Right Circular Cartoon Avatar or Sign In Button */}

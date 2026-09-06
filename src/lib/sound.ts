@@ -396,6 +396,69 @@ class SoundManager {
       });
     } catch {}
   }
+
+  // Realistic physical book page flip sound (gentle paper flutter + air swoosh)
+  public playPageFlip() {
+    if (this.isMuted) return;
+    try {
+      this.init();
+      if (!this.ctx) return;
+
+      const now = this.ctx.currentTime;
+      // White noise buffer for paper texture
+      const bufferSize = Math.floor(this.ctx.sampleRate * 0.28);
+      const buffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
+      const output = buffer.getChannelData(0);
+      for (let i = 0; i < bufferSize; i++) {
+        output[i] = Math.random() * 2 - 1;
+      }
+
+      const whiteNoise = this.ctx.createBufferSource();
+      whiteNoise.buffer = buffer;
+
+      const filter = this.ctx.createBiquadFilter();
+      filter.type = 'bandpass';
+      filter.frequency.setValueAtTime(1400, now);
+      filter.frequency.exponentialRampToValueAtTime(450, now + 0.25);
+      filter.Q.setValueAtTime(1.8, now);
+
+      const gain = this.ctx.createGain();
+      gain.gain.setValueAtTime(0.01, now);
+      gain.gain.linearRampToValueAtTime(0.24, now + 0.05);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.26);
+
+      whiteNoise.connect(filter);
+      filter.connect(gain);
+      gain.connect(this.ctx.destination);
+
+      whiteNoise.start(now);
+      whiteNoise.stop(now + 0.28);
+    } catch {}
+  }
+
+  // Shimmer / sparkle sound when inspecting a holographic card
+  public playCardShimmer() {
+    if (this.isMuted) return;
+    try {
+      this.init();
+      if (!this.ctx) return;
+
+      const now = this.ctx.currentTime;
+      const freqs = [880, 1174.66, 1396.91, 1760, 2093];
+      freqs.forEach((f, i) => {
+        const osc = this.ctx!.createOscillator();
+        const gain = this.ctx!.createGain();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(f, now + i * 0.04);
+        gain.gain.setValueAtTime(0.08, now + i * 0.04);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + i * 0.04 + 0.25);
+        osc.connect(gain);
+        gain.connect(this.ctx!.destination);
+        osc.start(now + i * 0.04);
+        osc.stop(now + i * 0.04 + 0.27);
+      });
+    } catch {}
+  }
 }
 
 export const sounds = new SoundManager();

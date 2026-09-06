@@ -3,8 +3,8 @@
 import { create } from 'zustand';
 import { ALL_COLLECTIBLE_CARDS, CollectibleCard } from '@/lib/collectibles';
 
-// Initial starter unlocked cards for aesthetic preview
-const DEFAULT_UNLOCKED = ['S-A', 'S-K', 'H-A', 'H-Q', 'D-10', 'D-A', 'C-7', 'C-A'];
+// Initial starter unlocked cards: 0 cards (User must earn them through match victories!)
+const DEFAULT_UNLOCKED: string[] = [];
 
 interface AlbumState {
   unlockedIds: string[];
@@ -19,26 +19,28 @@ interface AlbumState {
   openInspect: (card: CollectibleCard) => void;
   closeInspect: () => void;
   unlockCard: (id: string) => void;
-  toggleCard: (id: string) => void;
-  unlockAll: () => void;
-  lockAll: () => void;
   isUnlocked: (id: string) => boolean;
   getUnlockedCount: () => number;
   getTotalCount: () => number;
+  resetAllToZero: () => void;
 }
 
-const STORAGE_KEY = 'cg_album_unlocked_cards_v1';
+const STORAGE_KEY = 'cg_album_unlocked_cards_v4';
 
 function loadInitialUnlocked(): string[] {
-  if (typeof window === 'undefined') return DEFAULT_UNLOCKED;
+  if (typeof window === 'undefined') return [];
   try {
+    // Purge any old test keys from earlier iterations to guarantee 0 cards for all users
+    localStorage.removeItem('cg_album_unlocked_cards_v1');
+    localStorage.removeItem('cg_album_unlocked_cards_v2');
+    localStorage.removeItem('cg_album_unlocked_cards_v3');
     const saved = localStorage.getItem(STORAGE_KEY);
     if (saved) {
       const parsed = JSON.parse(saved);
-      if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      if (Array.isArray(parsed)) return parsed;
     }
   } catch {}
-  return DEFAULT_UNLOCKED;
+  return [];
 }
 
 function saveUnlocked(ids: string[]) {
@@ -90,23 +92,9 @@ export const useAlbumStore = create<AlbumState>((set, get) => ({
     }
   },
 
-  toggleCard: (id) => {
-    const { unlockedIds } = get();
-    const exists = unlockedIds.includes(id);
-    const updated = exists ? unlockedIds.filter((x) => x !== id) : [...unlockedIds, id];
-    saveUnlocked(updated);
-    set({ unlockedIds: updated });
-  },
-
-  unlockAll: () => {
-    const allIds = ALL_COLLECTIBLE_CARDS.map((c) => c.id);
-    saveUnlocked(allIds);
-    set({ unlockedIds: allIds });
-  },
-
-  lockAll: () => {
-    saveUnlocked(DEFAULT_UNLOCKED);
-    set({ unlockedIds: DEFAULT_UNLOCKED });
+  resetAllToZero: () => {
+    saveUnlocked([]);
+    set({ unlockedIds: [] });
   },
 
   isUnlocked: (id) => {

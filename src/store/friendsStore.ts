@@ -66,6 +66,7 @@ interface FriendsState {
   fetchLeaderboard: () => Promise<void>;
   fetchFriends: () => Promise<void>;
   fetchOnlinePlayers: () => void;
+  searchUsers: (query: string) => Promise<FriendUser[]>;
   addFriend: (nameOrEmail: string) => Promise<{ success: boolean; error?: string }>;
   sendRoomInvite: (targetNameOrId: string, roomCode: string, hostName: string, hostAvatar?: string, hostAvatarColor?: string) => Promise<{ success: boolean; online?: boolean; message?: string }>;
 }
@@ -141,6 +142,25 @@ export const useFriendsStore = create<FriendsState>((set, get) => ({
           set({ onlinePlayers: players });
         }
       });
+    }
+  },
+
+  searchUsers: async (query: string) => {
+    try {
+      if (!query || !query.trim()) return [];
+      const token = typeof window !== 'undefined' ? localStorage.getItem('cg_auth_token') : null;
+      const headers: Record<string, string> = {};
+      if (token) headers['Authorization'] = `Bearer ${token}`;
+
+      const res = await fetch(`/api/friends?search=${encodeURIComponent(query.trim())}`, { headers });
+      const data = await res.json();
+      if (data.success && Array.isArray(data.users)) {
+        return data.users;
+      }
+      return [];
+    } catch (err) {
+      console.warn('Failed to search users:', err);
+      return [];
     }
   },
 

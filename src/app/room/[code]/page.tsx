@@ -58,14 +58,14 @@ export default function RoomPage({ params }: { params: Promise<{ code: string }>
 
   // If user opened URL directly and has not joined the room state
   useEffect(() => {
-    if (!gameState && !hasPromptedJoin) {
+    if (!gameState && !hasPromptedJoin && isConnected) {
       if (myName) {
-        // Auto-join if profile exists
+        // Auto-join if profile exists and socket is connected
         joinRoom(roomCode, myName, myAvatar);
       }
       setHasPromptedJoin(true);
     }
-  }, [gameState, hasPromptedJoin, joinRoom, roomCode, myName, myAvatar]);
+  }, [gameState, hasPromptedJoin, isConnected, joinRoom, roomCode, myName, myAvatar]);
 
   const handleDirectJoin = async (e: React.FormEvent) => {
     e.preventDefault();

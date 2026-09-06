@@ -52,6 +52,30 @@ export const FriendsModal: React.FC<FriendsModalProps> = ({ currentRoomCode }) =
   const [addMsg, setAddMsg] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const [invitedIds, setInvitedIds] = useState<Record<string, boolean>>({});
 
+  // Real-time live search states
+  const [searchResults, setSearchResults] = useState<FriendUser[]>([]);
+  const [isSearching, setIsSearching] = useState(false);
+  const [addingIdMap, setAddingIdMap] = useState<Record<string, boolean>>({});
+
+  // Real-time debounced user search as user types
+  useEffect(() => {
+    const query = searchFriendInput.trim();
+    if (!query) {
+      setSearchResults([]);
+      setIsSearching(false);
+      return;
+    }
+
+    setIsSearching(true);
+    const timer = setTimeout(async () => {
+      const results = await useFriendsStore.getState().searchUsers(query);
+      setSearchResults(results);
+      setIsSearching(false);
+    }, 250);
+
+    return () => clearTimeout(timer);
+  }, [searchFriendInput]);
+
   useEffect(() => {
     if (isFriendsModalOpen) {
       fetchLeaderboard();
@@ -382,10 +406,20 @@ export const FriendsModal: React.FC<FriendsModalProps> = ({ currentRoomCode }) =
                     type="text"
                     value={searchFriendInput}
                     onChange={(e) => setSearchFriendInput(e.target.value)}
-                    placeholder="Enter nickname or email (e.g. Madhav, Kabir)..."
-                    className="w-full pl-9 pr-3.5 py-2.5 rounded-xl bg-zinc-900 border border-zinc-700 text-white placeholder-zinc-500 text-xs sm:text-sm font-medium focus:outline-none focus:border-gold"
+                    placeholder="Type nickname or email (e.g. Madhav, Kabir)..."
+                    className="w-full pl-9 pr-8 py-2.5 rounded-xl bg-zinc-900 border border-zinc-700 text-white placeholder-zinc-500 text-xs sm:text-sm font-medium focus:outline-none focus:border-gold"
                   />
                   <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-400" />
+                  {searchFriendInput && (
+                    <button
+                      type="button"
+                      onClick={() => setSearchFriendInput('')}
+                      className="absolute right-2.5 top-1/2 -translate-y-1/2 p-1 text-zinc-400 hover:text-white transition-colors"
+                      title="Clear search"
+                    >
+                      <X className="w-3.5 h-3.5" />
+                    </button>
+                  )}
                 </div>
                 <button
                   type="submit"
@@ -401,6 +435,139 @@ export const FriendsModal: React.FC<FriendsModalProps> = ({ currentRoomCode }) =
                   <span>{addingFriend ? 'Adding...' : 'Add'}</span>
                 </button>
               </div>
+
+              {/* Real-time search live results container */}
+              {searchFriendInput.trim().length > 0 && (
+                <div className="mt-1 space-y-2 p-3 rounded-2xl bg-black/60 border border-gold/40 animate-in fade-in zoom-in-95 duration-150 shadow-lg">
+                  <div className="flex items-center justify-between text-[11px] text-amber-300 font-bold uppercase tracking-wider px-0.5">
+                    <span className="flex items-center gap-1.5">
+                      <Sparkles className="w-3.5 h-3.5 text-yellow-400" />
+                      <span>Live Search Results {searchResults.length > 0 && `(${searchResults.length})`}</span>
+                    </span>
+                    {isSearching && (
+                      <span className="flex items-center gap-1 text-[10px] text-zinc-400 font-normal lowercase">
+                        <RefreshCw className="w-2.5 h-2.5 animate-spin text-amber-400" />
+                        <span>searching...</span>
+                      </span>
+                    )}
+                  </div>
+
+                  {isSearching && searchResults.length === 0 ? (
+                    <div className="py-3 px-3 rounded-xl bg-zinc-900/60 border border-white/5 text-center text-xs text-zinc-400 flex items-center justify-center gap-2">
+                      <RefreshCw className="w-3.5 h-3.5 animate-spin text-amber-400" />
+                      <span>Searching registered players...</span>
+                    </div>
+                  ) : !isSearching && searchResults.length === 0 ? (
+                    <div className="py-3 px-3 rounded-xl bg-zinc-900/60 border border-white/5 text-center text-xs text-zinc-400">
+                      No player found matching <span className="text-amber-300 font-bold">"{searchFriendInput.trim()}"</span>.
+                    </div>
+                  ) : (
+                    <div className="space-y-1.5 max-h-56 overflow-y-auto pr-0.5">
+                      {searchResults.map((player) => {
+                        const isSelf = user && (user.id === player.id || user.email === player.email || user.name === player.name);
+                        const isFriend = isFriendOfMine(player.id) || isFriendOfMine(player.name) || (player.email && isFriendOfMine(player.email));
+                        const isInvited = invitedIds[player.id] || invitedIds[player.name];
+                        const isAddingThis = addingIdMap[player.id || player.name];
+                        const cartoon = getAvatarById(player.avatarId);
+
+                        return (
+                          <div
+                            key={`search-res-${player.id || player.name}`}
+                            className="flex items-center justify-between p-2 sm:p-2.5 rounded-xl bg-zinc-900/90 border border-white/10 hover:border-gold/50 transition-all"
+                          >
+                            <div className="flex items-center gap-2.5 min-w-0">
+                              <div
+                                className="w-8 h-8 sm:w-9 sm:h-9 rounded-full border border-amber-400/80 p-0.5 flex items-center justify-center overflow-hidden shrink-0 shadow"
+                                style={{ backgroundColor: `${cartoon.color}40` }}
+                              >
+                                <img
+                                  src={player.avatarUrl || cartoon.image}
+                                  alt={player.name}
+                                  className="w-full h-full object-contain"
+                                />
+                              </div>
+
+                              <div className="flex flex-col min-w-0">
+                                <div className="flex items-center gap-1.5">
+                                  <span className="font-bold text-xs text-white truncate max-w-[100px] sm:max-w-[150px]">
+                                    {player.name}
+                                  </span>
+                                  {isSelf && (
+                                    <span className="text-[7px] bg-gold/20 text-gold border border-gold/40 px-1 py-0.2 rounded font-extrabold">
+                                      YOU
+                                    </span>
+                                  )}
+                                  {isFriend && (
+                                    <span className="text-[7px] bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 px-1.5 py-0.2 rounded font-bold">
+                                      FRIEND
+                                    </span>
+                                  )}
+                                </div>
+                                <div className="text-[9px] text-zinc-400 font-mono truncate max-w-[140px] sm:max-w-[200px]">
+                                  {player.email ? `${player.email} • ` : ''}🏆 {player.totalGamesWon}W • {player.totalScore.toLocaleString()} PTS
+                                </div>
+                              </div>
+                            </div>
+
+                            <div className="flex items-center gap-1.5 shrink-0">
+                              {currentRoomCode && !isSelf && (
+                                <button
+                                  type="button"
+                                  disabled={isInvited}
+                                  onClick={() => handleDirectInvite(player.id || player.name, player.name)}
+                                  className={cn(
+                                    'px-2 py-1 rounded-lg font-bold text-[10px] uppercase tracking-wider flex items-center gap-1 transition-all cursor-pointer',
+                                    isInvited
+                                      ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40'
+                                      : 'bg-white/10 hover:bg-white/20 text-zinc-200 border border-white/20 active:scale-95'
+                                  )}
+                                >
+                                  {isInvited ? <Check className="w-2.5 h-2.5" /> : <Send className="w-2.5 h-2.5" />}
+                                  <span>{isInvited ? 'Invited' : 'Invite'}</span>
+                                </button>
+                              )}
+
+                              {!isSelf && (
+                                isFriend ? (
+                                  <span className="px-2 py-1 rounded-lg bg-emerald-500/15 border border-emerald-500/30 text-emerald-300 text-[10px] font-bold flex items-center gap-1">
+                                    <Check className="w-2.5 h-2.5" />
+                                    <span>Friend ✓</span>
+                                  </span>
+                                ) : (
+                                  <button
+                                    type="button"
+                                    disabled={isAddingThis}
+                                    onClick={async () => {
+                                      if (!user) {
+                                        setAuthModalOpen(true, 'login');
+                                        return;
+                                      }
+                                      const key = player.id || player.name;
+                                      setAddingIdMap((prev) => ({ ...prev, [key]: true }));
+                                      const res = await addFriend(player.name || player.email || player.id);
+                                      setAddingIdMap((prev) => ({ ...prev, [key]: false }));
+                                      if (res.success) {
+                                        sounds.playCardDraw();
+                                        showToast(`Added ${player.name} to friends!`, 'success');
+                                      } else {
+                                        showToast(res.error || 'Could not add friend', 'error');
+                                      }
+                                    }}
+                                    className="px-2.5 py-1 rounded-lg bg-gradient-to-r from-amber-500 to-yellow-400 hover:from-amber-400 hover:to-yellow-300 text-black font-black text-[10px] uppercase tracking-wider flex items-center gap-1 shadow-gold-glow active:scale-95 transition-all cursor-pointer"
+                                  >
+                                    <UserPlus className="w-3 h-3" />
+                                    <span>{isAddingThis ? 'Adding...' : '+ Add'}</span>
+                                  </button>
+                                )
+                              )}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              )}
 
               {addMsg && (
                 <div

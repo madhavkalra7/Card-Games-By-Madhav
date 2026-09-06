@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { verifyAuthToken } from '@/lib/auth-token';
-import { getUserFriendsList, addUserFriend } from '../../../../server/db';
+import { getUserFriendsList, addUserFriend, searchUsers } from '../../../../server/db';
 
 export const dynamic = 'force-dynamic';
 
@@ -18,6 +18,14 @@ function getUserIdFromRequest(req: NextRequest): string | null {
 export async function GET(request: NextRequest) {
   try {
     const userId = getUserIdFromRequest(request);
+
+    // If real-time search query is provided:
+    const searchQuery = request.nextUrl.searchParams.get('search') ?? request.nextUrl.searchParams.get('q');
+    if (searchQuery !== null) {
+      const users = await searchUsers(searchQuery, userId || undefined);
+      return NextResponse.json({ success: true, users });
+    }
+
     if (!userId) {
       return NextResponse.json({ success: false, friends: [] });
     }

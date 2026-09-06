@@ -8,10 +8,12 @@ mongoose.set('bufferCommands', false);
 const roomSchema = new mongoose.Schema({
   code: { type: String, required: true, unique: true, uppercase: true },
   hostId: { type: String, required: true },
+  hostName: { type: String },
   status: { type: String, default: 'LOBBY' },
   gameType: { type: String, default: 'DUKKI_BAZAAR' },
   maxPlayers: { type: Number, default: 5 },
   createdAt: { type: Date, default: Date.now },
+  updatedAt: { type: Date, default: Date.now },
 });
 
 export const RoomModel = mongoose.models.Room || mongoose.model('Room', roomSchema);
@@ -300,6 +302,57 @@ export async function addUserFriend(userIdOrEmail: string, friendEmailOrName: st
     };
   } catch (err: any) {
     return { success: false, error: err.message };
+  }
+}
+
+// Search registered users by name or email for real-time friend finding
+export async function searchUsers(query: string, currentUserId?: string, limit = 10) {
+  const isConnected = await connectDB();
+  if (!isConnected || !query || query.trim().length === 0) return [];
+
+  try {
+    const trimmed = query.trim();
+    const escaped = trimmed.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const regex = new RegExp(escaped, 'i');
+
+    const filter: any = {
+      $or: [
+        { name: { $regex: regex } },
+        { email: { $regex: regex } },
+      ],
+    };
+
+    if (currentUserId) {
+      if (mongoose.isValidObjectId(currentUserId)) {
+        filter._id = { $ne: new mongoose.Types.ObjectId(currentUserId) };
+      } else {
+        filter.$and = [
+          { email: { $ne: currentUserId.toLowerCase() } },
+          { name: { $ne: currentUserId } },
+        ];
+      }
+    }
+
+    const users = await UserModel.find(filter)
+      .select('_id name email avatarUrl avatarColor avatarId totalScore totalGamesWon totalGamesPlayed')
+      .limit(limit)
+      .lean();
+
+    return users.map((u: any) => ({
+      id: u._id.toString(),
+      name: u.name,
+      email: u.email,
+      avatarUrl: u.avatarUrl,
+      avatarColor: u.avatarColor,
+      avatarId: u.avatarId || 'toon-orange',
+      totalScore: u.totalScore || 100,
+      totalGamesWon: u.totalGamesWon || 0,
+      totalGamesPlayed: u.totalGamesPlayed || 0,
+      winRate: u.totalGamesPlayed > 0 ? Math.round((u.totalGamesWon / u.totalGamesPlayed) * 100) : 0,
+    }));
+  } catch (err: any) {
+    console.warn('⚠️ Error searching users:', err.message);
+    return [];
   }
 }
 

@@ -1,5 +1,7 @@
 import { io, Socket } from 'socket.io-client';
 
+const DEFAULT_REMOTE_BACKEND = 'https://card-casino-backend.onrender.com';
+
 let socketInstance: Socket | null = null;
 let currentTargetUrl: string | null = null;
 let urlPromise: Promise<string> | null = null;
@@ -8,7 +10,7 @@ let urlPromise: Promise<string> | null = null;
  * Resolves the backend server URL.
  * 1. Checks build-time `NEXT_PUBLIC_SOCKET_URL`
  * 2. If running on Vercel and not set, queries `/api/socket-url` fallback (supports `NEXT_SOCKET_URL`)
- * 3. Falls back to `window.location.origin` (or localhost for dev)
+ * 3. Falls back to DEFAULT_REMOTE_BACKEND for production/Vercel or localhost for dev
  */
 export async function resolveBackendUrl(): Promise<string> {
   // If in browser:
@@ -38,11 +40,11 @@ export async function resolveBackendUrl(): Promise<string> {
               return url;
             }
           }
-          return window.location.origin;
+          return isLocalhostClient ? window.location.origin : DEFAULT_REMOTE_BACKEND;
         })
         .catch((err) => {
           console.warn('⚠️ Could not fetch /api/socket-url fallback:', err);
-          return window.location.origin;
+          return isLocalhostClient ? window.location.origin : DEFAULT_REMOTE_BACKEND;
         });
     }
 
@@ -55,18 +57,21 @@ export async function resolveBackendUrl(): Promise<string> {
 }
 
 export function getSocket(overrideUrl?: string): Socket {
+  const isBrowser = typeof window !== 'undefined';
+  const isLocalhostClient = isBrowser && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
+
   let targetUrl = overrideUrl || currentTargetUrl || process.env.NEXT_PUBLIC_SOCKET_URL;
   
-  // Mobile / Remote LAN safety: Never allow localhost targetUrl when client is on a mobile device or remote host
-  if (typeof window !== 'undefined') {
-    const isLocalhostClient = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
-    if (!isLocalhostClient && targetUrl && (targetUrl.includes('localhost') || targetUrl.includes('127.0.0.1'))) {
-      targetUrl = window.location.origin;
+  // Mobile / Remote LAN / Vercel safety:
+  // If running remotely, never allow localhost or Vercel origin (Vercel has no websockets)
+  if (isBrowser && !isLocalhostClient) {
+    if (!targetUrl || targetUrl.includes('localhost') || targetUrl.includes('127.0.0.1') || targetUrl === window.location.origin) {
+      targetUrl = DEFAULT_REMOTE_BACKEND;
     }
   }
 
   if (!targetUrl) {
-    targetUrl = typeof window !== 'undefined' ? window.location.origin : `http://localhost:${process.env.PORT || '3000'}`;
+    targetUrl = isBrowser ? (isLocalhostClient ? window.location.origin : DEFAULT_REMOTE_BACKEND) : `http://localhost:${process.env.PORT || '3000'}`;
   }
   targetUrl = targetUrl.trim().replace(/\/$/, '');
 

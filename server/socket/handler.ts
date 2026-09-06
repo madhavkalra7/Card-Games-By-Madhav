@@ -44,6 +44,40 @@ export function setupSocketHandlers(io: SocketIOServer) {
     }
   }
 
+  function createRoomInstance(code: string): DukkiBazaarRoom {
+    const room = new DukkiBazaarRoom(
+      code,
+      () => {
+        broadcastRoomState(room);
+      },
+      async (finishedRoom) => {
+        try {
+          for (const r of finishedRoom.rankings) {
+            if (r.scoreEarned) {
+              await updatePlayerStats(r.name, r.scoreEarned, r.rank === 1);
+            }
+          }
+          const winner = finishedRoom.rankings.find(r => r.rank === 1) || finishedRoom.winner;
+          if (winner) {
+            await GameHistoryModel.create({
+              roomCode: code,
+              winnerName: winner.name,
+              roundsCount: finishedRoom.rankings.length,
+              playerCount: finishedRoom.players.length,
+              summary: finishedRoom.rankings.map(r => `#${r.rank} ${r.name} (+${r.scoreEarned || 0} PTS)`).join(', '),
+            });
+          }
+          try {
+            await RoomModel.updateOne({ code }, { status: 'FINISHED', updatedAt: new Date() });
+          } catch (e) {}
+        } catch (err: any) {
+          console.warn('Game over score persistence warning:', err.message);
+        }
+      }
+    );
+    return room;
+  }
+
   io.on('connection', (socket: Socket) => {
     let currentRoomCode: string | null = null;
     let playerSessionId: string | null = null;
@@ -55,33 +89,7 @@ export function setupSocketHandlers(io: SocketIOServer) {
           code = generateRoomCode();
         }
 
-        const room = new DukkiBazaarRoom(
-          code,
-          () => {
-            broadcastRoomState(room);
-          },
-          async (finishedRoom) => {
-            try {
-              for (const r of finishedRoom.rankings) {
-                if (r.scoreEarned) {
-                  await updatePlayerStats(r.name, r.scoreEarned, r.rank === 1);
-                }
-              }
-              const winner = finishedRoom.rankings.find(r => r.rank === 1) || finishedRoom.winner;
-              if (winner) {
-                await GameHistoryModel.create({
-                  roomCode: code,
-                  winnerName: winner.name,
-                  roundsCount: finishedRoom.rankings.length,
-                  playerCount: finishedRoom.players.length,
-                  summary: finishedRoom.rankings.map(r => `#${r.rank} ${r.name} (+${r.scoreEarned || 0} PTS)`).join(', '),
-                });
-              }
-            } catch (err: any) {
-              console.warn('Game over score persistence warning:', err.message);
-            }
-          }
-        );
+        const room = createRoomInstance(code);
 
         const player = room.addPlayer({
           id: socket.id,
@@ -96,17 +104,22 @@ export function setupSocketHandlers(io: SocketIOServer) {
 
         socket.join(code);
 
-        // Record room in MongoDB
+        // Record room in MongoDB with upsert
         try {
-          await RoomModel.create({
-            code,
-            hostId: player.sessionId,
-            status: 'LOBBY',
-            gameType: 'DUKKI_BAZAAR',
-            maxPlayers: 5,
-          });
+          await RoomModel.findOneAndUpdate(
+            { code },
+            {
+              code,
+              hostId: player.sessionId,
+              hostName: data.name,
+              status: 'LOBBY',
+              gameType: 'DUKKI_BAZAAR',
+              maxPlayers: 5,
+              updatedAt: new Date(),
+            },
+            { upsert: true, new: true }
+          );
         } catch (dbErr) {
-          // Non-blocking if MongoDB is offline or connecting
           console.warn("MongoDB Room record skipped:", dbErr);
         }
 
@@ -120,7 +133,25 @@ export function setupSocketHandlers(io: SocketIOServer) {
     socket.on('joinRoom', async (data: { roomCode: string; name: string; avatarColor: string; sessionId: string }, callback) => {
       try {
         const code = data.roomCode.trim().toUpperCase();
-        const room = activeRooms.get(code);
+        let room = activeRooms.get(code);
+
+        // Fallback: If room is not in memory (e.g. server restarted or host temporarily disconnected), check MongoDB
+        if (!room) {
+          try {
+            const dbRoom = await RoomModel.findOne({
+              code,
+              status: { $in: ['LOBBY', 'PLAYING'] },
+            }).sort({ createdAt: -1 });
+
+            if (dbRoom) {
+              console.log(`♻️ Rehydrating room ${code} from MongoDB for player ${data.name}`);
+              room = createRoomInstance(code);
+              activeRooms.set(code, room);
+            }
+          } catch (dbErr) {
+            console.warn('⚠️ Could not check MongoDB for room:', dbErr);
+          }
+        }
 
         if (!room) {
           return callback({ success: false, error: 'Room not found. Check the 6-character code.' });
@@ -396,7 +427,13 @@ export function setupSocketHandlers(io: SocketIOServer) {
 
             // Broadcast new state to remaining players
             if (room.players.length === 0) {
-              activeRooms.delete(code);
+              // Retain empty lobby room for a grace period before evicting from memory
+              setTimeout(() => {
+                const r = activeRooms.get(code);
+                if (r && r.players.length === 0 && r.status === 'LOBBY') {
+                  activeRooms.delete(code);
+                }
+              }, 15 * 60 * 1000);
             } else {
               broadcastRoomState(room);
             }
@@ -489,6 +526,9 @@ export function setupSocketHandlers(io: SocketIOServer) {
           // Players can seamlessly reconnect back to their ongoing match anytime.
           if (room.status === 'LOBBY') {
             const timerKey = `${currentRoomCode}:${playerSessionId}`;
+            // 30-minute lobby disconnect grace period:
+            // Allows hosts and players to switch apps (e.g. WhatsApp to invite friends), take calls,
+            // or lock screens without the lobby room vanishing into thin air!
             const timer = setTimeout(() => {
               disconnectTimers.delete(timerKey);
               const targetRoom = activeRooms.get(currentRoomCode!);
@@ -503,7 +543,7 @@ export function setupSocketHandlers(io: SocketIOServer) {
                   }
                 }
               }
-            }, 60000);
+            }, 30 * 60 * 1000); // 30 minutes grace period
 
             disconnectTimers.set(timerKey, timer);
           }

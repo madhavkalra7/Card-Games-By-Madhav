@@ -344,12 +344,9 @@ export class DukkiBazaarRoom {
       },
     ];
 
-    // Distribute remaining 51 cards equally among players
-    const playerCount = this.players.length;
-    const cardsPerPlayer = Math.floor(fullDeck.length / playerCount);
-
+    // Distribute all remaining 51 cards round-robin among players so 100% of cards are in active play
     for (const player of this.players) {
-      player.hiddenCards = fullDeck.splice(0, cardsPerPlayer);
+      player.hiddenCards = [];
       player.rightDeck = [];
       player.isBazaarOpen = false;
       player.floatingCard = null;
@@ -357,8 +354,14 @@ export class DukkiBazaarRoom {
       player.rank = null;
     }
 
-    // Any remaining cards stay in unused stack
-    this.unusedCards = fullDeck;
+    const playerCount = this.players.length;
+    let dealIndex = 0;
+    while (fullDeck.length > 0) {
+      this.players[dealIndex % playerCount].hiddenCards.push(fullDeck.pop()!);
+      dealIndex++;
+    }
+
+    this.unusedCards = [];
 
     this.status = 'PLAYING';
     this.currentTurnIndex = 0;

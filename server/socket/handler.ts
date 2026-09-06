@@ -230,6 +230,19 @@ export function setupSocketHandlers(io: SocketIOServer) {
       const targetDeckId = typeof data.targetDeckId === 'number' ? data.targetDeckId : (typeof data.targetSuit === 'number' ? data.targetSuit : undefined);
       const res = room.placeOnCenter(socket.id, targetDeckId, data.fromRightDeck);
       if (res.success) {
+        if (!res.autoPenalized && res.card && res.targetDeckId !== undefined) {
+          const fromPlayer = room.players.find(p => p.id === socket.id);
+          io.to(room.roomCode).emit('card_played', {
+            id: `${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
+            card: res.card,
+            fromPlayerId: socket.id,
+            fromPlayerName: fromPlayer?.name || 'Player',
+            fromSource: res.fromRightDeck ? 'RIGHT_DECK' : 'FLOATING',
+            targetType: 'CENTER',
+            targetDeckId: res.targetDeckId,
+            timestamp: Date.now(),
+          });
+        }
         broadcastRoomState(room);
       }
       callback(res);
@@ -241,6 +254,22 @@ export function setupSocketHandlers(io: SocketIOServer) {
 
       const res = room.placeOnRightDeck(socket.id, data.targetPlayerId, data.fromRightDeck);
       if (res.success) {
+        if (!res.autoPenalized && res.card && res.targetPlayerId) {
+          const fromPlayer = room.players.find(p => p.id === socket.id);
+          const targetPlayer = room.players.find(p => p.id === res.targetPlayerId);
+          io.to(room.roomCode).emit('card_played', {
+            id: `${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
+            card: res.card,
+            fromPlayerId: socket.id,
+            fromPlayerName: fromPlayer?.name || 'Player',
+            fromSource: res.fromRightDeck ? 'RIGHT_DECK' : 'FLOATING',
+            targetType: 'RIGHT_DECK',
+            targetPlayerId: res.targetPlayerId,
+            targetPlayerName: targetPlayer?.name || 'Opponent',
+            isOwnRightDeck: !!res.isOwnRightDeck,
+            timestamp: Date.now(),
+          });
+        }
         broadcastRoomState(room);
       }
       callback(res);

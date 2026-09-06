@@ -105,15 +105,68 @@ const ProjectileFlight: React.FC<ProjectileFlightProps> = ({ item, onComplete })
 };
 
 export const ThrowablesOverlay: React.FC = () => {
-  const { activeThrowables, removeThrowable, triggerImpact } = useGameStore();
+  const { activeThrowables, removeThrowable, triggerImpact, gameState } = useGameStore();
+  const [announcement, setAnnouncement] = useState<{
+    id: string;
+    fromName: string;
+    toName: string;
+    config: ReturnType<typeof getThrowableConfig>;
+  } | null>(null);
 
   const handleFlightComplete = (item: ThrownItemEvent) => {
     triggerImpact(item.toPlayerId, item.itemType);
     removeThrowable(item.id);
   };
 
+  useEffect(() => {
+    if (activeThrowables.length === 0) return;
+    const latest = activeThrowables[activeThrowables.length - 1];
+    const fromP = gameState?.players.find((p) => p.id === latest.fromPlayerId);
+    const toP = gameState?.players.find((p) => p.id === latest.toPlayerId);
+    const config = getThrowableConfig(latest.itemType);
+
+    setAnnouncement({
+      id: latest.id,
+      fromName: fromP?.name || 'Someone',
+      toName: toP?.name || 'Someone',
+      config,
+    });
+
+    const timer = setTimeout(() => {
+      setAnnouncement((curr) => (curr?.id === latest.id ? null : curr));
+    }, 2800);
+
+    return () => clearTimeout(timer);
+  }, [activeThrowables, gameState?.players]);
+
   return (
     <div className="fixed inset-0 pointer-events-none z-[110] overflow-hidden">
+      {/* Global Responsive Throw Action Announcement Banner */}
+      <AnimatePresence>
+        {announcement && (
+          <motion.div
+            key={announcement.id}
+            initial={{ opacity: 0, y: -20, scale: 0.88 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: -15, scale: 0.9 }}
+            transition={{ type: 'spring', damping: 22, stiffness: 350 }}
+            className="fixed top-12 xs:top-14 sm:top-16 left-1/2 -translate-x-1/2 z-[120] pointer-events-none px-2 max-w-[92vw] sm:max-w-md w-full flex justify-center"
+          >
+            <div className="flex items-center gap-2 px-3 sm:px-4 py-1.5 sm:py-2 rounded-full bg-black/90 backdrop-blur-xl border-1.5 sm:border-2 border-amber-400/80 shadow-[0_8px_30px_rgba(0,0,0,0.85)] text-white text-xs xs:text-sm sm:text-base font-black">
+              <span className="text-base sm:text-xl shrink-0 animate-bounce">{announcement.config.emoji}</span>
+              <div className="truncate text-center">
+                <span className="text-amber-300 font-extrabold">{announcement.fromName}</span>
+                <span className="text-zinc-300 font-medium"> threw </span>
+                <span className="text-yellow-400 font-extrabold">{announcement.config.name}</span>
+                <span className="text-zinc-300 font-medium"> at </span>
+                <span className="text-amber-300 font-extrabold">{announcement.toName}</span>!
+              </div>
+              <span className="text-xs sm:text-sm shrink-0">💥</span>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       <AnimatePresence>
         {activeThrowables.map((item) => (
           <ProjectileFlight
@@ -126,3 +179,4 @@ export const ThrowablesOverlay: React.FC = () => {
     </div>
   );
 };
+

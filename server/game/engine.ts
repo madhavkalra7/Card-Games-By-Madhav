@@ -530,7 +530,17 @@ export class DukkiBazaarRoom {
     socketId: string,
     targetDeckId?: number,
     fromRightDeck?: boolean
-  ): { success: boolean; error?: string; openedBazaar?: boolean; autoPenalized?: boolean; reason?: string } {
+  ): {
+    success: boolean;
+    error?: string;
+    openedBazaar?: boolean;
+    autoPenalized?: boolean;
+    reason?: string;
+    card?: Card;
+    targetDeckId?: number;
+    fromRightDeck?: boolean;
+    fromPlayerId?: string;
+  } {
     if (this.status !== 'PLAYING') return { success: false, error: "Game not in progress." };
 
     const current = this.getCurrentPlayer();
@@ -642,20 +652,30 @@ export class DukkiBazaarRoom {
 
     if (this.checkWinCondition(current)) {
       this.handlePlayerFinished(current);
-      return { success: true, openedBazaar };
+      return { success: true, openedBazaar, card, targetDeckId: targetDeck.id, fromRightDeck: !!fromRightDeck, fromPlayerId: current.id };
     }
 
     // Per rules: As long as cards are placed validly in Center, turn continues!
     this.startTurnTimer();
     this.notifyState();
-    return { success: true, openedBazaar };
+    return { success: true, openedBazaar, card, targetDeckId: targetDeck.id, fromRightDeck: !!fromRightDeck, fromPlayerId: current.id };
   }
 
   public placeOnRightDeck(
     socketId: string,
     targetPlayerId: string,
     fromRightDeck?: boolean
-  ): { success: boolean; error?: string; autoPenalized?: boolean; reason?: string } {
+  ): {
+    success: boolean;
+    error?: string;
+    autoPenalized?: boolean;
+    reason?: string;
+    card?: Card;
+    targetPlayerId?: string;
+    fromRightDeck?: boolean;
+    fromPlayerId?: string;
+    isOwnRightDeck?: boolean;
+  } {
     if (this.status !== 'PLAYING') return { success: false, error: "Game not in progress." };
 
     const current = this.getCurrentPlayer();
@@ -757,11 +777,11 @@ export class DukkiBazaarRoom {
 
       if (this.checkWinCondition(current)) {
         this.handlePlayerFinished(current);
-        return { success: true };
+        return { success: true, card, targetPlayerId: target.id, fromRightDeck: !!fromRightDeck, fromPlayerId: current.id, isOwnRightDeck: true };
       }
 
       this.advanceTurn();
-      return { success: true };
+      return { success: true, card, targetPlayerId: target.id, fromRightDeck: !!fromRightDeck, fromPlayerId: current.id, isOwnRightDeck: true };
     } else {
       // Placing on ANOTHER player's right deck
       if (couldHavePlayedCenter) {
@@ -832,13 +852,13 @@ export class DukkiBazaarRoom {
 
       if (this.checkWinCondition(current)) {
         this.handlePlayerFinished(current);
-        return { success: true };
+        return { success: true, card, targetPlayerId: target.id, fromRightDeck: !!fromRightDeck, fromPlayerId: current.id, isOwnRightDeck: false };
       }
 
       // Per rules: Valid placement on opponent right deck keeps turn!
       this.startTurnTimer();
       this.notifyState();
-      return { success: true };
+      return { success: true, card, targetPlayerId: target.id, fromRightDeck: !!fromRightDeck, fromPlayerId: current.id, isOwnRightDeck: false };
     }
   }
 

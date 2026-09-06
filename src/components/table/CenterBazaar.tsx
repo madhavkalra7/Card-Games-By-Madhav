@@ -67,6 +67,7 @@ export const CenterBazaar: React.FC<CenterBazaarProps> = ({
           return (
             <div
               key={deck.id}
+              id={`center-deck-${deck.id}`}
               data-drop-target="center"
               data-deck-id={deck.id}
               onClick={() => onPlaceCenter && onPlaceCenter(deck.id)}
@@ -76,17 +77,17 @@ export const CenterBazaar: React.FC<CenterBazaarProps> = ({
               )}
             >
               {/* Suit Title or Deck Number - Aligned on top of cards, clearly visible */}
-              <div className="h-4 sm:h-5 flex items-center justify-center mb-0.5 sm:mb-1 z-20">
+              <div className="h-4.5 sm:h-5.5 flex items-center justify-center mb-0.5 sm:mb-1 z-20">
                 {deck.suit ? (
-                  <div className="flex items-center gap-0.5 sm:gap-1 bg-black/85 px-1.5 sm:px-2 py-0.2 sm:py-0.5 rounded-full border border-white/20 shadow-md">
-                    <SuitIcon suit={deck.suit} className="w-2.5 h-2.5 sm:w-3 sm:h-3 shrink-0" />
-                    <span className="text-[7px] sm:text-[9px] md:text-[10px] font-black text-white uppercase tracking-wider">
+                  <div className="flex items-center gap-1 bg-black/90 px-1.5 xs:px-2 sm:px-2.5 py-0.5 rounded-full border border-white/25 shadow-md">
+                    <SuitIcon suit={deck.suit} className="w-2.5 h-2.5 xs:w-3 xs:h-3 sm:w-3.5 sm:h-3.5 shrink-0" />
+                    <span className="text-[7.5px] xs:text-[8.5px] sm:text-[9.5px] md:text-[10.5px] font-black text-white uppercase tracking-wider">
                       {SUIT_NAMES[deck.suit]}
                     </span>
                   </div>
                 ) : (
-                  <div className="flex items-center justify-center px-1 sm:px-1.5 py-0.2">
-                    <span className="text-[7px] sm:text-[8px] md:text-[9px] font-bold text-zinc-400 uppercase tracking-wider">
+                  <div className="flex items-center justify-center px-1.5 py-0.2">
+                    <span className="text-[7.5px] xs:text-[8.5px] sm:text-[9.5px] font-black text-zinc-400 uppercase tracking-wider">
                       Deck {deck.id + 1}
                     </span>
                   </div>
@@ -100,7 +101,7 @@ export const CenterBazaar: React.FC<CenterBazaarProps> = ({
                   <div className="relative">
                     {/* Depth shadow layers */}
                     {count > 1 && (
-                      <div className="absolute inset-0 translate-x-1 translate-y-1 rounded-[6px] sm:rounded-[10px] bg-black/60 border border-amber-950/60 pointer-events-none" />
+                      <div className="absolute inset-0 translate-x-1 translate-y-1 rounded-[7px] sm:rounded-[10px] bg-black/70 border border-amber-950/70 pointer-events-none" />
                     )}
                     <PlayingCard
                       card={deck.topCard}
@@ -110,14 +111,14 @@ export const CenterBazaar: React.FC<CenterBazaarProps> = ({
                     />
 
                     {/* Count Badge */}
-                    <div className="absolute -top-1.5 -right-1.5 sm:-top-2 sm:-right-2 bg-gradient-to-r from-amber-600 to-amber-700 text-white text-[8px] sm:text-[9px] md:text-[10px] font-black px-1 sm:px-1.5 py-0.2 rounded-full border border-amber-300 shadow z-20">
+                    <div className="absolute -top-1.5 -right-1.5 sm:-top-2 sm:-right-2 bg-gradient-to-r from-amber-500 to-amber-700 text-white text-[9px] xs:text-[10px] sm:text-xs font-black px-1.5 py-0.2 sm:py-0.5 rounded-full border border-amber-300 shadow-md z-20 min-w-[18px] sm:min-w-[22px] text-center">
                       {count}
                     </div>
 
                     {/* Status Ribbon below card (Only if Completed) */}
                     {isCompleted && (
                       <div className="mt-0.5 sm:mt-1 flex items-center justify-center">
-                        <span className="flex items-center gap-0.5 bg-emerald-950 text-emerald-300 text-[7px] sm:text-[8px] font-black px-1 sm:px-1.5 py-0.2 rounded-full border border-emerald-500/50">
+                        <span className="flex items-center gap-0.5 bg-emerald-950 text-emerald-300 text-[7px] sm:text-[8px] font-black px-1.5 py-0.2 rounded-full border border-emerald-500/60">
                           <Check className="w-2 h-2" /> DONE
                         </span>
                       </div>
@@ -127,21 +128,23 @@ export const CenterBazaar: React.FC<CenterBazaarProps> = ({
                   /* Empty Center Deck Slot waiting for baseRank */
                   <div
                     className={cn(
-                      'rounded-[8px] sm:rounded-[12px] border-2 border-dashed flex flex-col items-center justify-center p-0.5 sm:p-1 transition-all',
+                      'rounded-[9px] sm:rounded-[12px] border-2 border-dashed flex flex-col items-center justify-center p-0.5 sm:p-1 transition-all',
                       cardSize === 'xs'
-                        ? 'w-[38px] h-[53px] sm:w-[44px] sm:h-[62px]'
+                        ? 'w-[44px] h-[62px] xs:w-[48px] xs:h-[67px] sm:w-[46px] sm:h-[65px] md:w-[50px] md:h-[70px]'
                         : cardSize === 'xxs'
-                        ? 'w-[32px] h-[45px]'
-                        : 'w-[44px] h-[62px] sm:w-[54px] sm:h-[76px] md:w-[62px] md:h-[87px]',
-                      'border-amber-400/30 bg-black/30 hover:border-amber-400/60',
+                        ? 'w-[36px] h-[50px]'
+                        : cardSize === 'sm'
+                        ? 'w-[54px] h-[76px] xs:w-[58px] xs:h-[82px] sm:w-[58px] sm:h-[81px] md:w-[66px] md:h-[92px]'
+                        : 'w-[64px] h-[90px] xs:w-[70px] xs:h-[98px] sm:w-[74px] sm:h-[104px] md:w-[82px] md:h-[115px]',
+                      'border-amber-400/35 bg-black/35 hover:border-amber-400/70',
                       isMyTurn && floatingCard && 'cursor-pointer'
                     )}
                   >
-                    <Plus className="w-2.5 h-2.5 sm:w-3 sm:h-3 text-amber-300/40 mb-0.5" />
-                    <span className="text-[6px] sm:text-[7px] text-zinc-400 font-bold uppercase tracking-wider text-center leading-none mb-0.5">
+                    <Plus className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-amber-300/60 mb-0.5" />
+                    <span className="text-[6.5px] xs:text-[7.5px] sm:text-[8.5px] text-zinc-400 font-bold uppercase tracking-wider text-center leading-none mb-0.5">
                       Empty
                     </span>
-                    <span className="text-[7px] sm:text-[8px] font-black text-gold uppercase text-center leading-tight">
+                    <span className="text-[7.5px] xs:text-[8.5px] sm:text-[9.5px] font-black text-gold uppercase text-center leading-tight">
                       Drop {currentBase}
                     </span>
                   </div>

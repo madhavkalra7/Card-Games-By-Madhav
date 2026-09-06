@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { GameStateClientView } from '@/lib/types';
+import { GameStateClientView, CardFlightEvent } from '@/lib/types';
 import { getSocket, resolveBackendUrl } from '@/socket/client';
 import { getOrCreateSessionId, saveProfile, getSavedProfile } from '@/lib/utils';
 import { sounds } from '@/lib/sound';
@@ -28,6 +28,7 @@ interface GameStore {
   activeImpacts: Record<string, { itemType: ThrowableType; id: string }>;
   isSoundboardOpen: boolean;
   activeSoundboardDecals: Record<string, { label: string; emoji: string; id: string; timestamp: number }>;
+  activeCardFlights: CardFlightEvent[];
 
   // Actions
   initSocketListeners: () => void;
@@ -47,6 +48,9 @@ interface GameStore {
   kickPlayer: (targetPlayerId: string) => void;
   playAgain: () => void;
   leaveRoom: () => void;
+
+  // Card Flight Animations
+  removeCardFlight: (id: string) => void;
 
   // Throwables Actions
   throwItem: (targetPlayerId: string, itemType: ThrowableType) => void;
@@ -74,6 +78,13 @@ export const useGameStore = create<GameStore>((set, get) => ({
   activeImpacts: {},
   isSoundboardOpen: false,
   activeSoundboardDecals: {},
+  activeCardFlights: [],
+
+  removeCardFlight: (id: string) => {
+    set((prev) => ({
+      activeCardFlights: prev.activeCardFlights.filter((f) => f.id !== id),
+    }));
+  },
 
   setProfile: (name, avatar) => {
     saveProfile(name, avatar);
@@ -102,6 +113,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
       s.off('connect_error');
       s.off('item_thrown');
       s.off('soundboard_played');
+      s.off('card_played');
 
       // Set current connection status immediately
       set({ isConnected: s.connected });
@@ -117,6 +129,14 @@ export const useGameStore = create<GameStore>((set, get) => ({
       s.on('connect_error', (err: any) => {
         set({ isConnected: false });
         console.warn('Socket connection error:', err.message);
+      });
+
+      // Listen for real-time card flight animations across the table
+      s.on('card_played', (flight: CardFlightEvent) => {
+        sounds.playCardSlide();
+        set((prev) => ({
+          activeCardFlights: [...prev.activeCardFlights, flight],
+        }));
       });
 
       // Listen for real-time throwables across the table

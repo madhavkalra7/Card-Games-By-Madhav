@@ -103,3 +103,18 @@ export interface GameStateClientView {
     };
   }>;
 }
+
+export interface CardFlightEvent {
+  id: string;
+  card: Card;
+  fromPlayerId: string;
+  fromPlayerName: string;
+  fromSource: 'FLOATING' | 'RIGHT_DECK';
+  targetType: 'CENTER' | 'RIGHT_DECK';
+  targetDeckId?: number;
+  targetPlayerId?: string;
+  targetPlayerName?: string;
+  isOwnRightDeck?: boolean;
+  timestamp: number;
+}
+

@@ -43,24 +43,24 @@ export const CardStack: React.FC<CardStackProps> = ({
         {!hasCards ? (
           <div
             className={cn(
-              'border-2 border-dashed rounded-[8px] sm:rounded-[12px] flex flex-col items-center justify-center p-0.5 sm:p-1 transition-all',
+              'border-2 border-dashed rounded-[9px] sm:rounded-[12px] flex flex-col items-center justify-center p-0.5 sm:p-1 transition-all',
               isClickable && type === 'hidden'
-                ? 'border-amber-400 bg-amber-500/20 shadow-gold-glow animate-pulse'
-                : 'border-amber-400/25 bg-black/20',
+                ? 'border-amber-400 bg-amber-500/25 shadow-gold-glow animate-pulse'
+                : 'border-amber-400/35 bg-black/30',
               size === 'xxs'
-                ? 'w-[32px] h-[45px]'
+                ? 'w-[36px] h-[50px]'
                 : size === 'xs'
-                ? 'w-[38px] h-[53px] sm:w-[44px] sm:h-[62px]'
+                ? 'w-[44px] h-[62px] xs:w-[48px] xs:h-[67px] sm:w-[46px] sm:h-[65px] md:w-[50px] md:h-[70px]'
                 : size === 'sm'
-                ? 'w-[44px] h-[62px] sm:w-[54px] sm:h-[76px] md:w-[62px] md:h-[87px]'
+                ? 'w-[54px] h-[76px] xs:w-[58px] xs:h-[82px] sm:w-[58px] sm:h-[81px] md:w-[66px] md:h-[92px]'
                 : size === 'md'
-                ? 'w-[54px] h-[76px] sm:w-[68px] sm:h-[95px] md:w-[80px] md:h-[112px]'
-                : 'w-[72px] h-[100px] sm:w-[90px] sm:h-[126px] md:w-[110px] md:h-[154px]'
+                ? 'w-[64px] h-[90px] xs:w-[70px] xs:h-[98px] sm:w-[74px] sm:h-[104px] md:w-[82px] md:h-[115px]'
+                : 'w-[78px] h-[108px] sm:w-[92px] sm:h-[128px] md:w-[110px] md:h-[154px]'
             )}
           >
             <span className={cn(
-              "text-[7px] sm:text-[9px] text-center font-black uppercase tracking-wider",
-              isClickable && type === 'hidden' ? "text-amber-300 animate-bounce" : "text-amber-200/40 font-medium"
+              "text-[8px] xs:text-[9px] sm:text-[10px] text-center font-black uppercase tracking-wider leading-tight",
+              isClickable && type === 'hidden' ? "text-amber-300 animate-bounce" : "text-amber-200/50"
             )}>
               {type === 'hidden' ? (isClickable ? 'FLIP ↻' : 'Empty') : 'Right'}
             </span>
@@ -70,12 +70,12 @@ export const CardStack: React.FC<CardStackProps> = ({
             {/* Visual 3D depth layers for stacked cards matching exact card size */}
             {count > 2 && (
               <div
-                className="absolute inset-0 translate-x-1 translate-y-1 rounded-[6px] sm:rounded-[10px] bg-black/60 border border-amber-950/60 pointer-events-none"
+                className="absolute inset-0 translate-x-1 translate-y-1 rounded-[7px] sm:rounded-[10px] bg-black/70 border border-amber-950/70 pointer-events-none"
               />
             )}
             {count > 1 && (
               <div
-                className="absolute inset-0 translate-x-0.5 translate-y-0.5 rounded-[6px] sm:rounded-[10px] bg-black/40 border border-amber-950/40 pointer-events-none"
+                className="absolute inset-0 translate-x-0.5 translate-y-0.5 rounded-[7px] sm:rounded-[10px] bg-black/50 border border-amber-950/50 pointer-events-none"
               />
             )}
 
@@ -97,15 +97,15 @@ export const CardStack: React.FC<CardStackProps> = ({
               />
             )}
 
-            {/* Count Badge */}
-            <div className="absolute -top-1.5 -right-1.5 sm:-top-2 sm:-right-2 bg-gradient-to-r from-amber-600 to-amber-700 text-amber-50 text-[8px] sm:text-[10px] md:text-[11px] font-black px-1 sm:px-1.5 py-0.2 sm:py-0.5 rounded-full border border-amber-300/60 shadow-md min-w-[16px] sm:min-w-[20px] text-center">
+            {/* Count Badge - Enhanced for High Contrast on Mobile */}
+            <div className="absolute -top-1.5 -right-1.5 sm:-top-2 sm:-right-2 bg-gradient-to-r from-amber-500 to-amber-700 text-white text-[9px] xs:text-[10px] sm:text-[11px] font-black px-1.5 py-0.2 sm:py-0.5 rounded-full border border-amber-300 shadow-lg min-w-[18px] sm:min-w-[22px] text-center z-20">
               {count}
             </div>
 
             {/* Click to Draw Tooltip if clickable */}
             {isClickable && type === 'hidden' && (
-              <div className="absolute inset-0 bg-gold/15 rounded-[8px] sm:rounded-[12px] flex items-center justify-center pointer-events-none">
-                <span className="bg-black/85 text-gold-light text-[8px] sm:text-[10px] font-bold px-1.5 py-0.5 rounded shadow-lg border border-gold/40 animate-bounce">
+              <div className="absolute inset-0 bg-gold/15 rounded-[9px] sm:rounded-[12px] flex items-center justify-center pointer-events-none">
+                <span className="bg-black/90 text-gold font-black text-[9px] xs:text-[10px] sm:text-xs px-2 py-0.5 rounded shadow-lg border border-gold/50 animate-bounce tracking-wide">
                   DRAW
                 </span>
               </div>

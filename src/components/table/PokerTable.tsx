@@ -7,6 +7,7 @@ import { PlayerSeat } from './PlayerSeat';
 import { CenterBazaar } from './CenterBazaar';
 import { DraggableTurnCard } from '../card/DraggableTurnCard';
 import { FlyingPenaltyOverlay } from './FlyingPenaltyOverlay';
+import { CardFlightOverlay } from './CardFlightOverlay';
 import { ThrowablesOverlay } from './ThrowablesOverlay';
 import { ExitConfirmModal } from '../modal/ExitConfirmModal';
 import { canPlayOnAnyCenterDeck, canPlayOnOtherRightDeck } from '@/lib/validator';
@@ -92,7 +93,7 @@ export const PokerTable: React.FC<PokerTableProps> = ({
     if (count === 2) {
       return isLandscape
         ? 'top-1 sm:top-2 left-1/2 -translate-x-1/2 scale-90 sm:scale-100'
-        : 'top-8 sm:top-12 left-1/2 -translate-x-1/2';
+        : 'top-12 xs:top-13 sm:top-14 left-1/2 -translate-x-1/2';
     }
 
     // 3-Player (Self + 2 Opponents)
@@ -102,9 +103,9 @@ export const PokerTable: React.FC<PokerTableProps> = ({
         if (idx === 1) return 'top-1/2 -translate-y-1/2 left-1.5 sm:left-4 md:left-8';
         if (idx === 2) return 'top-1/2 -translate-y-1/2 right-1.5 sm:right-4 md:right-8';
       } else {
-        // Portrait: Opponents arched across the top
-        if (idx === 1) return 'top-10 sm:top-14 left-1 sm:left-4 md:left-8';
-        if (idx === 2) return 'top-10 sm:top-14 right-1 sm:right-4 md:right-8';
+        // Portrait: Opponents spaced cleanly across top-left and top-right
+        if (idx === 1) return 'top-12 xs:top-13 sm:top-14 left-1.5 xs:left-3 sm:left-6';
+        if (idx === 2) return 'top-12 xs:top-13 sm:top-14 right-1.5 xs:right-3 sm:right-6';
       }
     }
 
@@ -116,10 +117,11 @@ export const PokerTable: React.FC<PokerTableProps> = ({
         if (idx === 2) return 'top-1 sm:top-2 left-1/2 -translate-x-1/2';
         if (idx === 3) return 'top-1/2 -translate-y-1/2 right-1.5 sm:right-3 md:right-8';
       } else {
-        // Portrait: 3 opponents arched across the top
-        if (idx === 1) return 'top-14 sm:top-16 left-1 sm:left-3';
-        if (idx === 2) return 'top-9 sm:top-11 left-1/2 -translate-x-1/2';
-        if (idx === 3) return 'top-14 sm:top-16 right-1 sm:right-3';
+        // Portrait: Oval table layout (West flank, North center, East flank)
+        // Eliminates 3-in-a-row crowding at the top on mobile phones!
+        if (idx === 1) return 'top-[27%] -translate-y-1/2 left-1 xs:left-2 sm:left-4';
+        if (idx === 2) return 'top-13 xs:top-14 sm:top-15 left-1/2 -translate-x-1/2';
+        if (idx === 3) return 'top-[27%] -translate-y-1/2 right-1 xs:right-2 sm:right-4';
       }
     }
 
@@ -133,10 +135,10 @@ export const PokerTable: React.FC<PokerTableProps> = ({
         if (idx === 4) return 'top-[72%] -translate-y-1/2 right-1.5 sm:right-3 md:right-6';
       } else {
         // Portrait: 4 opponents in an arched semi-circle across the top
-        if (idx === 1) return 'top-[16%] left-0.5 sm:left-2';
-        if (idx === 2) return 'top-[9%] left-[27%] -translate-x-1/2';
-        if (idx === 3) return 'top-[9%] right-[27%] translate-x-1/2';
-        if (idx === 4) return 'top-[16%] right-0.5 sm:right-2';
+        if (idx === 1) return 'top-[28%] -translate-y-1/2 left-0.5 xs:left-1 sm:left-2';
+        if (idx === 2) return 'top-12 xs:top-13 left-[28%] -translate-x-1/2';
+        if (idx === 3) return 'top-12 xs:top-13 right-[28%] translate-x-1/2';
+        if (idx === 4) return 'top-[28%] -translate-y-1/2 right-0.5 xs:right-1 sm:right-2';
       }
     }
 
@@ -176,15 +178,15 @@ export const PokerTable: React.FC<PokerTableProps> = ({
         {/* Physical Felt Taash Table Inner Area Filling 100% of Screen */}
         <div className="relative w-full h-full rounded-[8px] sm:rounded-[18px] md:rounded-[32px] poker-felt-bg shadow-poker-felt border border-emerald-500/25 flex items-center justify-center overflow-hidden">
           
-          {/* Minimal Floating HUD (Top Left: Room Code & Invite) */}
-          <div className="absolute top-1 sm:top-2.5 left-1 sm:left-3 z-30 flex items-center gap-1 sm:gap-2">
-            <div className="flex items-center gap-1 sm:gap-2 bg-black/75 backdrop-blur-md px-1.5 sm:px-3 py-0.5 sm:py-1 rounded-full border border-gold/40 shadow-lg">
-              <span className="text-[8px] sm:text-[10px] text-zinc-400 font-bold uppercase tracking-wider">Room</span>
-              <span className="font-mono font-black text-[11px] sm:text-sm text-gold tracking-wider">{roomCode}</span>
+          {/* Minimal Floating HUD (Top Left: Room Code & Invite) - Non-Intrusive Mobile Sizing */}
+          <div className="absolute top-1 sm:top-2.5 left-1 sm:left-3 z-30 flex items-center gap-1 sm:gap-2 pointer-events-auto">
+            <div className="flex items-center gap-1 sm:gap-1.5 bg-black/80 backdrop-blur-md px-1.5 xs:px-2 sm:px-3 py-0.5 sm:py-1 rounded-full border border-gold/40 shadow-lg">
+              <span className="text-[7.5px] xs:text-[8px] sm:text-[10px] text-zinc-400 font-bold uppercase tracking-wider hidden xs:inline">Room</span>
+              <span className="font-mono font-black text-[10px] xs:text-[11px] sm:text-sm text-gold tracking-wider">{roomCode}</span>
               <button
                 onClick={handleCopy}
                 title="Copy Room Code"
-                className="p-0.5 sm:p-1 rounded-full text-zinc-400 hover:text-white hover:bg-white/10 active:scale-95 transition-all cursor-pointer"
+                className="p-0.5 rounded-full text-zinc-400 hover:text-white hover:bg-white/10 active:scale-90 transition-all cursor-pointer"
               >
                 {copied ? <Check className="w-2.5 h-2.5 sm:w-3 sm:h-3 text-green-400" /> : <Copy className="w-2.5 h-2.5 sm:w-3 sm:h-3" />}
               </button>
@@ -193,15 +195,15 @@ export const PokerTable: React.FC<PokerTableProps> = ({
             <button
               onClick={() => setInviteModalOpen(true)}
               title="Direct Invite Friends"
-              className="flex items-center gap-1 bg-black/75 hover:bg-gold/20 backdrop-blur-md px-2 sm:px-2.5 py-0.5 sm:py-1 rounded-full border border-gold/50 text-gold text-[9px] sm:text-[11px] font-bold shadow-lg transition-all active:scale-95 cursor-pointer"
+              className="flex items-center justify-center w-6 h-6 xs:w-7 xs:h-7 sm:w-auto sm:px-2.5 sm:py-1 rounded-full bg-black/80 hover:bg-gold/20 backdrop-blur-md border border-gold/50 text-gold text-[9px] sm:text-[11px] font-bold shadow-lg transition-all active:scale-95 cursor-pointer"
             >
-              <UserPlus className="w-2.5 h-2.5 sm:w-3 sm:h-3" />
-              <span className="hidden sm:inline">Invite</span>
+              <UserPlus className="w-2.5 h-2.5 xs:w-3 xs:h-3" />
+              <span className="hidden sm:inline sm:ml-1">Invite</span>
             </button>
           </div>
 
-          {/* Minimal Floating HUD (Top Right: Voice Controls, Rules, Audio, Exit) */}
-          <div className="absolute top-1 sm:top-2.5 right-1 sm:right-3 z-30 flex items-center gap-1 sm:gap-1.5">
+          {/* Minimal Floating HUD (Top Right: Voice Controls, Soundboard, Rules, Audio, Exit) */}
+          <div className="absolute top-1 sm:top-2.5 right-1 sm:right-3 z-30 flex items-center gap-1 sm:gap-1.5 pointer-events-auto">
             {/* Real-Time Voice Chat Controls */}
             <VoiceControls roomCode={roomCode} />
 
@@ -209,33 +211,33 @@ export const PokerTable: React.FC<PokerTableProps> = ({
             <button
               onClick={() => setSoundboardOpen(true)}
               title="Real-Time Desi Meme Soundboard"
-              className="flex items-center gap-1 p-1 sm:px-2.5 sm:py-1.5 rounded-full bg-gradient-to-r from-amber-600/30 via-orange-600/30 to-amber-600/30 hover:from-amber-600/50 hover:to-orange-600/50 backdrop-blur-md border border-amber-500/50 text-[10px] sm:text-[11px] font-extrabold text-amber-300 hover:text-white shadow-lg transition-all active:scale-95 cursor-pointer"
+              className="flex items-center justify-center w-6 h-6 xs:w-7 xs:h-7 sm:w-auto sm:px-2.5 sm:py-1.5 rounded-full bg-gradient-to-r from-amber-600/30 via-orange-600/30 to-amber-600/30 hover:from-amber-600/50 hover:to-orange-600/50 backdrop-blur-md border border-amber-500/50 text-[10px] sm:text-[11px] font-extrabold text-amber-300 hover:text-white shadow-lg transition-all active:scale-95 cursor-pointer"
             >
               <Volume2 className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-amber-400 animate-pulse" />
-              <span className="hidden sm:inline">Sounds</span>
+              <span className="hidden sm:inline sm:ml-1">Sounds</span>
             </button>
 
             <button
               onClick={() => setRulesModalOpen(true)}
               title="View Rules"
-              className="flex items-center gap-1 p-1 sm:px-2.5 sm:py-1.5 rounded-full bg-black/65 backdrop-blur-md border border-white/15 text-[10px] sm:text-[11px] font-bold text-zinc-300 hover:text-gold hover:border-gold/40 shadow transition-all"
+              className="flex items-center justify-center w-6 h-6 xs:w-7 xs:h-7 sm:w-auto sm:px-2.5 sm:py-1.5 rounded-full bg-black/75 backdrop-blur-md border border-white/15 text-[10px] sm:text-[11px] font-bold text-zinc-300 hover:text-gold hover:border-gold/40 shadow transition-all active:scale-95"
             >
               <BookOpen className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-gold" />
-              <span className="hidden md:inline">Rules</span>
+              <span className="hidden md:inline md:ml-1">Rules</span>
             </button>
             <button
               onClick={handleToggleSound}
               title={isMuted ? 'Unmute' : 'Mute'}
-              className="p-1 sm:p-1.5 rounded-full bg-black/65 backdrop-blur-md border border-white/15 text-zinc-300 hover:text-white shadow transition-all"
+              className="flex items-center justify-center w-6 h-6 xs:w-7 xs:h-7 sm:w-8 sm:h-8 rounded-full bg-black/75 backdrop-blur-md border border-white/15 text-zinc-300 hover:text-white shadow transition-all active:scale-95"
             >
-              {isMuted ? <VolumeX className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-red-400" /> : <Volume2 className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-emerald-400" />}
+              {isMuted ? <VolumeX className="w-3 h-3 text-red-400" /> : <Volume2 className="w-3 h-3 text-emerald-400" />}
             </button>
             <button
               onClick={() => setShowExitModal(true)}
               title="Leave Room"
-              className="p-1 sm:p-1.5 rounded-full bg-red-950/60 backdrop-blur-md border border-red-800/60 text-red-300 hover:text-white shadow transition-all active:scale-95"
+              className="flex items-center justify-center w-6 h-6 xs:w-7 xs:h-7 sm:w-8 sm:h-8 rounded-full bg-red-950/70 backdrop-blur-md border border-red-800/60 text-red-300 hover:text-white shadow transition-all active:scale-95"
             >
-              <LogOut className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
+              <LogOut className="w-3 h-3 text-red-400" />
             </button>
           </div>
 
@@ -247,7 +249,7 @@ export const PokerTable: React.FC<PokerTableProps> = ({
                 ? totalPlayers === 2
                   ? "top-[44%] -translate-y-1/2 scale-[0.84] sm:scale-95"
                   : "top-[36%] -translate-y-1/2 scale-[0.88] sm:scale-100"
-                : "top-1/2 -translate-y-1/2"
+                : "top-[50%] -translate-y-1/2 scale-100"
             )}
           >
             <CenterBazaar
@@ -257,7 +259,7 @@ export const PokerTable: React.FC<PokerTableProps> = ({
               floatingCard={myFloatingCard}
               isMyTurn={isMyTurn}
               onPlaceCenter={onPlaceCenter}
-              cardSize={isLandscape && isMobile ? 'xs' : 'sm'}
+              cardSize={'sm'}
             />
           </div>
 
@@ -314,6 +316,9 @@ export const PokerTable: React.FC<PokerTableProps> = ({
 
       {/* Auto-Penalty Flying Cards Animation Overlay */}
       <FlyingPenaltyOverlay animationData={activePenaltyAnimation || null} />
+
+      {/* Real-Time Card Traveling Flight Animation Overlay */}
+      <CardFlightOverlay />
 
       {/* Interactive Desi Throwables Flying Overlay */}
       <ThrowablesOverlay />

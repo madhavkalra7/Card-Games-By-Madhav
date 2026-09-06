@@ -53,13 +53,14 @@ export const PlayingCard: React.FC<PlayingCardProps> = ({
   glow = false,
 }) => {
   // Dimension scale based on authentic poker card ratio (~2.5 x 3.5 inches -> 1:1.4)
+  // Enhanced for mobile devices so cards and rank fonts appear bold, thick, and readable
   const sizeClasses = {
-    xxs: 'w-[32px] h-[45px] text-[8px]',
-    xs: 'w-[38px] h-[53px] sm:w-[44px] sm:h-[62px] text-[8px] sm:text-[9px]',
-    sm: 'w-[44px] h-[62px] sm:w-[54px] sm:h-[76px] md:w-[62px] md:h-[87px] text-[9px] sm:text-[10px] md:text-xs',
-    md: 'w-[54px] h-[76px] sm:w-[68px] sm:h-[95px] md:w-[80px] md:h-[112px] text-[10px] sm:text-xs md:text-sm',
-    lg: 'w-[72px] h-[100px] sm:w-[90px] sm:h-[126px] md:w-[110px] md:h-[154px] text-xs sm:text-sm md:text-lg',
-    xl: 'w-[100px] h-[140px] sm:w-[150px] sm:h-[210px] text-sm sm:text-2xl',
+    xxs: 'w-[36px] h-[50px] text-[9px]',
+    xs: 'w-[44px] h-[62px] xs:w-[48px] xs:h-[67px] sm:w-[46px] sm:h-[65px] md:w-[50px] md:h-[70px] text-[10px] xs:text-[11px] sm:text-xs',
+    sm: 'w-[54px] h-[76px] xs:w-[58px] xs:h-[82px] sm:w-[58px] sm:h-[81px] md:w-[66px] md:h-[92px] text-xs xs:text-[13px] sm:text-sm md:text-base',
+    md: 'w-[64px] h-[90px] xs:w-[70px] xs:h-[98px] sm:w-[74px] sm:h-[104px] md:w-[82px] md:h-[115px] text-xs xs:text-sm sm:text-base md:text-lg',
+    lg: 'w-[78px] h-[108px] sm:w-[92px] sm:h-[128px] md:w-[110px] md:h-[154px] text-sm sm:text-base md:text-xl',
+    xl: 'w-[110px] h-[154px] sm:w-[150px] sm:h-[210px] text-base sm:text-2xl',
   }[size];
 
   if (faceDown || !card) {
@@ -67,11 +68,11 @@ export const PlayingCard: React.FC<PlayingCardProps> = ({
       <div
         onClick={onClick}
         className={cn(
-          'relative rounded-[8px] sm:rounded-[12px] select-none transition-all duration-200 overflow-hidden cursor-default',
-          'border border-amber-900/60 shadow-card',
+          'relative rounded-[9px] sm:rounded-[12px] select-none transition-all duration-200 overflow-hidden cursor-default',
+          'border-[1.5px] sm:border-2 border-amber-900/80 shadow-card',
           sizeClasses,
           interactive && 'hover:-translate-y-1.5 hover:shadow-card-hover cursor-pointer active:scale-95',
-          glow && 'ring-2 ring-gold shadow-gold-glow',
+          glow && 'ring-2 sm:ring-3 ring-gold shadow-gold-glow',
           className
         )}
         style={{
@@ -79,18 +80,18 @@ export const PlayingCard: React.FC<PlayingCardProps> = ({
         }}
       >
         {/* Luxury Indian filigree card back pattern */}
-        <div className="absolute inset-0.5 sm:inset-1 rounded-[6px] sm:rounded-[9px] border sm:border-2 border-amber-400/40 p-0.5 sm:p-1 flex items-center justify-center overflow-hidden">
-          <div className="w-full h-full rounded-[4px] sm:rounded-[6px] border border-amber-400/20 bg-red-950/80 flex items-center justify-center relative">
+        <div className="absolute inset-0.5 sm:inset-1 rounded-[7px] sm:rounded-[9px] border sm:border-2 border-amber-400/50 p-0.5 sm:p-1 flex items-center justify-center overflow-hidden">
+          <div className="w-full h-full rounded-[5px] sm:rounded-[6px] border border-amber-400/30 bg-red-950/90 flex items-center justify-center relative">
             {/* Geometric Mandala / Taash Back SVG */}
-            <svg viewBox="0 0 100 140" className="w-full h-full text-amber-400/30 opacity-70">
+            <svg viewBox="0 0 100 140" className="w-full h-full text-amber-400/35 opacity-85">
               <defs>
                 <pattern id="cardPattern" width="16" height="16" patternUnits="userSpaceOnUse">
-                  <path d="M8 0L16 8L8 16L0 8Z" fill="none" stroke="currentColor" strokeWidth="0.8" />
+                  <path d="M8 0L16 8L8 16L0 8Z" fill="none" stroke="currentColor" strokeWidth="0.9" />
                   <circle cx="8" cy="8" r="2.5" fill="currentColor" />
                 </pattern>
               </defs>
               <rect width="100" height="140" fill="url(#cardPattern)" />
-              <circle cx="50" cy="70" r="22" fill="#450a0a" stroke="#d4af37" strokeWidth="1.5" />
+              <circle cx="50" cy="70" r="22" fill="#450a0a" stroke="#d4af37" strokeWidth="1.8" />
               <polygon points="50,54 55,65 66,70 55,75 50,86 45,75 34,70 45,65" fill="#d4af37" />
             </svg>
           </div>
@@ -106,43 +107,43 @@ export const PlayingCard: React.FC<PlayingCardProps> = ({
     <div
       onClick={onClick}
       className={cn(
-        'relative bg-[#fdfdfc] rounded-[8px] sm:rounded-[12px] border border-zinc-300 select-none shadow-card',
+        'relative bg-[#fefefe] rounded-[9px] sm:rounded-[12px] border-2 border-zinc-400 select-none shadow-md',
         'flex flex-col justify-between p-1 sm:p-1.5 md:p-2 transition-all duration-200',
         sizeClasses,
         interactive && 'hover:-translate-y-2 hover:shadow-card-hover cursor-pointer active:scale-95',
-        glow && 'ring-2 ring-gold shadow-gold-glow animate-pulse-gold',
+        glow && 'ring-2 sm:ring-3 ring-gold shadow-gold-glow animate-pulse-gold',
         className
       )}
     >
       {/* Top Left Rank & Suit */}
-      <div className="flex flex-col items-center leading-none w-3 sm:w-4 md:w-5">
-        <span className={cn('font-black tracking-tighter', textColor)}>{card.rank}</span>
-        <SuitIcon suit={card.suit} className="w-2 h-2 sm:w-3 sm:h-3 md:w-3.5 md:h-3.5 mt-0.5" />
+      <div className="flex flex-col items-center leading-none w-3.5 xs:w-4 sm:w-4.5 md:w-5">
+        <span className={cn('font-black text-[12px] xs:text-[13px] sm:text-sm md:text-base tracking-tight', textColor)}>{card.rank}</span>
+        <SuitIcon suit={card.suit} className="w-3 h-3 xs:w-3.5 xs:h-3.5 sm:w-4 sm:h-4 md:w-4.5 md:h-4.5 mt-0.5" />
       </div>
 
       {/* Center Art / Large Suit */}
       <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
         {['J', 'Q', 'K'].includes(card.rank) ? (
-          <div className="flex flex-col items-center opacity-85">
-            <span className={cn('font-serif font-black text-lg sm:text-2xl md:text-4xl opacity-90', textColor)}>
+          <div className="flex flex-col items-center opacity-95">
+            <span className={cn('font-serif font-black text-2xl xs:text-3xl sm:text-4xl md:text-5xl', textColor)}>
               {card.rank}
             </span>
-            <SuitIcon suit={card.suit} className="w-3.5 h-3.5 sm:w-5 sm:h-5 md:w-7 md:h-7 opacity-75" />
+            <SuitIcon suit={card.suit} className="w-5 h-5 xs:w-6 xs:h-6 sm:w-7 sm:h-7 md:w-8 md:h-8 opacity-90" />
           </div>
         ) : card.rank === 'A' ? (
-          <SuitIcon suit={card.suit} className="w-5 h-5 sm:w-8 sm:h-8 md:w-12 md:h-12 opacity-85" />
+          <SuitIcon suit={card.suit} className="w-7 h-7 xs:w-9 xs:h-9 sm:w-11 sm:h-11 md:w-13 md:h-13 opacity-95" />
         ) : (
-          <div className="grid grid-cols-2 gap-0.5 sm:gap-1 items-center justify-items-center opacity-80">
-            <SuitIcon suit={card.suit} className="w-2.5 h-2.5 sm:w-3.5 sm:h-3.5 md:w-5 md:h-5" />
-            <SuitIcon suit={card.suit} className="w-2.5 h-2.5 sm:w-3.5 sm:h-3.5 md:w-5 md:h-5" />
+          <div className="grid grid-cols-2 gap-0.5 xs:gap-1 sm:gap-1.5 items-center justify-items-center opacity-90">
+            <SuitIcon suit={card.suit} className="w-3.5 h-3.5 xs:w-4 xs:h-4 sm:w-4.5 sm:h-4.5 md:w-5 md:h-5" />
+            <SuitIcon suit={card.suit} className="w-3.5 h-3.5 xs:w-4 xs:h-4 sm:w-4.5 sm:h-4.5 md:w-5 md:h-5" />
           </div>
         )}
       </div>
 
       {/* Bottom Right Inverted Rank & Suit */}
-      <div className="flex flex-col items-center leading-none w-3 sm:w-4 md:w-5 self-end rotate-180">
-        <span className={cn('font-black tracking-tighter', textColor)}>{card.rank}</span>
-        <SuitIcon suit={card.suit} className="w-2 h-2 sm:w-3 sm:h-3 md:w-3.5 md:h-3.5 mt-0.5" />
+      <div className="flex flex-col items-center leading-none w-3.5 xs:w-4 sm:w-4.5 md:w-5 self-end rotate-180">
+        <span className={cn('font-black text-[12px] xs:text-[13px] sm:text-sm md:text-base tracking-tight', textColor)}>{card.rank}</span>
+        <SuitIcon suit={card.suit} className="w-3 h-3 xs:w-3.5 xs:h-3.5 sm:w-4 sm:h-4 md:w-4.5 md:h-4.5 mt-0.5" />
       </div>
     </div>
   );

@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { motion, PanInfo } from 'framer-motion';
+import { motion, AnimatePresence, PanInfo } from 'framer-motion';
 import { PlayerClientView, Card } from '@/lib/types';
 import { CardStack } from '../card/CardStack';
 import { PlayingCard } from '../card/PlayingCard';
@@ -10,6 +10,39 @@ import { Crown, Sparkles, WifiOff, Grab, Mic, MicOff } from 'lucide-react';
 import { useVoiceStore } from '@/store/voiceStore';
 import { useGameStore } from '@/store/gameStore';
 import { ThrowablePicker } from './ThrowablePicker';
+
+const OpponentFloatingCard: React.FC<{
+  card: Card;
+  size?: 'xxs' | 'xs' | 'sm' | 'md' | 'lg';
+}> = ({ card, size }) => {
+  return (
+    <motion.div
+      initial={{ scale: 0.2, y: -10, rotateY: 180, opacity: 0 }}
+      animate={{ scale: 1, y: 0, rotateY: 0, opacity: 1 }}
+      exit={{ scale: 0.2, opacity: 0 }}
+      transition={{ type: 'spring', stiffness: 360, damping: 22 }}
+      className="flex flex-col items-center select-none shrink-0"
+    >
+      <motion.div
+        animate={{ y: [-2, 2, -2] }}
+        transition={{ repeat: Infinity, duration: 2.2, ease: 'easeInOut' }}
+        className="relative rounded-[9px] sm:rounded-[12px] ring-2 sm:ring-3 ring-gold shadow-[0_0_20px_rgba(212,175,55,0.85)] animate-pulse-gold"
+      >
+        <PlayingCard card={card} size={size} glow={true} />
+
+        {/* Picked Status Badge */}
+        <div className="absolute -top-2.5 left-1/2 -translate-x-1/2 bg-gradient-to-r from-amber-400 via-yellow-400 to-amber-500 text-black text-[7.5px] xs:text-[8px] sm:text-[9px] font-black px-1.5 sm:px-2 py-0.2 rounded-full shadow-lg border border-yellow-100 flex items-center gap-0.5 whitespace-nowrap animate-bounce z-20">
+          <span>PICKED</span>
+        </div>
+      </motion.div>
+
+      {/* Card Label */}
+      <span className="hidden sm:block mt-0.5 sm:mt-1 text-[8px] sm:text-[10px] font-black tracking-wider uppercase text-amber-300">
+        In Hand
+      </span>
+    </motion.div>
+  );
+};
 
 interface PlayerSeatProps {
   player: PlayerClientView;
@@ -131,32 +164,29 @@ export const PlayerSeat: React.FC<PlayerSeatProps> = ({
     >
       {/* Real-Time Impact Splatters / Decals when Hit */}
       {currentImpact && (
-        <div className={cn(
-          "absolute left-1/2 -translate-x-1/2 pointer-events-none z-50 flex items-center justify-center animate-bounce",
-          isTopSeat ? "top-full mt-1 sm:mt-1.5" : "-top-7 sm:-top-9"
-        )}>
+        <div className="absolute -top-7 xs:-top-8 sm:-top-9 left-1/2 -translate-x-1/2 pointer-events-none z-50 flex items-center justify-center animate-bounce">
           {currentImpact.itemType === 'chappal' && (
-            <div className="flex items-center gap-1 bg-red-600/90 text-white font-black text-[10px] sm:text-xs px-2 py-0.5 rounded-full border border-yellow-300 shadow-xl animate-pulse whitespace-nowrap">
+            <div className="flex items-center gap-1.5 bg-red-600/95 text-white font-black text-[11px] xs:text-xs sm:text-sm px-2.5 sm:px-3 py-0.5 sm:py-1 rounded-full border-1.5 sm:border-2 border-yellow-300 shadow-[0_4px_20px_rgba(220,38,38,0.75)] animate-pulse whitespace-nowrap">
               <span>PHATAK! 🩴💥</span>
             </div>
           )}
           {currentImpact.itemType === 'chai' && (
-            <div className="flex items-center gap-1 bg-amber-700/90 text-white font-black text-[10px] sm:text-xs px-2 py-0.5 rounded-full border border-amber-300 shadow-xl whitespace-nowrap">
+            <div className="flex items-center gap-1.5 bg-amber-700/95 text-white font-black text-[11px] xs:text-xs sm:text-sm px-2.5 sm:px-3 py-0.5 sm:py-1 rounded-full border-1.5 sm:border-2 border-amber-300 shadow-[0_4px_20px_rgba(217,119,6,0.75)] whitespace-nowrap">
               <span>GARAM CHAI! ☕♨️</span>
             </div>
           )}
           {currentImpact.itemType === 'tomato' && (
-            <div className="flex items-center gap-1 bg-red-700/90 text-white font-black text-[10px] sm:text-xs px-2 py-0.5 rounded-full border border-red-300 shadow-xl whitespace-nowrap">
+            <div className="flex items-center gap-1.5 bg-red-700/95 text-white font-black text-[11px] xs:text-xs sm:text-sm px-2.5 sm:px-3 py-0.5 sm:py-1 rounded-full border-1.5 sm:border-2 border-red-300 shadow-[0_4px_20px_rgba(185,28,28,0.75)] whitespace-nowrap">
               <span>SPLATTER! 🍅💦</span>
             </div>
           )}
           {currentImpact.itemType === 'cash' && (
-            <div className="flex items-center gap-1 bg-emerald-600/90 text-white font-black text-[10px] sm:text-xs px-2 py-0.5 rounded-full border border-yellow-200 shadow-xl whitespace-nowrap">
+            <div className="flex items-center gap-1.5 bg-emerald-600/95 text-white font-black text-[11px] xs:text-xs sm:text-sm px-2.5 sm:px-3 py-0.5 sm:py-1 rounded-full border-1.5 sm:border-2 border-yellow-200 shadow-[0_4px_20px_rgba(16,185,129,0.75)] whitespace-nowrap">
               <span>PAISA HI PAISA! 💸✨</span>
             </div>
           )}
           {currentImpact.itemType === 'rose' && (
-            <div className="flex items-center gap-1 bg-pink-600/90 text-white font-black text-[10px] sm:text-xs px-2 py-0.5 rounded-full border border-pink-200 shadow-xl whitespace-nowrap">
+            <div className="flex items-center gap-1.5 bg-pink-600/95 text-white font-black text-[11px] xs:text-xs sm:text-sm px-2.5 sm:px-3 py-0.5 sm:py-1 rounded-full border-1.5 sm:border-2 border-pink-200 shadow-[0_4px_20px_rgba(236,72,153,0.75)] whitespace-nowrap">
               <span>PYAAR SE! 🌹💖</span>
             </div>
           )}
@@ -172,9 +202,9 @@ export const PlayerSeat: React.FC<PlayerSeatProps> = ({
             : pickerAlign === 'right'
             ? "right-0 translate-x-0"
             : "left-1/2 -translate-x-1/2",
-          isTopSeat ? "top-full mt-1 sm:mt-2" : "-top-8 sm:-top-10"
+          "-top-8 sm:-top-10"
         )}>
-          <div className="flex items-center gap-1 sm:gap-1.5 bg-gradient-to-r from-amber-500 via-yellow-400 to-orange-500 text-black font-black text-[9px] sm:text-xs px-2 sm:px-2.5 py-0.5 sm:py-1 rounded-full border-1.5 sm:border-2 border-white shadow-[0_0_15px_rgba(245,158,11,0.7)] max-w-[140px] xs:max-w-[190px] sm:max-w-[260px]">
+          <div className="flex items-center gap-1 sm:gap-1.5 bg-gradient-to-r from-amber-500 via-yellow-400 to-orange-500 text-black font-black text-[10px] xs:text-[11px] sm:text-xs px-2.5 sm:px-3 py-0.5 sm:py-1 rounded-full border-1.5 sm:border-2 border-white shadow-[0_0_15px_rgba(245,158,11,0.7)] max-w-[140px] xs:max-w-[190px] sm:max-w-[260px]">
             <span className="text-xs sm:text-sm animate-pulse shrink-0">{soundboardDecal.emoji}</span>
             <span className="tracking-tight uppercase font-black truncate">{soundboardDecal.label}</span>
           </div>
@@ -302,32 +332,18 @@ export const PlayerSeat: React.FC<PlayerSeatProps> = ({
         </div>
       )}
 
-      {/* Opponent's Floating Drawn Card (Visible to All Players in Real Time - Mobile Responsive) */}
-      {!isSelf && player.floatingCard && (
-        <motion.div
-          initial={{ scale: 0.2, y: 15, rotateY: 180, opacity: 0 }}
-          animate={{ scale: 1, y: 0, rotateY: 0, opacity: 1 }}
-          transition={{ type: 'spring', stiffness: 340, damping: 20 }}
-          className="absolute z-40 flex flex-col items-center pointer-events-none filter drop-shadow-2xl top-full mt-1.5 sm:mt-2 left-1/2 -translate-x-1/2"
-        >
-          {/* Glowing Animated Drawn Card */}
-          <motion.div
-            animate={{ y: [-2, 2, -2] }}
-            transition={{ repeat: Infinity, duration: 2.2, ease: 'easeInOut' }}
-            className="relative rounded-[8px] sm:rounded-[10px] ring-2 sm:ring-3 ring-gold shadow-[0_0_18px_rgba(212,175,55,0.75)] animate-pulse-gold"
-          >
-            <PlayingCard card={player.floatingCard} size={activeCardSize === 'xxs' ? 'xs' : activeCardSize} glow={true} />
+      {/* Cards: Left Deck, Right Deck, and Opponent's Active Picked Card */}
+      <div className="mt-0.5 sm:mt-1.5 flex items-center justify-center gap-1.5 sm:gap-2.5 relative">
+        {/* If on Right Flank, render opponent's picked card on the left side facing table center */}
+        <AnimatePresence>
+          {isRightFlank && !isSelf && player.floatingCard && (
+            <OpponentFloatingCard
+              card={player.floatingCard}
+              size={activeCardSize === 'xxs' ? 'xs' : activeCardSize}
+            />
+          )}
+        </AnimatePresence>
 
-            {/* Picked Status Badge */}
-            <div className="absolute -top-2.5 left-1/2 -translate-x-1/2 bg-gradient-to-r from-amber-500 to-yellow-400 text-black text-[7px] sm:text-[8px] font-black px-1.5 sm:px-2 py-0.2 rounded-full shadow-lg border border-yellow-200 flex items-center gap-0.5 whitespace-nowrap animate-bounce">
-              <span>PICKED</span>
-            </div>
-          </motion.div>
-        </motion.div>
-      )}
-
-      {/* Cards: Left Deck (Hidden Stack) & Right Deck (Face up top card) */}
-      <div className="mt-0.5 sm:mt-1.5 flex items-center gap-1 sm:gap-2 relative">
         {/* Left Deck (Hidden Stack) */}
         <div className="flex flex-col items-center">
           <CardStack
@@ -344,6 +360,7 @@ export const PlayerSeat: React.FC<PlayerSeatProps> = ({
         {/* Right Deck (Top visible card) */}
         <div className="flex flex-col items-center">
           <div
+            id={`player-right-deck-${player.id}`}
             data-drop-target="right-deck"
             data-player-id={player.id}
             onClick={canPlaceOnRightDeck ? onPlaceRightDeck : undefined}
@@ -395,6 +412,16 @@ export const PlayerSeat: React.FC<PlayerSeatProps> = ({
             )}
           </div>
         </div>
+
+        {/* If NOT on Right Flank (Top seat or Left flank), render opponent's picked card on the right side */}
+        <AnimatePresence>
+          {!isRightFlank && !isSelf && player.floatingCard && (
+            <OpponentFloatingCard
+              card={player.floatingCard}
+              size={activeCardSize === 'xxs' ? 'xs' : activeCardSize}
+            />
+          )}
+        </AnimatePresence>
       </div>
     </motion.div>
   );

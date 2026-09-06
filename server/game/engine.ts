@@ -959,6 +959,7 @@ export class DukkiBazaarRoom {
       rightDeckCount: p.rightDeck.length,
       isBazaarOpen: p.isBazaarOpen,
       hasFloatingCard: p.floatingCard !== null,
+      floatingCard: p.floatingCard,
       isFinished: p.isFinished || false,
       rank: p.rank || null,
     }));

@@ -37,6 +37,7 @@ export interface PlayerClientView {
   rightDeckCount: number;
   isBazaarOpen: boolean;
   hasFloatingCard: boolean;
+  floatingCard?: Card | null;
   isFinished?: boolean;
   rank?: number | null;
 }

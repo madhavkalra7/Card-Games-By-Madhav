@@ -74,6 +74,9 @@ export const DraggableTurnCard: React.FC<DraggableTurnCardProps> = ({
       {/* Draggable Card Motion Container */}
       <div className="relative flex flex-col items-center">
         <motion.div
+          initial={{ scale: 0.25, y: 35, rotateY: 180, opacity: 0 }}
+          animate={{ scale: 1, y: 0, rotateY: 0, opacity: 1 }}
+          transition={{ type: 'spring', stiffness: 340, damping: 20 }}
           drag
           dragSnapToOrigin={true}
           dragElastic={0.08}

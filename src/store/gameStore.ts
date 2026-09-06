@@ -125,8 +125,10 @@ export const useGameStore = create<GameStore>((set, get) => ({
 
         // Detect sounds and transitions
         if (prevState) {
-          // Sound on card draw
-          if (!prevState.myFloatingCard && state.myFloatingCard) {
+          // Sound on card draw (for self or any opponent)
+          const hadFloating = (prevState.myFloatingCard !== null) || prevState.players.some(p => p.hasFloatingCard || !!p.floatingCard);
+          const hasFloating = (state.myFloatingCard !== null) || state.players.some(p => p.hasFloatingCard || !!p.floatingCard);
+          if (!hadFloating && hasFloating) {
             sounds.playCardFlip();
           }
 

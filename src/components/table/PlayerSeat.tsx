@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import { motion, PanInfo } from 'framer-motion';
 import { PlayerClientView, Card } from '@/lib/types';
 import { CardStack } from '../card/CardStack';
+import { PlayingCard } from '../card/PlayingCard';
 import { cn } from '@/lib/utils';
 import { Crown, Sparkles, WifiOff, Grab, Mic, MicOff } from 'lucide-react';
 import { useVoiceStore } from '@/store/voiceStore';
@@ -50,10 +51,24 @@ export const PlayerSeat: React.FC<PlayerSeatProps> = ({
   const throwItem = useGameStore((s) => s.throwItem);
   const currentImpact = activeImpacts[player.id];
 
-  // Position and alignment awareness for picker popup & impact badge
-  const isTopSeat = positionClass.includes('top-') || positionClass.includes('top-[');
-  const isLeftFlank = positionClass.includes('left-1') || positionClass.includes('left-0') || positionClass.includes('left-[1') || positionClass.includes('left-[2');
-  const isRightFlank = positionClass.includes('right-1') || positionClass.includes('right-0') || positionClass.includes('right-[1') || positionClass.includes('right-[2');
+  // Position and alignment awareness for picker popup, impact decals & floating card
+  const isTopSeat = (
+    positionClass.includes('top-1') ||
+    positionClass.includes('top-2') ||
+    positionClass.includes('top-6') ||
+    positionClass.includes('top-9') ||
+    positionClass.includes('top-10') ||
+    positionClass.includes('top-11') ||
+    positionClass.includes('top-12') ||
+    positionClass.includes('top-14') ||
+    positionClass.includes('top-16') ||
+    positionClass.includes('top-[9%]') ||
+    positionClass.includes('top-[16%]') ||
+    positionClass.includes('top-[22%]')
+  ) && !positionClass.includes('top-1/2');
+
+  const isLeftFlank = positionClass.includes('left-0') || positionClass.includes('left-1') || positionClass.includes('left-2') || positionClass.includes('left-3') || positionClass.includes('left-4') || positionClass.includes('left-[1') || positionClass.includes('left-[2');
+  const isRightFlank = positionClass.includes('right-0') || positionClass.includes('right-1') || positionClass.includes('right-2') || positionClass.includes('right-3') || positionClass.includes('right-4') || positionClass.includes('right-[1') || positionClass.includes('right-[2');
   const pickerAlign: 'center' | 'left' | 'right' = isLeftFlank ? 'left' : isRightFlank ? 'right' : 'center';
 
   // Voice chat speaking & mute status
@@ -269,8 +284,37 @@ export const PlayerSeat: React.FC<PlayerSeatProps> = ({
         </div>
       )}
 
+      {/* Opponent's Floating Drawn Card (Visible to All Players in Real Time!) */}
+      {!isSelf && player.floatingCard && (
+        <motion.div
+          initial={{ scale: 0.2, y: isTopSeat ? -25 : 25, rotateY: 180, opacity: 0 }}
+          animate={{ scale: 1, y: 0, rotateY: 0, opacity: 1 }}
+          transition={{ type: 'spring', stiffness: 340, damping: 20 }}
+          className={cn(
+            'absolute z-40 flex flex-col items-center pointer-events-none filter drop-shadow-2xl',
+            isTopSeat
+              ? 'top-[96%] left-1/2 -translate-x-1/2 mt-1.5'
+              : '-top-14 sm:-top-16 md:-top-20 left-1/2 -translate-x-1/2'
+          )}
+        >
+          {/* Glowing Animated Drawn Card */}
+          <motion.div
+            animate={{ y: [-2, 2, -2] }}
+            transition={{ repeat: Infinity, duration: 2.2, ease: 'easeInOut' }}
+            className="relative rounded-[8px] sm:rounded-[10px] ring-2 sm:ring-3 ring-gold shadow-[0_0_18px_rgba(212,175,55,0.75)] animate-pulse-gold"
+          >
+            <PlayingCard card={player.floatingCard} size={activeCardSize === 'xxs' ? 'xs' : activeCardSize} glow={true} />
+
+            {/* Picked Status Badge */}
+            <div className="absolute -top-2.5 left-1/2 -translate-x-1/2 bg-gradient-to-r from-amber-500 to-yellow-400 text-black text-[7px] sm:text-[8px] font-black px-1.5 sm:px-2 py-0.2 rounded-full shadow-lg border border-yellow-200 flex items-center gap-0.5 whitespace-nowrap animate-bounce">
+              <span>PICKED</span>
+            </div>
+          </motion.div>
+        </motion.div>
+      )}
+
       {/* Cards: Left Deck (Hidden Stack) & Right Deck (Face up top card) */}
-      <div className="mt-0.5 sm:mt-1.5 flex items-center gap-1 sm:gap-2">
+      <div className="mt-0.5 sm:mt-1.5 flex items-center gap-1 sm:gap-2 relative">
         {/* Left Deck (Hidden Stack) */}
         <div className="flex flex-col items-center">
           <CardStack

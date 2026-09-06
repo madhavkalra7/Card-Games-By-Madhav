@@ -13,6 +13,7 @@ import { canPlayOnAnyCenterDeck, canPlayOnOtherRightDeck } from '@/lib/validator
 import { sounds } from '@/lib/sound';
 import { useGameStore } from '@/store/gameStore';
 import { VoiceControls } from '../voice/VoiceControls';
+import { DesiSoundboardModal } from './DesiSoundboardModal';
 import { useViewportOrientation } from '@/hooks/useViewportOrientation';
 import { useFriendsStore } from '@/store/friendsStore';
 import { BookOpen, Check, Copy, LogOut, Volume2, VolumeX, UserPlus } from 'lucide-react';
@@ -46,7 +47,7 @@ export const PokerTable: React.FC<PokerTableProps> = ({
     activePenaltyAnimation,
   } = state;
 
-  const { setRulesModalOpen, showToast, leaveRoom } = useGameStore();
+  const { setRulesModalOpen, setSoundboardOpen, showToast, leaveRoom } = useGameStore();
   const { setInviteModalOpen } = useFriendsStore();
   const router = useRouter();
   const { isLandscape, isMobile } = useViewportOrientation();
@@ -205,10 +206,20 @@ export const PokerTable: React.FC<PokerTableProps> = ({
             {/* Real-Time Voice Chat Controls */}
             <VoiceControls roomCode={roomCode} />
 
+            {/* Real-Time Desi Soundboard Button */}
+            <button
+              onClick={() => setSoundboardOpen(true)}
+              title="Real-Time Desi Meme Soundboard"
+              className="flex items-center gap-1 p-1 sm:px-2.5 sm:py-1.5 rounded-full bg-gradient-to-r from-amber-600/30 via-orange-600/30 to-amber-600/30 hover:from-amber-600/50 hover:to-orange-600/50 backdrop-blur-md border border-amber-500/50 text-[10px] sm:text-[11px] font-extrabold text-amber-300 hover:text-white shadow-lg transition-all active:scale-95 cursor-pointer"
+            >
+              <Volume2 className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-amber-400 animate-pulse" />
+              <span className="hidden sm:inline">Sounds</span>
+            </button>
+
             <button
               onClick={() => setRulesModalOpen(true)}
               title="View Rules"
-              className="flex items-center gap-1 px-2 sm:px-2.5 py-1 sm:py-1.5 rounded-full bg-black/65 backdrop-blur-md border border-white/15 text-[10px] sm:text-[11px] font-bold text-zinc-300 hover:text-gold hover:border-gold/40 shadow transition-all"
+              className="flex items-center gap-1 p-1 sm:px-2.5 sm:py-1.5 rounded-full bg-black/65 backdrop-blur-md border border-white/15 text-[10px] sm:text-[11px] font-bold text-zinc-300 hover:text-gold hover:border-gold/40 shadow transition-all"
             >
               <BookOpen className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-gold" />
               <span className="hidden md:inline">Rules</span>
@@ -317,6 +328,9 @@ export const PokerTable: React.FC<PokerTableProps> = ({
 
       {/* Interactive Desi Throwables Flying Overlay */}
       <ThrowablesOverlay />
+
+      {/* Real-Time Desi Meme Soundboard Modal */}
+      <DesiSoundboardModal />
 
       {/* Clean Exit Confirmation Modal */}
       <ExitConfirmModal

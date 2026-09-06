@@ -2,8 +2,9 @@
 
 import React from 'react';
 import { useVoiceStore } from '@/store/voiceStore';
+import { useGameStore } from '@/store/gameStore';
 import { voiceManager } from '@/lib/voice/voiceManager';
-import { Mic, MicOff, Headphones, VolumeX, PhoneOff, Radio, Loader2 } from 'lucide-react';
+import { Mic, MicOff, Headphones, VolumeX, PhoneOff, Radio, Loader2, Volume2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface VoiceControlsProps {
@@ -13,6 +14,7 @@ interface VoiceControlsProps {
 
 export const VoiceControls: React.FC<VoiceControlsProps> = ({ roomCode, className }) => {
   const { isInVoice, isConnecting, isMicMuted, isDeafened, speakingPeers, error } = useVoiceStore();
+  const setSoundboardOpen = useGameStore((s) => s.setSoundboardOpen);
 
   const isMeSpeaking = !!speakingPeers['me'];
 
@@ -92,6 +94,15 @@ export const VoiceControls: React.FC<VoiceControlsProps> = ({ roomCode, classNam
         )}
       >
         {isDeafened ? <VolumeX className="w-3.5 h-3.5" /> : <Headphones className="w-3.5 h-3.5" />}
+      </button>
+
+      {/* Quick Desi Soundboard Button */}
+      <button
+        onClick={() => setSoundboardOpen(true)}
+        title="Real-Time Desi Soundboard"
+        className="p-1 sm:p-1.5 rounded-full bg-amber-500/20 text-amber-300 hover:bg-amber-500/40 border border-amber-500/40 transition-all active:scale-90"
+      >
+        <Volume2 className="w-3.5 h-3.5 text-amber-300" />
       </button>
 
       {/* Disconnect / Leave Voice Button */}

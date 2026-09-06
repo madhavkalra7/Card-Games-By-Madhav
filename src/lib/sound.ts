@@ -17,8 +17,25 @@ class SoundManager {
       }
     }
     if (this.ctx && this.ctx.state === 'suspended') {
-      this.ctx.resume();
+      this.ctx.resume().catch(() => {});
     }
+  }
+
+  public unlock(): AudioContext | null {
+    if (typeof window === 'undefined') return null;
+    try {
+      this.init();
+      if (this.ctx && this.ctx.state === 'suspended') {
+        this.ctx.resume().catch(() => {});
+      }
+      return this.ctx;
+    } catch {
+      return null;
+    }
+  }
+
+  public getContext(): AudioContext | null {
+    return this.unlock();
   }
 
   public toggleMute(): boolean {
@@ -382,3 +399,18 @@ class SoundManager {
 }
 
 export const sounds = new SoundManager();
+
+// Automatically unlock AudioContext on the very first user interaction
+if (typeof window !== 'undefined') {
+  const unlockAudioOnGesture = () => {
+    sounds.unlock();
+    window.removeEventListener('click', unlockAudioOnGesture);
+    window.removeEventListener('touchstart', unlockAudioOnGesture);
+    window.removeEventListener('pointerdown', unlockAudioOnGesture);
+    window.removeEventListener('keydown', unlockAudioOnGesture);
+  };
+  window.addEventListener('click', unlockAudioOnGesture, { passive: true });
+  window.addEventListener('touchstart', unlockAudioOnGesture, { passive: true });
+  window.addEventListener('pointerdown', unlockAudioOnGesture, { passive: true });
+  window.addEventListener('keydown', unlockAudioOnGesture, { passive: true });
+}

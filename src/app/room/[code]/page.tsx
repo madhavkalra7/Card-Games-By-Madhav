@@ -9,11 +9,12 @@ import { PenaltyModal } from '@/components/modal/PenaltyModal';
 import { GameOverModal } from '@/components/modal/GameOverModal';
 import { RulesModal } from '@/components/modal/RulesModal';
 import { InviteFriendsModal } from '@/components/modal/InviteFriendsModal';
+import { DesiSoundboardModal } from '@/components/table/DesiSoundboardModal';
 import { Toast } from '@/components/ui/Toast';
 import { VoiceControls } from '@/components/voice/VoiceControls';
 import { voiceManager } from '@/lib/voice/voiceManager';
 import { useFriendsStore } from '@/store/friendsStore';
-import { Copy, Crown, Play, ShieldAlert, Sparkles, UserMinus, Users, WifiOff, UserPlus } from 'lucide-react';
+import { Copy, Crown, Play, ShieldAlert, Sparkles, UserMinus, Users, WifiOff, UserPlus, Volume2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 export default function RoomPage({ params }: { params: Promise<{ code: string }> }) {
@@ -207,6 +208,16 @@ export default function RoomPage({ params }: { params: Promise<{ code: string }>
                 {/* Lobby Voice Chat */}
                 <VoiceControls roomCode={roomCode} />
 
+                {/* Real-Time Desi Soundboard in Lobby */}
+                <button
+                  onClick={() => useGameStore.getState().setSoundboardOpen(true)}
+                  className="flex items-center gap-1.5 px-3 py-2 rounded-2xl bg-amber-500/20 hover:bg-amber-500/30 border border-amber-500/40 text-amber-300 font-extrabold text-xs uppercase tracking-wider transition-all active:scale-95 cursor-pointer"
+                  title="Real-Time Desi Soundboard"
+                >
+                  <Volume2 className="w-3.5 h-3.5 text-amber-400" />
+                  <span>Desi Sounds</span>
+                </button>
+
                 {/* Direct Invite Friends Button */}
                 <button
                   onClick={() => setInviteModalOpen(true)}
@@ -365,6 +376,9 @@ export default function RoomPage({ params }: { params: Promise<{ code: string }>
 
       {/* Invite Friends Modal */}
       <InviteFriendsModal roomCode={roomCode} />
+
+      {/* Real-Time Desi Meme Soundboard Modal */}
+      <DesiSoundboardModal />
 
       {isLobby && (
         <div className="w-full text-center py-2 text-[10px] text-zinc-600">

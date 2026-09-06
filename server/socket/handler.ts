@@ -321,8 +321,57 @@ export function setupSocketHandlers(io: SocketIOServer) {
     });
 
     // ==========================================
-    // Real-Time WebRTC Voice Chat Signaling
+    // Real-Time Desi Soundboard Audio Broadcast
     // ==========================================
+    const lastSoundboardPlay = new Map<string, number>();
+
+    socket.on('play_soundboard', (data: {
+      roomCode: string;
+      soundId: string;
+      label: string;
+      emoji: string;
+      audioUrl?: string;
+      fallbackSynth?: string;
+      speechText?: string;
+    }, callback) => {
+      try {
+        const code = data.roomCode?.trim().toUpperCase();
+        if (!code || !activeRooms.has(code)) {
+          if (callback) callback({ success: false, error: 'Room not active' });
+          return;
+        }
+
+        // Rate limit: 1.5s per player to prevent audio overlap spam
+        const now = Date.now();
+        const lastPlay = lastSoundboardPlay.get(socket.id) || 0;
+        if (now - lastPlay < 1500) {
+          if (callback) callback({ success: false, error: 'Cooldown active' });
+          return;
+        }
+        lastSoundboardPlay.set(socket.id, now);
+
+        const room = activeRooms.get(code);
+        const senderPlayer = room?.players.find(p => p.id === socket.id);
+
+        const payload = {
+          id: `sb-${now}-${Math.random().toString(36).substring(2, 6)}`,
+          senderId: senderPlayer?.id || socket.id,
+          senderName: senderPlayer?.name || 'Table Player',
+          soundId: data.soundId || 'meme',
+          label: (data.label || 'Desi Meme').slice(0, 40),
+          emoji: data.emoji || '📢',
+          audioUrl: data.audioUrl || '',
+          fallbackSynth: data.fallbackSynth || 'dramatic',
+          speechText: data.speechText || data.label || '',
+          timestamp: now,
+        };
+
+        io.to(code).emit('soundboard_played', payload);
+        if (callback) callback({ success: true });
+      } catch (err: any) {
+        if (callback) callback({ success: false, error: err?.message || 'Failed to trigger soundboard' });
+      }
+    });
     socket.on('voice:join', (data: { roomCode: string }, callback) => {
       try {
         const code = data.roomCode?.toUpperCase();

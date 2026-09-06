@@ -4,6 +4,7 @@ import { getSocket, resolveBackendUrl } from '@/socket/client';
 import { getOrCreateSessionId, saveProfile, getSavedProfile } from '@/lib/utils';
 import { sounds } from '@/lib/sound';
 import { ThrownItemEvent, ThrowableType } from '@/lib/throwables';
+import { playSoundboardAudio } from '@/lib/soundboard';
 
 interface ToastData {
   id: number;
@@ -22,6 +23,8 @@ interface GameStore {
   toast: ToastData | null;
   activeThrowables: ThrownItemEvent[];
   activeImpacts: Record<string, { itemType: ThrowableType; id: string }>;
+  isSoundboardOpen: boolean;
+  activeSoundboardDecals: Record<string, { label: string; emoji: string; id: string; timestamp: number }>;
 
   // Actions
   initSocketListeners: () => void;
@@ -47,6 +50,10 @@ interface GameStore {
   removeThrowable: (id: string) => void;
   triggerImpact: (targetPlayerId: string, itemType: ThrowableType) => void;
   clearImpact: (targetPlayerId: string) => void;
+
+  // Soundboard Actions
+  setSoundboardOpen: (open: boolean) => void;
+  triggerSoundboard: (clip: { soundId: string; label: string; emoji: string; audioUrl?: string; fallbackSynth?: string; speechText?: string }) => void;
 }
 
 const saved = getSavedProfile();
@@ -62,6 +69,8 @@ export const useGameStore = create<GameStore>((set, get) => ({
   toast: null,
   activeThrowables: [],
   activeImpacts: {},
+  isSoundboardOpen: false,
+  activeSoundboardDecals: {},
 
   setProfile: (name, avatar) => {
     saveProfile(name, avatar);
@@ -70,6 +79,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
 
   setPenaltyModalOpen: (open) => set({ isPenaltyModalOpen: open }),
   setRulesModalOpen: (open) => set({ isRulesModalOpen: open }),
+  setSoundboardOpen: (open) => set({ isSoundboardOpen: open }),
 
   showToast: (text, type = 'info') => {
     const id = Date.now();
@@ -88,6 +98,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
       s.off('disconnect');
       s.off('connect_error');
       s.off('item_thrown');
+      s.off('soundboard_played');
 
       // Set current connection status immediately
       set({ isConnected: s.connected });
@@ -111,6 +122,50 @@ export const useGameStore = create<GameStore>((set, get) => ({
         set((prev) => ({
           activeThrowables: [...prev.activeThrowables, item],
         }));
+      });
+
+      // Listen for real-time soundboard meme audio across the room
+      s.on('soundboard_played', (data: {
+        id: string;
+        senderId: string;
+        senderName: string;
+        soundId: string;
+        label: string;
+        emoji: string;
+        audioUrl?: string;
+        fallbackSynth?: string;
+        speechText?: string;
+        timestamp: number;
+      }) => {
+        // Only play if NOT the sender (sender already played it immediately upon tap!)
+        const myPlayerId = get().gameState?.myPlayerId;
+        if (data.senderId !== myPlayerId && data.senderId !== s.id) {
+          playSoundboardAudio(data.audioUrl || '', data.fallbackSynth);
+        }
+
+        const decalId = data.id || `${Date.now()}`;
+        set((prev) => ({
+          activeSoundboardDecals: {
+            ...prev.activeSoundboardDecals,
+            [data.senderId]: {
+              label: data.label,
+              emoji: data.emoji,
+              id: decalId,
+              timestamp: data.timestamp,
+            },
+          },
+        }));
+
+        setTimeout(() => {
+          set((prev) => {
+            if (prev.activeSoundboardDecals[data.senderId]?.id === decalId) {
+              const copy = { ...prev.activeSoundboardDecals };
+              delete copy[data.senderId];
+              return { activeSoundboardDecals: copy };
+            }
+            return prev;
+          });
+        }, 3800);
       });
 
       s.on('syncState', (state: GameStateClientView) => {
@@ -465,6 +520,24 @@ export const useGameStore = create<GameStore>((set, get) => ({
       const copy = { ...prev.activeImpacts };
       delete copy[targetPlayerId];
       return { activeImpacts: copy };
+    });
+  },
+
+  // ==========================================
+  // Desi Soundboard Actions
+  // ==========================================
+  triggerSoundboard: (clip) => {
+    const currentCode = get().roomCode || get().gameState?.roomCode;
+    if (!currentCode) return;
+    const socket = getSocket();
+    socket.emit('play_soundboard', {
+      roomCode: currentCode,
+      soundId: clip.soundId,
+      label: clip.label,
+      emoji: clip.emoji,
+      audioUrl: clip.audioUrl,
+      fallbackSynth: clip.fallbackSynth,
+      speechText: clip.speechText,
     });
   },
 }));

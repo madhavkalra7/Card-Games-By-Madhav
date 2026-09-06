@@ -48,8 +48,10 @@ export const PlayerSeat: React.FC<PlayerSeatProps> = ({
 
   // Throwables state from gameStore
   const activeImpacts = useGameStore((s) => s.activeImpacts);
+  const activeSoundboardDecals = useGameStore((s) => s.activeSoundboardDecals);
   const throwItem = useGameStore((s) => s.throwItem);
   const currentImpact = activeImpacts[player.id];
+  const soundboardDecal = activeSoundboardDecals[player.id];
 
   // Position and alignment awareness for picker popup, impact decals & floating card
   const isTopSeat = (
@@ -158,6 +160,24 @@ export const PlayerSeat: React.FC<PlayerSeatProps> = ({
               <span>PYAAR SE! 🌹💖</span>
             </div>
           )}
+        </div>
+      )}
+
+      {/* Real-Time Soundboard Speech Bubble Decal */}
+      {soundboardDecal && (
+        <div className={cn(
+          "absolute pointer-events-none z-50 flex items-center justify-center animate-bounce",
+          pickerAlign === 'left'
+            ? "left-0 translate-x-0"
+            : pickerAlign === 'right'
+            ? "right-0 translate-x-0"
+            : "left-1/2 -translate-x-1/2",
+          isTopSeat ? "top-full mt-1 sm:mt-2" : "-top-8 sm:-top-10"
+        )}>
+          <div className="flex items-center gap-1 sm:gap-1.5 bg-gradient-to-r from-amber-500 via-yellow-400 to-orange-500 text-black font-black text-[9px] sm:text-xs px-2 sm:px-2.5 py-0.5 sm:py-1 rounded-full border-1.5 sm:border-2 border-white shadow-[0_0_15px_rgba(245,158,11,0.7)] max-w-[140px] xs:max-w-[190px] sm:max-w-[260px]">
+            <span className="text-xs sm:text-sm animate-pulse shrink-0">{soundboardDecal.emoji}</span>
+            <span className="tracking-tight uppercase font-black truncate">{soundboardDecal.label}</span>
+          </div>
         </div>
       )}
 

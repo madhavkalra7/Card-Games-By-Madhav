@@ -13,7 +13,6 @@ import { canPlayOnAnyCenterDeck, canPlayOnOtherRightDeck } from '@/lib/validator
 import { sounds } from '@/lib/sound';
 import { useGameStore } from '@/store/gameStore';
 import { VoiceControls } from '../voice/VoiceControls';
-import { DesiSoundboardModal } from './DesiSoundboardModal';
 import { useViewportOrientation } from '@/hooks/useViewportOrientation';
 import { useFriendsStore } from '@/store/friendsStore';
 import { BookOpen, Check, Copy, LogOut, Volume2, VolumeX, UserPlus } from 'lucide-react';
@@ -270,8 +269,8 @@ export const PokerTable: React.FC<PokerTableProps> = ({
             if (isMyTurn && myFloatingCard) {
               if (isSelf) {
                 canPlaceRight = true;
-              } else if (me?.isBazaarOpen) {
-                canPlaceRight = canPlayOnOtherRightDeck(myFloatingCard, player.rightDeckTop, true).valid;
+              } else {
+                canPlaceRight = canPlayOnOtherRightDeck(myFloatingCard, player.rightDeckTop).valid;
               }
             }
 
@@ -328,9 +327,6 @@ export const PokerTable: React.FC<PokerTableProps> = ({
 
       {/* Interactive Desi Throwables Flying Overlay */}
       <ThrowablesOverlay />
-
-      {/* Real-Time Desi Meme Soundboard Modal */}
-      <DesiSoundboardModal />
 
       {/* Clean Exit Confirmation Modal */}
       <ExitConfirmModal

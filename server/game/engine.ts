@@ -1,5 +1,5 @@
 import { Card, GameStateClientView, PenaltyLog, Player, PlayerClientView, Rank, Suit, CenterDeck } from './types';
-import { createDeck, getNextRank, shuffleDeck } from './deck';
+import { createDeck, getNextRank, isNextRank, shuffleDeck } from './deck';
 import { canPlayOnAnyCenterDeck, canPlayOnCenterDeck, canPlayOnOtherRightDeck } from './validator';
 
 export function calculateRankPoints(rank: number, totalPlayers: number): number {
@@ -389,6 +389,56 @@ export class DukkiBazaarRoom {
       return { success: false, error: "No hidden cards remaining." };
     }
 
+    // RULE: If player has a top card on their Right Deck that can be played to Center or to an Opponent's Right Deck,
+    // they MUST play that card first! Drawing a new card is a priority violation (Auto-Penalty!).
+    if (current.rightDeck.length > 0) {
+      const rightTop = current.rightDeck[current.rightDeck.length - 1];
+
+      // 1. Check if right deck top could be played to Center
+      const centerPlayable = canPlayOnAnyCenterDeck(rightTop, this.centerDecks, this.baseRank);
+      if (centerPlayable.canPlay) {
+        const reason = `Missed Center! Your Right Deck card ${rightTop.rank}${rightTop.suit} was playable on Center Deck ${centerPlayable.targetDeckId !== undefined ? (centerPlayable.targetDeckId + 1) : ''} before drawing.`;
+        this.triggerAutoPenalty(current, reason);
+
+        this.lastMove = {
+          playerId: current.id,
+          action: 'RIGHT_DECK',
+          targetPlayerId: current.id,
+          card: rightTop,
+          wasPriorityViolation: true,
+          timestamp: Date.now(),
+        };
+
+        this.advanceTurn();
+        this.notifyState();
+        return { success: false, error: reason };
+      }
+
+      // 2. Check if right deck top could be played to ANY Opponent's Right Deck
+      for (const p of this.players) {
+        if (p.id !== current.id && p.rightDeck.length > 0) {
+          const oppTop = p.rightDeck[p.rightDeck.length - 1];
+          if (isNextRank(oppTop.rank, rightTop.rank)) {
+            const reason = `Missed Opponent! Your Right Deck card ${rightTop.rank}${rightTop.suit} was playable on ${p.name}'s Right Deck (Top was ${oppTop.rank}) before drawing.`;
+            this.triggerAutoPenalty(current, reason);
+
+            this.lastMove = {
+              playerId: current.id,
+              action: 'RIGHT_DECK',
+              targetPlayerId: current.id,
+              card: rightTop,
+              wasPriorityViolation: true,
+              timestamp: Date.now(),
+            };
+
+            this.advanceTurn();
+            this.notifyState();
+            return { success: false, error: reason };
+          }
+        }
+      }
+    }
+
     const drawn = current.hiddenCards.pop()!;
     current.floatingCard = drawn;
 
@@ -624,6 +674,36 @@ export class DukkiBazaarRoom {
       if (couldHavePlayedCenter) {
         // Priority violation (Missed Center!)
         const reason = `Missed Center! ${card.rank}${card.suit} was playable on Center Deck ${centerPlayable.targetDeckId !== undefined ? (centerPlayable.targetDeckId + 1) : ''}.`;
+        this.triggerAutoPenalty(current, reason);
+
+        this.lastMove = {
+          playerId: current.id,
+          action: 'RIGHT_DECK',
+          targetPlayerId: target.id,
+          card,
+          wasPriorityViolation: true,
+          timestamp: Date.now(),
+        };
+
+        this.advanceTurn();
+        return { success: true, autoPenalized: true, reason };
+      }
+
+      // Check if card could have been played on any opponent's right deck (e.g. 4 on 3)
+      let missedOpponent: Player | undefined;
+      for (const p of this.players) {
+        if (p.id !== current.id && p.rightDeck.length > 0) {
+          const oppTop = p.rightDeck[p.rightDeck.length - 1];
+          if (isNextRank(oppTop.rank, card.rank)) {
+            missedOpponent = p;
+            break;
+          }
+        }
+      }
+
+      if (missedOpponent) {
+        const oppTop = missedOpponent.rightDeck[missedOpponent.rightDeck.length - 1];
+        const reason = `Missed Opponent! ${card.rank}${card.suit} was playable on ${missedOpponent.name}'s Right Deck (Top was ${oppTop.rank}).`;
         this.triggerAutoPenalty(current, reason);
 
         this.lastMove = {

@@ -74,11 +74,8 @@ export function canPlayOnAnyCenterDeck(
 export function canPlayOnOtherRightDeck(
   card: Card,
   targetTopCard: Card | null,
-  isBazaarOpen: boolean
+  _isBazaarOpen?: boolean
 ): { valid: boolean; reason?: string } {
-  if (!isBazaarOpen) {
-    return { valid: false, reason: "Your Bazaar must be open to play on another player's right deck." };
-  }
   if (!targetTopCard) {
     return { valid: false, reason: "Cannot play on an empty right deck of another player." };
   }

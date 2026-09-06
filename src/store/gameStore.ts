@@ -6,6 +6,9 @@ import { sounds } from '@/lib/sound';
 import { ThrownItemEvent, ThrowableType } from '@/lib/throwables';
 import { playSoundboardAudio } from '@/lib/soundboard';
 
+// Deduplication cache to prevent duplicate playback on socket reconnections or rapid events
+const recentSoundboardPlays = new Map<string, number>();
+
 interface ToastData {
   id: number;
   text: string;
@@ -128,6 +131,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
       s.on('soundboard_played', (data: {
         id: string;
         senderId: string;
+        senderSessionId?: string;
         senderName: string;
         soundId: string;
         label: string;
@@ -137,9 +141,28 @@ export const useGameStore = create<GameStore>((set, get) => ({
         speechText?: string;
         timestamp: number;
       }) => {
+        const now = Date.now();
+        // Ignore stale events (>8s old) or duplicate packets already handled
+        if (data.timestamp && now - data.timestamp > 8000) return;
+        if (data.id && recentSoundboardPlays.has(data.id)) return;
+        if (data.id) {
+          recentSoundboardPlays.set(data.id, now);
+          // Purge records older than 20 seconds
+          if (recentSoundboardPlays.size > 50) {
+            for (const [key, time] of recentSoundboardPlays.entries()) {
+              if (now - time > 20000) recentSoundboardPlays.delete(key);
+            }
+          }
+        }
+
         // Only play if NOT the sender (sender already played it immediately upon tap!)
         const myPlayerId = get().gameState?.myPlayerId;
-        if (data.senderId !== myPlayerId && data.senderId !== s.id) {
+        const mySessionId = getOrCreateSessionId();
+        const isSender = (data.senderId === myPlayerId) ||
+                         (data.senderId === s.id) ||
+                         (!!data.senderSessionId && data.senderSessionId === mySessionId);
+
+        if (!isSender) {
           playSoundboardAudio(data.audioUrl || '', data.fallbackSynth);
         }
 
@@ -538,6 +561,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
       audioUrl: clip.audioUrl,
       fallbackSynth: clip.fallbackSynth,
       speechText: clip.speechText,
+      sessionId: getOrCreateSessionId(),
     });
   },
 }));

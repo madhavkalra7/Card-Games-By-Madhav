@@ -52,6 +52,9 @@ export const DesiSoundboardModal: React.FC = () => {
     setRecentlyPlayedId(clip.id);
     setCooldownRemaining(1500); // 1.5s room rate limit
 
+    // Auto-close soundboard immediately on click so player returns to table without manual 'X' tap
+    setOpen(false);
+
     setTimeout(() => {
       setRecentlyPlayedId((prev) => (prev === clip.id ? null : prev));
     }, 1800);
@@ -83,6 +86,9 @@ export const DesiSoundboardModal: React.FC = () => {
     setCooldownRemaining(1500);
     setCustomUrl('');
     setCustomLabel('');
+
+    // Auto-close soundboard immediately on broadcast
+    setOpen(false);
   };
 
   if (!isOpen) return null;

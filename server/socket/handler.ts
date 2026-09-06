@@ -333,6 +333,7 @@ export function setupSocketHandlers(io: SocketIOServer) {
       audioUrl?: string;
       fallbackSynth?: string;
       speechText?: string;
+      sessionId?: string;
     }, callback) => {
       try {
         const code = data.roomCode?.trim().toUpperCase();
@@ -356,6 +357,7 @@ export function setupSocketHandlers(io: SocketIOServer) {
         const payload = {
           id: `sb-${now}-${Math.random().toString(36).substring(2, 6)}`,
           senderId: senderPlayer?.id || socket.id,
+          senderSessionId: data.sessionId || senderPlayer?.sessionId || '',
           senderName: senderPlayer?.name || 'Table Player',
           soundId: data.soundId || 'meme',
           label: (data.label || 'Desi Meme').slice(0, 40),

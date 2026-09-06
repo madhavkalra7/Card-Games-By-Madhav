@@ -543,30 +543,51 @@ export function playSynthSound(type?: string) {
 // Active Audio Element Cache
 let currentPlayingAudio: HTMLAudioElement | null = null;
 
+export function stopSoundboardAudio() {
+  if (currentPlayingAudio) {
+    try {
+      currentPlayingAudio.pause();
+      currentPlayingAudio.currentTime = 0;
+      currentPlayingAudio.removeAttribute('src');
+      currentPlayingAudio.load();
+    } catch {}
+    currentPlayingAudio = null;
+  }
+}
+
 export function playSoundboardAudio(url?: string, fallbackSynth?: string) {
   if (typeof window === 'undefined') return;
 
   // 1. Prime / resume Web Audio context
   sounds.unlock();
 
-  // 2. Stop any previously playing audio
-  if (currentPlayingAudio) {
-    try {
-      currentPlayingAudio.pause();
-      currentPlayingAudio.currentTime = 0;
-    } catch {}
-    currentPlayingAudio = null;
-  }
+  // 2. Stop and completely unload any previously playing audio
+  stopSoundboardAudio();
 
   // 3. If url provided (local or custom link), play the real MP3 file!
   if (url && url.trim()) {
     try {
       const audio = new Audio(url.trim());
       audio.volume = 0.95;
+      audio.loop = false; // Strictly enforce non-looping
+
+      audio.onended = () => {
+        if (currentPlayingAudio === audio) {
+          currentPlayingAudio = null;
+        }
+      };
+      audio.onerror = () => {
+        if (currentPlayingAudio === audio) {
+          currentPlayingAudio = null;
+        }
+      };
+
       currentPlayingAudio = audio;
       const playPromise = audio.play();
       if (playPromise !== undefined) {
         playPromise.catch((err) => {
+          // If aborted because another sound was queued or tab was switched, silently return
+          if (err?.name === 'AbortError') return;
           console.warn('Audio play fallback to synth:', err);
           if (fallbackSynth) playSynthSound(fallbackSynth);
         });

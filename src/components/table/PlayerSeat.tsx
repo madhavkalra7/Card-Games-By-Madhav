@@ -304,18 +304,13 @@ export const PlayerSeat: React.FC<PlayerSeatProps> = ({
         </div>
       )}
 
-      {/* Opponent's Floating Drawn Card (Visible to All Players in Real Time!) */}
+      {/* Opponent's Floating Drawn Card (Visible to All Players in Real Time - Mobile Responsive) */}
       {!isSelf && player.floatingCard && (
         <motion.div
-          initial={{ scale: 0.2, y: isTopSeat ? -25 : 25, rotateY: 180, opacity: 0 }}
+          initial={{ scale: 0.2, y: 15, rotateY: 180, opacity: 0 }}
           animate={{ scale: 1, y: 0, rotateY: 0, opacity: 1 }}
           transition={{ type: 'spring', stiffness: 340, damping: 20 }}
-          className={cn(
-            'absolute z-40 flex flex-col items-center pointer-events-none filter drop-shadow-2xl',
-            isTopSeat
-              ? 'top-[96%] left-1/2 -translate-x-1/2 mt-1.5'
-              : '-top-14 sm:-top-16 md:-top-20 left-1/2 -translate-x-1/2'
-          )}
+          className="absolute z-40 flex flex-col items-center pointer-events-none filter drop-shadow-2xl top-full mt-1.5 sm:mt-2 left-1/2 -translate-x-1/2"
         >
           {/* Glowing Animated Drawn Card */}
           <motion.div

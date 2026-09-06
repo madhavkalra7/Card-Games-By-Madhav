@@ -14,6 +14,19 @@ export interface SoundboardClip {
 
 export const DESI_SOUNDBOARD_CLIPS: SoundboardClip[] = [
   // ==========================================
+  // TOP SPECIAL: Penalty Dialogue
+  // ==========================================
+  {
+    id: 'chakko-naaz',
+    label: 'chakko ( Naaz)',
+    subtitle: 'Chakko (Naaz) • Penalty Special 🚨',
+    emoji: '🚨',
+    category: 'viral',
+    audioUrl: '/chakko.ogg',
+    fallbackSynth: 'horn',
+  },
+
+  // ==========================================
   // Category 1: Bollywood & Cinema Memes
   // ==========================================
   {

@@ -134,9 +134,35 @@ class SoundManager {
     } catch {}
   }
 
-  // Penalty buzz / gong
+  private lastPenaltyPlayTime: number = 0;
+
+  // Penalty sound: replaced with /chakko.ogg (auto penalty & penalty calls)
   public playPenalty() {
     if (this.isMuted) return;
+    const now = Date.now();
+    if (now - this.lastPenaltyPlayTime < 400) return;
+    this.lastPenaltyPlayTime = now;
+
+    try {
+      if (typeof window !== 'undefined') {
+        const audio = new Audio('/chakko.ogg');
+        audio.volume = 0.95;
+        audio.loop = false;
+        const playPromise = audio.play();
+        if (playPromise !== undefined) {
+          playPromise.catch((err) => {
+            console.warn('chakko.ogg play error, falling back to synth:', err);
+            this.playPenaltySynthFallback();
+          });
+        }
+        return;
+      }
+    } catch {
+      this.playPenaltySynthFallback();
+    }
+  }
+
+  private playPenaltySynthFallback() {
     try {
       this.init();
       if (!this.ctx) return;

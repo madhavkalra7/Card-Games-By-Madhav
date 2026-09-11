@@ -254,7 +254,7 @@ export class BluffMasterRoom {
   }
 
   // 1. Play Claim (Lead or Add Cards)
-  public playCards(playerId: string, cardIds: string[], declaredRank: Rank): { success: boolean; error?: string } {
+  public playCards(playerId: string, cardIds: string[], declaredRank: Rank): { success: boolean; error?: string; message?: string | null } {
     if (this.status !== 'PLAYING') return { success: false, error: "Game is not in progress." };
 
     const player = this.players.find(p => p.id === playerId);
@@ -313,7 +313,7 @@ export class BluffMasterRoom {
   }
 
   // 2. Challenge / Show (Call Bluff)
-  public challenge(challengerId: string): { success: boolean; error?: string } {
+  public challenge(challengerId: string): { success: boolean; error?: string; result?: BluffChallengeResult | null } {
     if (this.status !== 'PLAYING') return { success: false, error: "Game is not in progress." };
 
     const challenger = this.players.find(p => p.id === challengerId);

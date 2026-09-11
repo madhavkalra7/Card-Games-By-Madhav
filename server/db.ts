@@ -1,5 +1,12 @@
+import dns from 'dns';
+import https from 'https';
 import mongoose from 'mongoose';
 import crypto from 'crypto';
+
+// Fix for Node.js SRV DNS resolution failure (querySrv ECONNREFUSED) with MongoDB Atlas
+try {
+  dns.setServers(['8.8.8.8', '8.8.4.4', '1.1.1.1', '1.0.0.1']);
+} catch (dnsErr) {}
 
 // Disable buffering so queries fail or fallback immediately instead of hanging 10 seconds
 mongoose.set('bufferCommands', false);
@@ -89,23 +96,165 @@ if (!global.mongooseCache) {
   global.mongooseCache = cached;
 }
 
-export async function connectDB(): Promise<boolean> {
-  const uri = process.env.MONGODB_URI;
+// Fallback DNS-over-HTTPS (DoH) resolver for ISPs/networks blocking UDP port 53 SRV lookups
+async function fetchDohJson(name: string, type: string): Promise<any> {
+  const endpoints = [
+    `https://cloudflare-dns.com/dns-query?name=${encodeURIComponent(name)}&type=${type}`,
+    `https://dns.google/resolve?name=${encodeURIComponent(name)}&type=${type}`,
+  ];
 
-  if (!uri || uri.includes('<username>') || uri.includes('<password>')) {
+  for (const url of endpoints) {
+    try {
+      const data = await new Promise<string>((resolve, reject) => {
+        const req = https.get(
+          url,
+          { headers: { Accept: 'application/dns-json' }, timeout: 4000 },
+          (res) => {
+            if (res.statusCode !== 200) return reject(new Error(`HTTP ${res.statusCode}`));
+            let body = '';
+            res.on('data', (chunk) => (body += chunk));
+            res.on('end', () => resolve(body));
+          }
+        );
+        req.on('error', reject);
+        req.on('timeout', () => {
+          req.destroy();
+          reject(new Error('timeout'));
+        });
+      });
+
+      const parsed = JSON.parse(data);
+      if (parsed && Array.isArray(parsed.Answer) && parsed.Answer.length > 0) {
+        return parsed.Answer;
+      }
+    } catch (err) {}
+  }
+  return [];
+}
+
+// Dynamically convert mongodb+srv:// to direct mongodb:// replica-set URI to bypass querySrv ECONNREFUSED entirely
+async function convertSrvToDirectUri(uri: string): Promise<string> {
+  if (!uri.startsWith('mongodb+srv://')) return uri;
+
+  const match = uri.match(/^mongodb\+srv:\/\/([^@]+)@([^/?]+)\/?([^?]*)(\?.*)?$/);
+  if (!match) return uri;
+
+  const [, auth, host, dbName, queryString] = match;
+
+  try {
+    const srvRecords = await fetchDohJson(`_mongodb._tcp.${host}`, 'SRV');
+    if (!srvRecords || srvRecords.length === 0) return uri;
+
+    const shardHosts = srvRecords
+      .map((record: any) => {
+        const parts = (record.data || '').trim().split(/\s+/);
+        if (parts.length >= 4) {
+          const port = parts[2];
+          const target = parts[3].replace(/\.$/, '');
+          return `${target}:${port}`;
+        }
+        return null;
+      })
+      .filter(Boolean)
+      .join(',');
+
+    if (!shardHosts) return uri;
+
+    const txtRecords = await fetchDohJson(host, 'TXT');
+    let txtQuery = '';
+    if (txtRecords && txtRecords.length > 0) {
+      txtQuery = txtRecords
+        .map((r: any) => (r.data || '').replace(/"/g, ''))
+        .filter(Boolean)
+        .join('&');
+    }
+
+    const finalQuery = new URLSearchParams((queryString || '').replace(/^\?/, ''));
+    if (!finalQuery.has('ssl') && !finalQuery.has('tls')) {
+      finalQuery.set('ssl', 'true');
+    }
+    if (!finalQuery.has('authSource')) {
+      finalQuery.set('authSource', 'admin');
+    }
+
+    if (txtQuery) {
+      const txtParams = new URLSearchParams(txtQuery);
+      txtParams.forEach((val, key) => {
+        if (!finalQuery.has(key)) {
+          finalQuery.set(key, val);
+        }
+      });
+    }
+
+    return `mongodb://${auth}@${shardHosts}/${dbName || 'test'}?${finalQuery.toString()}`;
+  } catch (err) {
+    return uri;
+  }
+}
+
+let cachedDirectUri: string | null = null;
+
+export async function connectDB(): Promise<boolean> {
+  const rawUri = process.env.MONGODB_URI;
+
+  if (!rawUri || rawUri.includes('<username>') || rawUri.includes('<password>')) {
     return false;
   }
+
+  // Configure public DNS resolvers as first line of defense
+  try {
+    dns.setServers(['8.8.8.8', '8.8.4.4', '1.1.1.1', '1.0.0.1']);
+  } catch (dnsErr) {}
 
   if (cached.conn && mongoose.connection.readyState === 1) {
     return true;
   }
 
   if (!cached.promise) {
-    cached.promise = mongoose.connect(uri, {
-      bufferCommands: false,
-      serverSelectionTimeoutMS: 3000,
-      connectTimeoutMS: 3000,
-    }).then((m) => {
+    cached.promise = (async () => {
+      const connectOptions = {
+        bufferCommands: false,
+        serverSelectionTimeoutMS: 6000,
+        connectTimeoutMS: 6000,
+      };
+
+      // 1. If we already converted and cached direct URI from a previous DoH resolution, use it directly
+      if (cachedDirectUri) {
+        try {
+          const m = await mongoose.connect(cachedDirectUri, connectOptions);
+          console.log('✅ MongoDB Atlas connected successfully (direct replica set):', m.connection.name);
+          return m;
+        } catch (e) {
+          cachedDirectUri = null; // reset cache on failure
+        }
+      }
+
+      // 2. Try connecting with raw URI
+      try {
+        const m = await mongoose.connect(rawUri, connectOptions);
+        console.log('✅ MongoDB Atlas connected successfully to database:', m.connection.name);
+        return m;
+      } catch (firstErr: any) {
+        // If querySrv ECONNREFUSED or DNS error occurred, resolve via DoH and connect directly
+        if (
+          rawUri.startsWith('mongodb+srv://') &&
+          (firstErr.message.includes('querySrv') ||
+           firstErr.message.includes('ECONNREFUSED') ||
+           firstErr.message.includes('ETIMEOUT') ||
+           firstErr.message.includes('ENOTFOUND'))
+        ) {
+          console.warn('⚠️ Native SRV DNS refused by ISP/network. Resolving MongoDB cluster via DoH fallback...');
+          const directUri = await convertSrvToDirectUri(rawUri);
+          if (directUri !== rawUri) {
+            const m = await mongoose.connect(directUri, connectOptions);
+            cachedDirectUri = directUri;
+            console.log('✅ MongoDB Atlas connected successfully via direct replica set:', m.connection.name);
+            return m;
+          }
+        }
+        throw firstErr;
+      }
+    })().then((m) => {
       return m;
     }).catch((err) => {
       cached.promise = null;

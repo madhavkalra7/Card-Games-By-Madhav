@@ -1,3 +1,10 @@
+import dns from 'dns';
+
+// Fix for Node.js SRV DNS resolution failure (querySrv ECONNREFUSED) with MongoDB Atlas
+try {
+  dns.setServers(['8.8.8.8', '8.8.4.4', '1.1.1.1', '1.0.0.1']);
+} catch (dnsErr) {}
+
 import { loadEnvConfig } from '@next/env';
 loadEnvConfig(process.cwd());
 
@@ -8,6 +15,7 @@ import next from 'next';
 import cors from 'cors';
 import { setupSocketHandlers } from './socket/handler';
 import net from 'net';
+import { execSync } from 'child_process';
 import { connectDB, getGlobalLeaderboard, getUserFriendsList, addUserFriend } from './db';
 import { authRouter } from './routes/auth';
 import { verifyAuthToken } from '../src/lib/auth-token';
@@ -16,6 +24,35 @@ const defaultPort = parseInt(process.env.PORT || '3000', 10);
 const dev = process.env.NODE_ENV !== 'production';
 const nextApp = next({ dev, dir: process.cwd() });
 const nextHandler = nextApp.getRequestHandler();
+
+// Free port if an orphaned node process was left running from a previously closed terminal
+function freePortIfOccupied(targetPort: number): void {
+  if (process.env.NODE_ENV === 'production') return;
+  try {
+    if (process.platform === 'win32') {
+      const output = execSync(
+        `powershell -NoProfile -Command "(Get-NetTCPConnection -LocalPort ${targetPort} -State Listen -ErrorAction SilentlyContinue).OwningProcess"`,
+        { encoding: 'utf8', timeout: 4000 }
+      ).trim();
+
+      if (output) {
+        const pids = output
+          .split(/\r?\n/)
+          .map((s) => parseInt(s.trim(), 10))
+          .filter((p) => !isNaN(p) && p > 0 && p !== process.pid);
+
+        for (const pid of pids) {
+          console.log(`🧹 Port ${targetPort} is occupied by orphaned background process (PID ${pid}). Terminating stale process...`);
+          try {
+            execSync(`taskkill /F /PID ${pid} /T`, { stdio: 'ignore' });
+          } catch (e) {}
+        }
+      }
+    } else {
+      execSync(`lsof -ti :${targetPort} | xargs kill -9 2>/dev/null || true`, { stdio: 'ignore' });
+    }
+  } catch (e) {}
+}
 
 function isPortAvailable(port: number): Promise<boolean> {
   return new Promise((resolve) => {
@@ -158,6 +195,10 @@ async function bootstrap() {
     return nextHandler(req, res);
   });
 
+  if (dev) {
+    freePortIfOccupied(defaultPort);
+  }
+
   const targetPort = await findAvailablePort(defaultPort);
   const activePort = await listenServer(server, targetPort);
 
@@ -168,6 +209,35 @@ async function bootstrap() {
   console.log(`Ready on: http://localhost:${activePort}`);
   console.log(`Environment: ${dev ? 'development' : 'production'}`);
   console.log(`======================================================\n`);
+
+  // Robust shutdown handlers: Cleanly release HTTP and WebSocket ports when terminal is killed
+  let isShuttingDown = false;
+  const gracefulShutdown = (signal: string) => {
+    if (isShuttingDown) return;
+    isShuttingDown = true;
+    console.log(`\n🛑 Received ${signal}. Closing server and releasing port ${activePort}...`);
+    try {
+      io.close();
+      server.close(() => {
+        console.log('🔌 Port released cleanly.');
+        process.exit(0);
+      });
+      setTimeout(() => process.exit(0), 1000).unref();
+    } catch (e) {
+      process.exit(0);
+    }
+  };
+
+  process.on('SIGINT', () => gracefulShutdown('SIGINT'));
+  process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
+  process.on('SIGHUP', () => gracefulShutdown('SIGHUP'));
+
+  // On Windows, when terminal window is closed, stdin emits 'close' or 'end'
+  if (process.stdin.isTTY) {
+    process.stdin.resume();
+    process.stdin.on('close', () => gracefulShutdown('terminal closed (stdin close)'));
+    process.stdin.on('end', () => gracefulShutdown('terminal closed (stdin end)'));
+  }
 }
 
 process.on('uncaughtException', (err) => {
@@ -178,19 +248,8 @@ process.on('unhandledRejection', (reason) => {
   console.error('⚠️ Unhandled Rejection:', reason);
 });
 
-process.on('exit', (code) => {
-  console.log(`Node process exited with code: ${code}`);
-});
-
-process.on('SIGINT', () => {
-  console.log('Received SIGINT');
-});
-
-process.on('SIGTERM', () => {
-  console.log('Received SIGTERM');
-});
-
 bootstrap().catch((err) => {
   console.error("Failed to start game server:", err);
   process.exit(1);
 });
+

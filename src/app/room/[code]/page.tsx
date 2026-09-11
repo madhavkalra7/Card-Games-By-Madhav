@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useGameStore } from '@/store/gameStore';
 import { Header } from '@/components/ui/Header';
 import { PokerTable } from '@/components/table/PokerTable';
+import { BluffTable } from '@/components/bluff/BluffTable';
 import { PenaltyModal } from '@/components/modal/PenaltyModal';
 import { GameOverModal } from '@/components/modal/GameOverModal';
 import { RulesModal } from '@/components/modal/RulesModal';
@@ -34,6 +35,9 @@ export default function RoomPage({ params }: { params: Promise<{ code: string }>
     drawCard,
     placeCenter,
     placeRightDeck,
+    playBluffCards,
+    challengeBluff,
+    passBluffTurn,
     requestPenalty,
     kickPlayer,
     playAgain,
@@ -197,7 +201,9 @@ export default function RoomPage({ params }: { params: Promise<{ code: string }>
                   <span className="px-3 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 text-[11px] font-black uppercase tracking-wider">
                     Waiting Lobby
                   </span>
-                  <span className="text-xs text-zinc-400">Dukki Bazaar</span>
+                  <span className="text-xs font-bold text-amber-400">
+                    {gameState.gameType === 'BLUFF_MASTER' ? 'Bluff Master' : 'Dukki Bazaar'}
+                  </span>
                 </div>
                 <h1 className="text-2xl sm:text-3xl font-black text-white font-serif mt-1">
                   Table Room {roomCode}
@@ -344,12 +350,21 @@ export default function RoomPage({ params }: { params: Promise<{ code: string }>
       ) : (
         /* ==================== LIVE GAME TABLE VIEW (FULL SCREEN) ==================== */
         <div className="w-full h-screen h-[100dvh] overflow-hidden">
-          <PokerTable
-            state={gameState}
-            onDrawCard={drawCard}
-            onPlaceCenter={placeCenter}
-            onPlaceRightDeck={placeRightDeck}
-          />
+          {gameState.gameType === 'BLUFF_MASTER' ? (
+            <BluffTable
+              state={gameState}
+              onPlayCards={playBluffCards}
+              onChallenge={challengeBluff}
+              onPass={passBluffTurn}
+            />
+          ) : (
+            <PokerTable
+              state={gameState}
+              onDrawCard={drawCard}
+              onPlaceCenter={placeCenter}
+              onPlaceRightDeck={placeRightDeck}
+            />
+          )}
         </div>
       )}
 
@@ -372,6 +387,7 @@ export default function RoomPage({ params }: { params: Promise<{ code: string }>
       <RulesModal
         isOpen={isRulesModalOpen}
         onClose={() => setRulesModalOpen(false)}
+        defaultGameType={gameState.gameType}
       />
 
       {/* Invite Friends Modal */}
@@ -382,7 +398,7 @@ export default function RoomPage({ params }: { params: Promise<{ code: string }>
 
       {isLobby && (
         <div className="w-full text-center py-2 text-[10px] text-zinc-600">
-          Card Games By Madhav • Dukki Bazaar Table
+          Card Games By Madhav • {gameState.gameType === 'BLUFF_MASTER' ? 'Bluff Master' : 'Dukki Bazaar'} Table
         </div>
       )}
     </main>

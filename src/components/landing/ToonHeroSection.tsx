@@ -8,6 +8,7 @@ import { funkyMusic } from '@/lib/funkyMusic';
 import { useAuthStore } from '@/store/authStore';
 import { useFriendsStore } from '@/store/friendsStore';
 import { getAvatarById } from '@/lib/avatars';
+import { GameType } from '@/lib/types';
 
 const IMAGES = [
   {
@@ -48,16 +49,16 @@ const IMAGES = [
     bg: '#6EB5FF',
     panel: '#8DC4FF',
     gameTitle: 'BLUFF MASTER',
-    gameBadge: 'Coming Soon',
+    gameBadge: 'Available Now',
     tagline: 'High-Stakes Deception & Card Shedding',
     description: 'Classic high-stakes card game of deception and bluffing. Play your cards face down, claim the rank, catch lying rivals, and empty your hand to win!',
-    actionText: 'VIEW BLUFF MASTER',
-    isAvailable: false,
+    actionText: 'PLAY BLUFF MASTER',
+    isAvailable: true,
   },
 ];
 
 interface ToonHeroSectionProps {
-  onCreateRoom: () => void;
+  onCreateRoom: (gameType?: GameType) => void;
   onJoinRoom: () => void;
 }
 
@@ -537,7 +538,7 @@ export const ToonHeroSection: React.FC<ToonHeroSectionProps> = ({
             {/* Quick Room Action Buttons */}
             <div className="flex items-center gap-2">
               <button
-                onClick={onCreateRoom}
+                onClick={() => onCreateRoom(activeIndex === 3 ? 'BLUFF_MASTER' : 'DUKKI_BAZAAR')}
                 className={cn(
                   "flex items-center gap-1 rounded-xl bg-white text-zinc-900 font-black uppercase tracking-wider shadow-lg hover:bg-zinc-100 active:scale-95 transition-all",
                   isShortHeight ? "px-2.5 py-1.5 text-[10px]" : "px-3.5 sm:px-4 py-2 sm:py-2.5 text-xs"
@@ -618,7 +619,7 @@ export const ToonHeroSection: React.FC<ToonHeroSectionProps> = ({
         )}>
           {currentItem.isAvailable ? (
             <button
-              onClick={onCreateRoom}
+              onClick={() => onCreateRoom(activeIndex === 3 ? 'BLUFF_MASTER' : 'DUKKI_BAZAAR')}
               className="flex items-center gap-1.5 sm:gap-2 group text-white uppercase transition-opacity duration-200"
               style={{
                 fontFamily: "'Anton', sans-serif",

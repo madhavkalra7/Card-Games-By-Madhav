@@ -7,6 +7,8 @@ export interface Card {
   rank: Rank;
 }
 
+export type GameType = 'DUKKI_BAZAAR' | 'BLUFF_MASTER';
+
 export interface PlayerClientView {
   id: string;
   sessionId: string;
@@ -16,6 +18,7 @@ export interface PlayerClientView {
   isConnected: boolean;
   seatIndex: number;
   hiddenCount: number;
+  cardsCount?: number; // total cards held (for Bluff Master)
   rightDeckTop: Card | null;
   rightDeckCount: number;
   isBazaarOpen: boolean;
@@ -23,6 +26,43 @@ export interface PlayerClientView {
   floatingCard?: Card | null;
   isFinished?: boolean;
   rank?: number | null;
+}
+
+export interface BluffChallengeResult {
+  id: string;
+  challengerId: string;
+  challengerName: string;
+  challengerAvatar: string;
+  accusedId: string;
+  accusedName: string;
+  accusedAvatar: string;
+  declaredRank: Rank;
+  cardsCount: number;
+  revealedCards: Card[];
+  wasBluff: boolean;
+  penalizedPlayerId: string;
+  penalizedPlayerName: string;
+  cardsPenalizedCount: number;
+  timestamp: number;
+}
+
+export interface BluffStateClientView {
+  centerPileCount: number;
+  currentDeclaredRank: Rank | null;
+  currentClaimCount: number;
+  latestPlayerId: string | null;
+  latestPlayerName: string | null;
+  latestPlayerAvatar?: string;
+  lastChallengeResult: BluffChallengeResult | null;
+  cycleLeaderId: string | null;
+  passedPlayerIds: string[];
+  isCycleCleared: boolean;
+  myHand: Card[]; // The player's own cards for Bluff Master
+  canChallenge: boolean;
+  canPass: boolean;
+  canAddCards: boolean;
+  canLead: boolean;
+  latestActionMessage?: string | null;
 }
 
 export interface PenaltyLog {
@@ -50,6 +90,7 @@ export interface CenterDeck {
 
 export interface GameStateClientView {
   roomCode: string;
+  gameType?: GameType;
   status: 'LOBBY' | 'PLAYING' | 'GAME_OVER';
   players: PlayerClientView[];
   myPlayerId: string;
@@ -60,6 +101,7 @@ export interface GameStateClientView {
   centerCount: number;
   turnTimeRemaining: number;
   myFloatingCard: Card | null;
+  bluffState?: BluffStateClientView | null;
   lastMove: {
     playerId: string;
     action: 'DRAW' | 'CENTER' | 'RIGHT_DECK' | 'TIMEOUT';

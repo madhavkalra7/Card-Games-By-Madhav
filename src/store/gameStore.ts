@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { GameStateClientView, CardFlightEvent } from '@/lib/types';
+import { GameStateClientView, CardFlightEvent, GameType, Rank } from '@/lib/types';
 import { getSocket, resolveBackendUrl } from '@/socket/client';
 import { getOrCreateSessionId, saveProfile, getSavedProfile } from '@/lib/utils';
 import { sounds } from '@/lib/sound';
@@ -37,7 +37,7 @@ interface GameStore {
   setRulesModalOpen: (open: boolean) => void;
   showToast: (text: string, type?: 'info' | 'error' | 'success') => void;
   
-  createRoom: (name: string, avatar: string) => Promise<{ success: boolean; code?: string; error?: string }>;
+  createRoom: (name: string, avatar: string, gameType?: GameType) => Promise<{ success: boolean; code?: string; error?: string }>;
   joinRoom: (code: string, name: string, avatar: string) => Promise<{ success: boolean; error?: string }>;
   startGame: () => void;
   drawCard: () => void;
@@ -48,6 +48,11 @@ interface GameStore {
   kickPlayer: (targetPlayerId: string) => void;
   playAgain: () => void;
   leaveRoom: () => void;
+
+  // Bluff Master Actions
+  playBluffCards: (cardIds: string[], declaredRank: Rank) => Promise<{ success: boolean; error?: string }>;
+  challengeBluff: () => Promise<{ success: boolean; error?: string }>;
+  passBluffTurn: () => Promise<{ success: boolean; error?: string }>;
 
   // Card Flight Animations
   removeCardFlight: (id: string) => void;
@@ -247,6 +252,20 @@ export const useGameStore = create<GameStore>((set, get) => ({
             sounds.playPenalty();
           }
 
+          // Sound on Bluff challenge reveal
+          if (state.bluffState?.lastChallengeResult && (!prevState.bluffState?.lastChallengeResult || prevState.bluffState.lastChallengeResult.id !== state.bluffState.lastChallengeResult.id)) {
+            if (state.bluffState.lastChallengeResult.wasBluff) {
+              sounds.playPenalty();
+            } else {
+              sounds.playCardFlip();
+            }
+          }
+
+          // Sound on Bluff cards played
+          if (state.bluffState?.centerPileCount && prevState.bluffState?.centerPileCount !== state.bluffState.centerPileCount && state.bluffState.centerPileCount > (prevState.bluffState?.centerPileCount || 0)) {
+            sounds.playCardSlide();
+          }
+
           // Sound on Game Over
           if (prevState.status !== 'GAME_OVER' && state.status === 'GAME_OVER') {
             sounds.playVictory();
@@ -267,7 +286,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
     });
   },
 
-  createRoom: (name, avatar) => {
+  createRoom: (name, avatar, gameType = 'DUKKI_BAZAAR') => {
     return new Promise(async (resolve) => {
       await resolveBackendUrl();
       const socket = getSocket();
@@ -290,7 +309,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
       }, 25000);
 
       const doEmit = () => {
-        socket.emit('createRoom', { name, avatarColor: avatar, sessionId }, (res: any) => {
+        socket.emit('createRoom', { name, avatarColor: avatar, sessionId, gameType }, (res: any) => {
           if (settled) return;
           settled = true;
           clearTimeout(timer);
@@ -309,7 +328,6 @@ export const useGameStore = create<GameStore>((set, get) => ({
       if (socket.connected) {
         doEmit();
       } else {
-        socket.connect();
         socket.once('connect', doEmit);
       }
     });
@@ -433,6 +451,58 @@ export const useGameStore = create<GameStore>((set, get) => ({
       if (!res.success) {
         get().showToast(res.error || 'Cannot pass turn', 'error');
       }
+    });
+  },
+
+  // ==========================================
+  // Bluff Master Actions
+  // ==========================================
+  playBluffCards: (cardIds: string[], declaredRank: Rank) => {
+    return new Promise((resolve) => {
+      const socket = getSocket();
+      const { roomCode } = get();
+      socket.emit('bluff:playCards', { roomCode, cardIds, declaredRank }, (res: any) => {
+        if (!res || !res.success) {
+          const err = res?.error || 'Could not play cards';
+          get().showToast(err, 'error');
+          resolve({ success: false, error: err });
+        } else {
+          sounds.playCardSlide();
+          resolve({ success: true });
+        }
+      });
+    });
+  },
+
+  challengeBluff: () => {
+    return new Promise((resolve) => {
+      const socket = getSocket();
+      const { roomCode } = get();
+      socket.emit('bluff:challenge', { roomCode }, (res: any) => {
+        if (!res || !res.success) {
+          const err = res?.error || 'Could not challenge play';
+          get().showToast(err, 'error');
+          resolve({ success: false, error: err });
+        } else {
+          resolve({ success: true });
+        }
+      });
+    });
+  },
+
+  passBluffTurn: () => {
+    return new Promise((resolve) => {
+      const socket = getSocket();
+      const { roomCode } = get();
+      socket.emit('bluff:pass', { roomCode }, (res: any) => {
+        if (!res || !res.success) {
+          const err = res?.error || 'Could not pass turn';
+          get().showToast(err, 'error');
+          resolve({ success: false, error: err });
+        } else {
+          resolve({ success: true });
+        }
+      });
     });
   },
 

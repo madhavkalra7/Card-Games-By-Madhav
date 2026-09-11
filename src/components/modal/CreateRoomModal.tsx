@@ -1,14 +1,16 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useGameStore } from '@/store/gameStore';
-import { X, Sparkles } from 'lucide-react';
+import { GameType } from '@/lib/types';
+import { X, Sparkles, Flame, ShieldAlert } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface CreateRoomModalProps {
   isOpen: boolean;
   onClose: () => void;
+  initialGameType?: GameType;
 }
 
 const AVATAR_COLORS = [
@@ -22,19 +24,27 @@ const AVATAR_COLORS = [
   '#4f46e5', // Indigo
 ];
 
-export const CreateRoomModal: React.FC<CreateRoomModalProps> = ({ isOpen, onClose }) => {
+export const CreateRoomModal: React.FC<CreateRoomModalProps> = ({
+  isOpen,
+  onClose,
+  initialGameType = 'DUKKI_BAZAAR',
+}) => {
   const router = useRouter();
   const { myName, myAvatar, createRoom, isConnected, initSocketListeners } = useGameStore();
 
   const [name, setName] = useState(myName || '');
   const [avatar, setAvatar] = useState(myAvatar || AVATAR_COLORS[0]);
+  const [gameType, setGameType] = useState<GameType>(initialGameType);
   const [loading, setLoading] = useState(false);
 
-  React.useEffect(() => {
+  useEffect(() => {
     if (isOpen) {
       initSocketListeners();
+      if (initialGameType) {
+        setGameType(initialGameType);
+      }
     }
-  }, [isOpen, initSocketListeners]);
+  }, [isOpen, initialGameType, initSocketListeners]);
 
   if (!isOpen) return null;
 
@@ -43,7 +53,7 @@ export const CreateRoomModal: React.FC<CreateRoomModalProps> = ({ isOpen, onClos
     if (!name.trim()) return;
 
     setLoading(true);
-    const res = await createRoom(name.trim(), avatar);
+    const res = await createRoom(name.trim(), avatar, gameType);
     setLoading(false);
 
     if (res.success && res.code) {
@@ -61,7 +71,6 @@ export const CreateRoomModal: React.FC<CreateRoomModalProps> = ({ isOpen, onClos
         onClick={(e) => e.stopPropagation()}
         className="relative w-full max-w-md max-h-[92vh] overflow-y-auto bg-zinc-950 border-2 border-gold/70 rounded-2xl sm:rounded-3xl p-4 sm:p-7 shadow-2xl"
       >
-        
         {/* Close */}
         <button
           onClick={onClose}
@@ -71,13 +80,17 @@ export const CreateRoomModal: React.FC<CreateRoomModalProps> = ({ isOpen, onClos
         </button>
 
         {/* Title */}
-        <div className="flex items-center gap-2.5 sm:gap-3 mb-3.5 sm:mb-6">
+        <div className="flex items-center gap-2.5 sm:gap-3 mb-3.5 sm:mb-5">
           <div className="p-2 sm:p-3 rounded-xl sm:rounded-2xl bg-amber-500/20 border border-gold/40 text-gold shrink-0">
             <Sparkles className="w-5 h-5 sm:w-6 sm:h-6" />
           </div>
           <div>
-            <h2 className="text-lg sm:text-xl font-black text-white uppercase tracking-wide">Create Private Room</h2>
-            <p className="text-[11px] sm:text-xs text-zinc-400">Host a game and invite your friends</p>
+            <h2 className="text-lg sm:text-xl font-black text-white uppercase tracking-wide">
+              Create Game Room
+            </h2>
+            <p className="text-[11px] sm:text-xs text-zinc-400">
+              Host a table and invite your friends
+            </p>
           </div>
         </div>
 
@@ -88,7 +101,67 @@ export const CreateRoomModal: React.FC<CreateRoomModalProps> = ({ isOpen, onClos
           </div>
         )}
 
-        <form onSubmit={handleCreate} className="space-y-3 sm:space-y-5">
+        <form onSubmit={handleCreate} className="space-y-3.5 sm:space-y-5">
+          {/* Game Selection Toggle */}
+          <div>
+            <label className="block text-[11px] sm:text-xs font-bold text-zinc-300 uppercase tracking-wider mb-1.5 sm:mb-2">
+              Select Game
+            </label>
+            <div className="grid grid-cols-2 gap-2 sm:gap-3">
+              <button
+                type="button"
+                onClick={() => setGameType('DUKKI_BAZAAR')}
+                className={cn(
+                  'p-2.5 sm:p-3 rounded-xl border text-left transition-all flex flex-col relative',
+                  gameType === 'DUKKI_BAZAAR'
+                    ? 'bg-amber-500/15 border-gold ring-1 ring-gold shadow-gold-glow'
+                    : 'bg-zinc-900 border-zinc-800 text-zinc-400 hover:border-zinc-700'
+                )}
+              >
+                <div className="flex items-center justify-between">
+                  <span
+                    className={cn(
+                      'text-xs sm:text-sm font-black uppercase flex items-center gap-1',
+                      gameType === 'DUKKI_BAZAAR' ? 'text-gold' : 'text-white'
+                    )}
+                  >
+                    <Flame className="w-3.5 h-3.5 text-amber-400" />
+                    Dukki Bazaar
+                  </span>
+                </div>
+                <span className="text-[10px] text-zinc-400 mt-1">
+                  2-5 Players • 4 Rails & Bazaar Open
+                </span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setGameType('BLUFF_MASTER')}
+                className={cn(
+                  'p-2.5 sm:p-3 rounded-xl border text-left transition-all flex flex-col relative',
+                  gameType === 'BLUFF_MASTER'
+                    ? 'bg-blue-500/15 border-blue-400 ring-1 ring-blue-400 shadow-lg'
+                    : 'bg-zinc-900 border-zinc-800 text-zinc-400 hover:border-zinc-700'
+                )}
+              >
+                <div className="flex items-center justify-between">
+                  <span
+                    className={cn(
+                      'text-xs sm:text-sm font-black uppercase flex items-center gap-1',
+                      gameType === 'BLUFF_MASTER' ? 'text-blue-400' : 'text-white'
+                    )}
+                  >
+                    <ShieldAlert className="w-3.5 h-3.5 text-blue-400" />
+                    Bluff Master
+                  </span>
+                </div>
+                <span className="text-[10px] text-zinc-400 mt-1">
+                  2-5 Players • Deception & Showdown
+                </span>
+              </button>
+            </div>
+          </div>
+
           {/* Name Input */}
           <div>
             <label className="block text-[11px] sm:text-xs font-bold text-zinc-300 uppercase tracking-wider mb-1.5 sm:mb-2">
@@ -141,10 +214,9 @@ export const CreateRoomModal: React.FC<CreateRoomModalProps> = ({ isOpen, onClos
                 : 'bg-zinc-800 text-zinc-500 cursor-not-allowed border border-zinc-700'
             )}
           >
-            {loading ? 'Creating Room...' : 'Create Room & Get Code'}
+            {loading ? 'Creating Room...' : `Create ${gameType === 'BLUFF_MASTER' ? 'Bluff Master' : 'Dukki Bazaar'} Table`}
           </button>
         </form>
-
       </div>
     </div>
   );

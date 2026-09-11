@@ -1,8 +1,10 @@
 import { Server as SocketIOServer, Socket } from 'socket.io';
 import { DukkiBazaarRoom } from '../game/engine';
+import { BluffMasterRoom } from '../game/bluffEngine';
+import { GameType, Rank } from '../game/types';
 import { RoomModel, GameHistoryModel, updatePlayerStats } from '../db';
 
-const activeRooms = new Map<string, DukkiBazaarRoom>();
+const activeRooms = new Map<string, DukkiBazaarRoom | BluffMasterRoom>();
 const disconnectTimers = new Map<string, NodeJS.Timeout>();
 
 interface OnlineUser {
@@ -35,7 +37,7 @@ function generateRoomCode(): string {
 }
 
 export function setupSocketHandlers(io: SocketIOServer) {
-  function broadcastRoomState(room: DukkiBazaarRoom) {
+  function broadcastRoomState(room: DukkiBazaarRoom | BluffMasterRoom) {
     for (const player of room.players) {
       if (player.isConnected) {
         const clientView = room.getClientView(player.id);
@@ -44,36 +46,49 @@ export function setupSocketHandlers(io: SocketIOServer) {
     }
   }
 
-  function createRoomInstance(code: string): DukkiBazaarRoom {
+  function createRoomInstance(code: string, gameType: GameType = 'DUKKI_BAZAAR'): DukkiBazaarRoom | BluffMasterRoom {
+    const handleGameOver = async (finishedRoom: DukkiBazaarRoom | BluffMasterRoom) => {
+      try {
+        for (const r of finishedRoom.rankings) {
+          if (r.scoreEarned) {
+            await updatePlayerStats(r.name, r.scoreEarned, r.rank === 1);
+          }
+        }
+        const winner = finishedRoom.rankings.find(r => r.rank === 1) || (finishedRoom as any).winner;
+        if (winner) {
+          await GameHistoryModel.create({
+            roomCode: code,
+            winnerName: winner.name,
+            roundsCount: finishedRoom.rankings.length,
+            playerCount: finishedRoom.players.length,
+            summary: finishedRoom.rankings.map(r => `#${r.rank} ${r.name} (+${r.scoreEarned || 0} PTS)`).join(', '),
+          });
+        }
+        try {
+          await RoomModel.updateOne({ code }, { status: 'FINISHED', updatedAt: new Date() });
+        } catch (e) {}
+      } catch (err: any) {
+        console.warn('Game over score persistence warning:', err.message);
+      }
+    };
+
+    if (gameType === 'BLUFF_MASTER') {
+      const room = new BluffMasterRoom(
+        code,
+        () => {
+          broadcastRoomState(room);
+        },
+        handleGameOver
+      );
+      return room;
+    }
+
     const room = new DukkiBazaarRoom(
       code,
       () => {
         broadcastRoomState(room);
       },
-      async (finishedRoom) => {
-        try {
-          for (const r of finishedRoom.rankings) {
-            if (r.scoreEarned) {
-              await updatePlayerStats(r.name, r.scoreEarned, r.rank === 1);
-            }
-          }
-          const winner = finishedRoom.rankings.find(r => r.rank === 1) || finishedRoom.winner;
-          if (winner) {
-            await GameHistoryModel.create({
-              roomCode: code,
-              winnerName: winner.name,
-              roundsCount: finishedRoom.rankings.length,
-              playerCount: finishedRoom.players.length,
-              summary: finishedRoom.rankings.map(r => `#${r.rank} ${r.name} (+${r.scoreEarned || 0} PTS)`).join(', '),
-            });
-          }
-          try {
-            await RoomModel.updateOne({ code }, { status: 'FINISHED', updatedAt: new Date() });
-          } catch (e) {}
-        } catch (err: any) {
-          console.warn('Game over score persistence warning:', err.message);
-        }
-      }
+      handleGameOver
     );
     return room;
   }
@@ -82,14 +97,15 @@ export function setupSocketHandlers(io: SocketIOServer) {
     let currentRoomCode: string | null = null;
     let playerSessionId: string | null = null;
 
-    socket.on('createRoom', async (data: { name: string; avatarColor: string; sessionId: string }, callback) => {
+    socket.on('createRoom', async (data: { name: string; avatarColor: string; sessionId: string; gameType?: GameType }, callback) => {
       try {
         let code = generateRoomCode();
         while (activeRooms.has(code)) {
           code = generateRoomCode();
         }
 
-        const room = createRoomInstance(code);
+        const gameType: GameType = data.gameType === 'BLUFF_MASTER' ? 'BLUFF_MASTER' : 'DUKKI_BAZAAR';
+        const room = createRoomInstance(code, gameType);
 
         const player = room.addPlayer({
           id: socket.id,
@@ -113,7 +129,7 @@ export function setupSocketHandlers(io: SocketIOServer) {
               hostId: player.sessionId,
               hostName: data.name,
               status: 'LOBBY',
-              gameType: 'DUKKI_BAZAAR',
+              gameType,
               maxPlayers: 5,
               updatedAt: new Date(),
             },
@@ -145,7 +161,8 @@ export function setupSocketHandlers(io: SocketIOServer) {
 
             if (dbRoom) {
               console.log(`♻️ Rehydrating room ${code} from MongoDB for player ${data.name}`);
-              room = createRoomInstance(code);
+              const gType: GameType = (dbRoom.gameType as GameType) || 'DUKKI_BAZAAR';
+              room = createRoomInstance(code, gType);
               activeRooms.set(code, room);
             }
           } catch (dbErr) {
@@ -214,7 +231,7 @@ export function setupSocketHandlers(io: SocketIOServer) {
 
     socket.on('drawCard', (data: { roomCode: string }, callback) => {
       const room = activeRooms.get(data.roomCode);
-      if (!room) return callback({ success: false, error: 'Room not found' });
+      if (!room || !(room instanceof DukkiBazaarRoom)) return callback({ success: false, error: 'Dukki Bazaar room not found' });
 
       const res = room.drawCard(socket.id);
       if (res.success) {
@@ -225,7 +242,7 @@ export function setupSocketHandlers(io: SocketIOServer) {
 
     socket.on('placeCenter', (data: { roomCode: string; targetDeckId?: number; targetSuit?: any; fromRightDeck?: boolean }, callback) => {
       const room = activeRooms.get(data.roomCode);
-      if (!room) return callback({ success: false, error: 'Room not found' });
+      if (!room || !(room instanceof DukkiBazaarRoom)) return callback({ success: false, error: 'Dukki Bazaar room not found' });
 
       const targetDeckId = typeof data.targetDeckId === 'number' ? data.targetDeckId : (typeof data.targetSuit === 'number' ? data.targetSuit : undefined);
       const res = room.placeOnCenter(socket.id, targetDeckId, data.fromRightDeck);
@@ -250,7 +267,7 @@ export function setupSocketHandlers(io: SocketIOServer) {
 
     socket.on('placeRightDeck', (data: { roomCode: string; targetPlayerId: string; fromRightDeck?: boolean }, callback) => {
       const room = activeRooms.get(data.roomCode);
-      if (!room) return callback({ success: false, error: 'Room not found' });
+      if (!room || !(room instanceof DukkiBazaarRoom)) return callback({ success: false, error: 'Dukki Bazaar room not found' });
 
       const res = room.placeOnRightDeck(socket.id, data.targetPlayerId, data.fromRightDeck);
       if (res.success) {
@@ -279,11 +296,19 @@ export function setupSocketHandlers(io: SocketIOServer) {
       const room = activeRooms.get(data.roomCode);
       if (!room) return callback({ success: false, error: 'Room not found' });
 
-      const res = room.passTurn(socket.id);
-      if (res.success) {
-        broadcastRoomState(room);
+      if (room instanceof BluffMasterRoom) {
+        const res = room.passTurn(socket.id);
+        if (res.success) broadcastRoomState(room);
+        return callback(res);
       }
-      callback(res);
+
+      if (room instanceof DukkiBazaarRoom) {
+        const res = room.passTurn(socket.id);
+        if (res.success) broadcastRoomState(room);
+        return callback(res);
+      }
+
+      callback({ success: false, error: 'Unsupported game room' });
     });
 
     socket.on('requestPenalty', (data: { 
@@ -292,13 +317,55 @@ export function setupSocketHandlers(io: SocketIOServer) {
       reason: 'MISSED_CENTER' | 'WRONG_CARD_PLAYED' | 'INVALID_SEQUENCE' 
     }, callback) => {
       const room = activeRooms.get(data.roomCode);
-      if (!room) return callback({ success: false, error: 'Room not found' });
+      if (!room || !(room instanceof DukkiBazaarRoom)) return callback({ success: false, error: 'Dukki Bazaar room not found' });
 
       const res = room.requestPenalty(socket.id, data.targetPlayerId, data.reason);
       if (res.success) {
         broadcastRoomState(room);
       }
       callback(res);
+    });
+
+    // ==========================================
+    // Bluff Master Specific Socket Handlers
+    // ==========================================
+    socket.on('bluff:playCards', (data: { roomCode: string; cardIds: string[]; declaredRank: Rank }, callback) => {
+      const room = activeRooms.get(data.roomCode?.toUpperCase());
+      if (!room || !(room instanceof BluffMasterRoom)) {
+        return callback?.({ success: false, error: 'Bluff Master room not found' });
+      }
+
+      const res = room.playCards(socket.id, data.cardIds, data.declaredRank);
+      if (res.success) {
+        broadcastRoomState(room);
+      }
+      callback?.(res);
+    });
+
+    socket.on('bluff:challenge', (data: { roomCode: string }, callback) => {
+      const room = activeRooms.get(data.roomCode?.toUpperCase());
+      if (!room || !(room instanceof BluffMasterRoom)) {
+        return callback?.({ success: false, error: 'Bluff Master room not found' });
+      }
+
+      const res = room.challenge(socket.id);
+      if (res.success) {
+        broadcastRoomState(room);
+      }
+      callback?.(res);
+    });
+
+    socket.on('bluff:pass', (data: { roomCode: string }, callback) => {
+      const room = activeRooms.get(data.roomCode?.toUpperCase());
+      if (!room || !(room instanceof BluffMasterRoom)) {
+        return callback?.({ success: false, error: 'Bluff Master room not found' });
+      }
+
+      const res = room.passTurn(socket.id);
+      if (res.success) {
+        broadcastRoomState(room);
+      }
+      callback?.(res);
     });
 
     socket.on('kickPlayer', (data: { roomCode: string; targetPlayerId: string }, callback) => {

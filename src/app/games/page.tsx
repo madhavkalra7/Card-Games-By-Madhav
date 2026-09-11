@@ -7,6 +7,7 @@ import { JoinRoomModal } from '@/components/modal/JoinRoomModal';
 import { RulesModal } from '@/components/modal/RulesModal';
 import { useGameStore } from '@/store/gameStore';
 import { sounds } from '@/lib/sound';
+import { GameType } from '@/lib/types';
 import {
   ArrowLeft,
   BookOpen,
@@ -88,10 +89,10 @@ const GAMES: GameItem[] = [
     title: 'BLUFF MASTER',
     subtitle: 'High-Stakes Deception & Card Shedding',
     tagline: 'Play cards face down, claim the rank, and bluff your way to victory.',
-    players: '3 - 8 Players',
+    players: '2 - 5 Players',
     deck: '52 Cards',
-    status: 'locked',
-    badge: 'Coming Soon',
+    status: 'available',
+    badge: 'Available Now',
     color: '#6EB5FF',
     panelColor: '#8DC4FF',
     image: 'https://fifth-gentle-45902158.figma.site/_components/v2/4de492f6d9cf8244ad5293233e5c6f52407d42fc/4.4457fbce.png',
@@ -104,6 +105,7 @@ export default function GamesPage() {
   const { isRulesModalOpen, setRulesModalOpen } = useGameStore();
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [isJoinOpen, setIsJoinOpen] = useState(false);
+  const [selectedGameType, setSelectedGameType] = useState<GameType>('DUKKI_BAZAAR');
   const [isMuted, setIsMuted] = useState(sounds.getMuted());
 
   const handleToggleSound = () => {
@@ -304,7 +306,10 @@ export default function GamesPage() {
                   {isAvailable ? (
                     <>
                       <button
-                        onClick={() => setIsCreateOpen(true)}
+                        onClick={() => {
+                          setSelectedGameType(game.id === 'bluff-master' ? 'BLUFF_MASTER' : 'DUKKI_BAZAAR');
+                          setIsCreateOpen(true);
+                        }}
                         className="flex-1 min-w-[130px] flex items-center justify-center gap-2 py-2.5 sm:py-3 px-4 rounded-xl font-black text-xs uppercase tracking-wider transition-all shadow-lg active:scale-95"
                         style={{
                           backgroundColor: '#ffffff',
@@ -324,9 +329,12 @@ export default function GamesPage() {
                       </button>
 
                       <button
-                        onClick={() => setRulesModalOpen(true)}
+                        onClick={() => {
+                          setSelectedGameType(game.id === 'bluff-master' ? 'BLUFF_MASTER' : 'DUKKI_BAZAAR');
+                          setRulesModalOpen(true);
+                        }}
                         className="p-2.5 sm:p-3 rounded-xl bg-white/10 border border-white/20 hover:bg-white/20 text-white transition-all active:scale-95"
-                        title="View Dukki Bazaar Rules"
+                        title={`View ${game.title} Rules`}
                       >
                         <BookOpen className="w-4 h-4" />
                       </button>
@@ -355,9 +363,17 @@ export default function GamesPage() {
       </footer>
 
       {/* Modals */}
-      <CreateRoomModal isOpen={isCreateOpen} onClose={() => setIsCreateOpen(false)} />
+      <CreateRoomModal
+        isOpen={isCreateOpen}
+        onClose={() => setIsCreateOpen(false)}
+        initialGameType={selectedGameType}
+      />
       <JoinRoomModal isOpen={isJoinOpen} onClose={() => setIsJoinOpen(false)} />
-      <RulesModal isOpen={isRulesModalOpen} onClose={() => setRulesModalOpen(false)} />
+      <RulesModal
+        isOpen={isRulesModalOpen}
+        onClose={() => setRulesModalOpen(false)}
+        defaultGameType={selectedGameType}
+      />
     </main>
   );
 }

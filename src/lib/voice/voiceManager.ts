@@ -1,20 +1,56 @@
 import { getSocket } from '@/socket/client';
 import { useVoiceStore } from '@/store/voiceStore';
 
-const ICE_SERVERS: RTCConfiguration = {
-  iceServers: [
+// Multi-layered ICE servers: High-speed Google STUN + Metered OpenRelay TURN servers
+// TURN is essential for mobile cellular networks (Jio, Airtel, Vi, T-Mobile, etc.) and symmetric NAT firewalls.
+const getIceServers = (): RTCConfiguration => {
+  const customTurnUrl = process.env.NEXT_PUBLIC_TURN_URL;
+  const customTurnUsername = process.env.NEXT_PUBLIC_TURN_USERNAME;
+  const customTurnCredential = process.env.NEXT_PUBLIC_TURN_CREDENTIAL;
+
+  const servers: RTCIceServer[] = [
+    // Google Public STUN
     { urls: 'stun:stun.l.google.com:19302' },
     { urls: 'stun:stun1.l.google.com:19302' },
     { urls: 'stun:stun2.l.google.com:19302' },
-  ],
+    { urls: 'stun:stun3.l.google.com:19302' },
+    { urls: 'stun:stun4.l.google.com:19302' },
+    // Metered Public STUN
+    { urls: 'stun:openrelay.metered.ca:80' },
+    // Metered Free OpenRelay TURN (UDP & TCP & TLS fallbacks)
+    {
+      urls: [
+        'turn:openrelay.metered.ca:80',
+        'turn:openrelay.metered.ca:443',
+        'turn:openrelay.metered.ca:443?transport=tcp',
+        'turns:openrelay.metered.ca:443?transport=tcp',
+      ],
+      username: 'openrelay',
+      credential: 'openrelay',
+    },
+  ];
+
+  // Optional custom TURN credentials configured in environment variables
+  if (customTurnUrl) {
+    servers.unshift({
+      urls: customTurnUrl,
+      username: customTurnUsername,
+      credential: customTurnCredential,
+    });
+  }
+
+  return {
+    iceServers: servers,
+    iceCandidatePoolSize: 10,
+  };
 };
 
 interface PeerConnectionRecord {
   pc: RTCPeerConnection;
   audio: HTMLAudioElement;
   analyser?: AnalyserNode;
-  gainNode?: GainNode;
   pendingCandidates: RTCIceCandidateInit[];
+  makingOffer: boolean;
 }
 
 class VoiceManager {
@@ -24,6 +60,7 @@ class VoiceManager {
   private audioCtx: AudioContext | null = null;
   private speakingIntervalId: any = null;
   private isInitialized = false;
+  private unblockRegistered = false;
 
   public async joinVoice(roomCode: string): Promise<boolean> {
     if (typeof window === 'undefined') return false;
@@ -36,11 +73,15 @@ class VoiceManager {
     this.currentRoomCode = roomCode.toUpperCase();
 
     try {
-      // 1. Initialize and unlock AudioContext on user click (critical for mobile browsers)
+      // 1. Initialize and unlock AudioContext on user gesture (crucial for iOS Safari & Android Chrome)
       this.setupAudioContext();
       if (this.audioCtx && this.audioCtx.state === 'suspended') {
         await this.audioCtx.resume().catch((e) => console.warn('AudioContext resume warning:', e));
       }
+      this.primeAudioContext();
+
+      // Register interaction unlocker so any subsequent tap unblocks pending remote audio
+      this.registerAutoplayUnlock();
 
       // 2. Request microphone permission
       const stream = await navigator.mediaDevices.getUserMedia({
@@ -60,12 +101,13 @@ class VoiceManager {
         track.enabled = !isMuted;
       });
 
-      // 3. Setup Web Audio API volume analyzer for local mic
+      // 3. Setup Web Audio API volume analyzer for local mic speaking detection
       if (this.audioCtx) {
         try {
           const source = this.audioCtx.createMediaStreamSource(this.localStream);
           const analyser = this.audioCtx.createAnalyser();
           analyser.fftSize = 256;
+          analyser.smoothingTimeConstant = 0.5;
           source.connect(analyser);
           this.startSpeakingMonitor(analyser);
         } catch (e) {
@@ -79,7 +121,7 @@ class VoiceManager {
       // 5. Emit join voice event to server
       const socket = getSocket();
       return new Promise<boolean>((resolve) => {
-        socket.emit('voice:join', { roomCode: this.currentRoomCode }, (res: any) => {
+        socket.emit('voice:join', { roomCode: this.currentRoomCode }, async (res: any) => {
           if (!res || !res.success) {
             store.setError(res?.error || 'Failed to join voice channel');
             this.leaveVoice();
@@ -90,9 +132,14 @@ class VoiceManager {
           store.setIsInVoice(true);
           store.setIsConnecting(false);
 
-          // NOTE: In WebRTC mesh signaling, existing peers in the room receive 'voice:peer-joined'
-          // and will initiate the offers to this newly joined peer.
-          // This avoids the classic simultaneous offer collision (glare) bug.
+          // Connect to existing voice peers returned by server
+          const existingPeers: string[] = res.peers || [];
+          console.log(`[WebRTC] Successfully joined voice room ${this.currentRoomCode}. Existing peers:`, existingPeers);
+
+          for (const peerId of existingPeers) {
+            await this.initiatePeerConnection(peerId);
+          }
+
           resolve(true);
         });
       });
@@ -117,9 +164,8 @@ class VoiceManager {
     }
 
     // 2. Close and remove all peer connections and audio elements
-    this.peers.forEach(({ pc, audio, gainNode }) => {
+    this.peers.forEach(({ pc, audio }) => {
       try {
-        if (gainNode) gainNode.disconnect();
         pc.close();
         audio.pause();
         audio.srcObject = null;
@@ -185,12 +231,9 @@ class VoiceManager {
     const newDeafened = !store.isDeafened;
     store.setIsDeafened(newDeafened);
 
-    // Mute/unmute all remote audio elements and WebAudio gain nodes
-    this.peers.forEach(({ audio, gainNode }) => {
+    // Mute/unmute all remote audio elements
+    this.peers.forEach(({ audio }) => {
       audio.muted = newDeafened;
-      if (gainNode) {
-        gainNode.gain.value = newDeafened ? 0 : 1.0;
-      }
     });
 
     // Also auto-mute mic if deafened
@@ -223,6 +266,47 @@ class VoiceManager {
     }
   }
 
+  // Play a tiny silent buffer to warm up browser audio subsystem on user gesture
+  private primeAudioContext() {
+    if (!this.audioCtx) return;
+    try {
+      const osc = this.audioCtx.createOscillator();
+      const gain = this.audioCtx.createGain();
+      gain.gain.value = 0.0001;
+      osc.connect(gain);
+      gain.connect(this.audioCtx.destination);
+      osc.start();
+      osc.stop(this.audioCtx.currentTime + 0.02);
+    } catch (e) {}
+  }
+
+  // Fallback for strict mobile autoplay policies: unlocks audio on any subsequent tap
+  private registerAutoplayUnlock() {
+    if (this.unblockRegistered || typeof window === 'undefined') return;
+    this.unblockRegistered = true;
+
+    const unlockHandler = () => {
+      if (this.audioCtx && this.audioCtx.state === 'suspended') {
+        this.audioCtx.resume().catch(() => {});
+      }
+
+      this.peers.forEach(({ audio }) => {
+        if (audio.paused && audio.srcObject) {
+          audio.play().catch((err) => console.warn('[WebRTC] Autoplay retry note:', err));
+        }
+      });
+
+      window.removeEventListener('click', unlockHandler, true);
+      window.removeEventListener('touchstart', unlockHandler, true);
+      window.removeEventListener('keydown', unlockHandler, true);
+      this.unblockRegistered = false;
+    };
+
+    window.addEventListener('click', unlockHandler, { capture: true, once: true });
+    window.addEventListener('touchstart', unlockHandler, { capture: true, once: true });
+    window.addEventListener('keydown', unlockHandler, { capture: true, once: true });
+  }
+
   private startSpeakingMonitor(localAnalyser: AnalyserNode) {
     const dataArray = new Uint8Array(localAnalyser.frequencyBinCount);
 
@@ -230,18 +314,17 @@ class VoiceManager {
       const store = useVoiceStore.getState();
       if (!store.isInVoice || store.isMicMuted) {
         store.setPeerSpeaking('me', false);
-        return;
+      } else {
+        // Check local mic volume
+        localAnalyser.getByteFrequencyData(dataArray);
+        let sum = 0;
+        for (let i = 0; i < dataArray.length; i++) {
+          sum += dataArray[i];
+        }
+        const avg = sum / dataArray.length;
+        const isSpeaking = avg > 14;
+        store.setPeerSpeaking('me', isSpeaking);
       }
-
-      // Check local mic volume
-      localAnalyser.getByteFrequencyData(dataArray);
-      let sum = 0;
-      for (let i = 0; i < dataArray.length; i++) {
-        sum += dataArray[i];
-      }
-      const avg = sum / dataArray.length;
-      const isSpeaking = avg > 14;
-      store.setPeerSpeaking('me', isSpeaking);
 
       // Check remote peers volume
       this.peers.forEach(({ analyser }, peerId) => {
@@ -266,11 +349,13 @@ class VoiceManager {
       return this.peers.get(peerId)!;
     }
 
-    const pc = new RTCPeerConnection(ICE_SERVERS);
+    const pc = new RTCPeerConnection(getIceServers());
     const audio = new Audio();
     audio.autoplay = true;
     audio.muted = useVoiceStore.getState().isDeafened;
+    audio.volume = 1.0;
     audio.setAttribute('playsinline', 'true');
+    audio.setAttribute('webkit-playsinline', 'true');
     audio.style.display = 'none';
     document.body.appendChild(audio);
 
@@ -278,50 +363,57 @@ class VoiceManager {
       pc,
       audio,
       pendingCandidates: [],
+      makingOffer: false,
     };
+
+    // Ensure audio transceiver is created with sendrecv capability
+    try {
+      pc.addTransceiver('audio', { direction: 'sendrecv' });
+    } catch (e) {}
 
     // Stream incoming audio from remote peer
     pc.ontrack = (event) => {
-      const [remoteStream] = event.streams;
-      if (remoteStream) {
-        // 1. HTMLAudioElement playback
-        audio.srcObject = remoteStream;
-        audio.play().catch((e) => {
-          console.warn('Audio element play note (WebAudio graph will provide output):', e);
+      let stream = (event.streams && event.streams[0]) || null;
+      if (!stream && event.track) {
+        stream = new MediaStream([event.track]);
+      }
+      if (!stream) return;
+
+      // 1. Play dedicated remote stream via HTMLAudioElement (cleanest audio output, native echo cancelation)
+      audio.srcObject = stream;
+      const playPromise = audio.play();
+      if (playPromise !== undefined) {
+        playPromise.catch((e) => {
+          console.warn(`[WebRTC] Audio element play blocked for ${peerId}:`, e);
+          this.registerAutoplayUnlock();
         });
+      }
 
-        // 2. Web Audio API Direct Speaker Output (bypasses browser autoplay restrictions on mobile!)
-        if (this.audioCtx && this.audioCtx.state !== 'closed') {
-          try {
-            if (this.audioCtx.state === 'suspended') {
-              this.audioCtx.resume().catch(() => {});
-            }
-
-            const source = this.audioCtx.createMediaStreamSource(remoteStream);
-            const gainNode = this.audioCtx.createGain();
-            gainNode.gain.value = useVoiceStore.getState().isDeafened ? 0 : 1.0;
-
-            const analyser = this.audioCtx.createAnalyser();
-            analyser.fftSize = 256;
-
-            // Connect graph: stream -> analyser
-            //                stream -> gainNode -> speaker destination
-            source.connect(analyser);
-            source.connect(gainNode);
-            gainNode.connect(this.audioCtx.destination);
-
-            record.gainNode = gainNode;
-            record.analyser = analyser;
-          } catch (err) {
-            console.warn('Could not attach Web Audio API destination to remote stream:', err);
+      // 2. Attach Web Audio API analyser ONLY for speaking detection indicator
+      // Never route to audioCtx.destination! Dual routing causes echo feedback, phase cancelation,
+      // and complete silence on iOS Safari (Apple WebKit Bug #215449).
+      if (this.audioCtx && this.audioCtx.state !== 'closed') {
+        try {
+          if (this.audioCtx.state === 'suspended') {
+            this.audioCtx.resume().catch(() => {});
           }
+
+          const source = this.audioCtx.createMediaStreamSource(stream);
+          const analyser = this.audioCtx.createAnalyser();
+          analyser.fftSize = 256;
+          analyser.smoothingTimeConstant = 0.5;
+          source.connect(analyser);
+
+          record.analyser = analyser;
+        } catch (err) {
+          console.warn('[WebRTC] Could not attach Web Audio analyser to remote stream:', err);
         }
       }
     };
 
-    // Add our local mic track to this peer
+    // Add our local mic tracks to this peer connection
     if (this.localStream) {
-      this.localStream.getTracks().forEach((track) => {
+      this.localStream.getAudioTracks().forEach((track) => {
         pc.addTrack(track, this.localStream!);
       });
     }
@@ -337,12 +429,24 @@ class VoiceManager {
       }
     };
 
+    // Auto-restart ICE on failure (essential for mobile network transitions e.g. Wi-Fi <-> LTE)
+    pc.oniceconnectionstatechange = () => {
+      console.log(`[WebRTC] ICE state with ${peerId}: ${pc.iceConnectionState}`);
+      if (pc.iceConnectionState === 'failed') {
+        console.warn(`[WebRTC] ICE failed with ${peerId}. Triggering ICE restart...`);
+        this.initiatePeerConnection(peerId, true);
+      } else if (pc.iceConnectionState === 'disconnected') {
+        // Brief grace period before cleaning up disconnected peer
+        setTimeout(() => {
+          if (pc.iceConnectionState === 'disconnected' || pc.iceConnectionState === 'closed') {
+            this.cleanupPeer(peerId);
+          }
+        }, 6000);
+      }
+    };
+
     pc.onconnectionstatechange = () => {
-      if (
-        pc.connectionState === 'disconnected' ||
-        pc.connectionState === 'failed' ||
-        pc.connectionState === 'closed'
-      ) {
+      if (pc.connectionState === 'closed') {
         this.cleanupPeer(peerId);
       }
     };
@@ -351,24 +455,35 @@ class VoiceManager {
     return record;
   }
 
-  public async initiatePeerConnection(peerId: string) {
+  public async initiatePeerConnection(peerId: string, iceRestart = false) {
     try {
       const record = this.getOrCreatePeerRecord(peerId);
       const pc = record.pc;
 
-      const offer = await pc.createOffer({
-        offerToReceiveAudio: true,
-        offerToReceiveVideo: false,
-      });
-      await pc.setLocalDescription(offer);
+      if (record.makingOffer || pc.signalingState !== 'stable') {
+        console.log(`[WebRTC] Skipping offer creation to ${peerId} (makingOffer=${record.makingOffer}, state=${pc.signalingState})`);
+        return;
+      }
 
-      const socket = getSocket();
-      socket.emit('voice:signal', {
-        targetPeerId: peerId,
-        signal: { type: 'offer', sdp: offer.sdp },
-      });
+      record.makingOffer = true;
+      try {
+        const offer = await pc.createOffer({
+          offerToReceiveAudio: true,
+          offerToReceiveVideo: false,
+          iceRestart,
+        });
+        await pc.setLocalDescription(offer);
+
+        const socket = getSocket();
+        socket.emit('voice:signal', {
+          targetPeerId: peerId,
+          signal: { type: 'offer', sdp: offer.sdp },
+        });
+      } finally {
+        record.makingOffer = false;
+      }
     } catch (err) {
-      console.error(`Failed to initiate WebRTC offer to ${peerId}:`, err);
+      console.error(`[WebRTC] Failed to initiate offer to ${peerId}:`, err);
     }
   }
 
@@ -381,30 +496,22 @@ class VoiceManager {
       if (signal.type === 'offer') {
         // Perfect Negotiation Pattern: Handle offer glare/collision gracefully
         const isPolite = socket.id ? socket.id < fromPeerId : true;
-        const offerCollision = pc.signalingState !== 'stable';
+        const offerCollision = record.makingOffer || pc.signalingState !== 'stable';
 
         if (offerCollision) {
           if (!isPolite) {
-            // Impolite peer ignores the colliding offer
+            // Impolite peer ignores colliding offer
             console.log(`[WebRTC] Offer collision with ${fromPeerId}: ignoring offer as impolite.`);
             return;
           }
-          // Polite peer rolls back local description to accept the remote offer
+          // Polite peer rolls back local description to accept remote offer
           console.log(`[WebRTC] Offer collision with ${fromPeerId}: rolling back local description.`);
           await pc.setLocalDescription({ type: 'rollback' });
         }
 
         await pc.setRemoteDescription(new RTCSessionDescription({ type: 'offer', sdp: signal.sdp }));
 
-        // Flush any candidates that arrived before the remote description was set
-        for (const cand of record.pendingCandidates) {
-          try {
-            await pc.addIceCandidate(new RTCIceCandidate(cand));
-          } catch (e) {}
-        }
-        record.pendingCandidates = [];
-
-        // Create and send answer
+        // Create and set local answer description
         const answer = await pc.createAnswer();
         await pc.setLocalDescription(answer);
 
@@ -412,38 +519,46 @@ class VoiceManager {
           targetPeerId: fromPeerId,
           signal: { type: 'answer', sdp: answer.sdp },
         });
-      } else if (signal.type === 'answer') {
-        await pc.setRemoteDescription(new RTCSessionDescription({ type: 'answer', sdp: signal.sdp }));
 
-        // Flush pending candidates
+        // Flush any candidates that arrived before remote description was set
         for (const cand of record.pendingCandidates) {
           try {
             await pc.addIceCandidate(new RTCIceCandidate(cand));
           } catch (e) {}
         }
         record.pendingCandidates = [];
+      } else if (signal.type === 'answer') {
+        if (pc.signalingState === 'have-local-offer') {
+          await pc.setRemoteDescription(new RTCSessionDescription({ type: 'answer', sdp: signal.sdp }));
+
+          // Flush pending candidates
+          for (const cand of record.pendingCandidates) {
+            try {
+              await pc.addIceCandidate(new RTCIceCandidate(cand));
+            } catch (e) {}
+          }
+          record.pendingCandidates = [];
+        }
       } else if (signal.type === 'candidate' && signal.candidate) {
         if (!pc.remoteDescription || !pc.remoteDescription.type) {
-          // Buffer candidate until remote description is set
           record.pendingCandidates.push(signal.candidate);
         } else {
           try {
             await pc.addIceCandidate(new RTCIceCandidate(signal.candidate));
           } catch (e) {
-            console.warn('ICE Candidate addition error:', e);
+            console.warn('[WebRTC] ICE candidate addition error:', e);
           }
         }
       }
     } catch (err) {
-      console.error(`Error handling WebRTC signal from ${fromPeerId}:`, err);
+      console.error(`[WebRTC] Error handling signal from ${fromPeerId}:`, err);
     }
   }
 
   private cleanupPeer(peerId: string) {
     if (this.peers.has(peerId)) {
-      const { pc, audio, gainNode } = this.peers.get(peerId)!;
+      const { pc, audio } = this.peers.get(peerId)!;
       try {
-        if (gainNode) gainNode.disconnect();
         pc.close();
         audio.pause();
         audio.srcObject = null;
@@ -459,9 +574,13 @@ class VoiceManager {
     this.isInitialized = true;
     const socket = getSocket();
 
-    // When an existing peer is told a new peer has joined, initiate the offer to that peer
+    // When notified an existing peer or newcomer has joined voice
     socket.on('voice:peer-joined', async ({ peerId }: { peerId: string }) => {
-      await this.initiatePeerConnection(peerId);
+      console.log(`[WebRTC] Received voice:peer-joined from ${peerId}`);
+      const existing = this.peers.get(peerId);
+      if (!existing || existing.pc.connectionState !== 'connected') {
+        await this.initiatePeerConnection(peerId);
+      }
     });
 
     socket.on('voice:signal', async ({ fromPeerId, signal }: { fromPeerId: string; signal: any }) => {

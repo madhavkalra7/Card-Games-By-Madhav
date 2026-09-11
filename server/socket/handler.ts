@@ -413,13 +413,16 @@ export function setupSocketHandlers(io: SocketIOServer) {
         }
         const voiceRoom = voiceRooms.get(code)!;
 
-        // Existing peers already in the voice call
+        // Existing peers already participating in the voice call
         const existingPeers = Array.from(voiceRoom.keys()).filter((id) => id !== socket.id);
 
         voiceRoom.set(socket.id, { socketId: socket.id, isMuted: false, isDeafened: false });
 
-        // Inform other players in the room that a new peer has joined voice
-        socket.to(code).emit('voice:peer-joined', { peerId: socket.id });
+        // Join dedicated voice channel room to isolate voice broadcasts
+        socket.join(`voice:${code}`);
+
+        // Inform other players in the voice call that a new peer has joined voice
+        socket.to(`voice:${code}`).emit('voice:peer-joined', { peerId: socket.id });
 
         callback({ success: true, peers: existingPeers });
       } catch (err: any) {
@@ -446,7 +449,8 @@ export function setupSocketHandlers(io: SocketIOServer) {
         participant.isMuted = !!data.isMuted;
         participant.isDeafened = !!data.isDeafened;
 
-        socket.to(code).emit('voice:peer-state-changed', {
+        // Broadcast to whole game room so player seat UI reflects mute/deafen status
+        io.to(code).emit('voice:peer-state-changed', {
           peerId: socket.id,
           isMuted: !!data.isMuted,
           isDeafened: !!data.isDeafened,
@@ -460,7 +464,8 @@ export function setupSocketHandlers(io: SocketIOServer) {
         const voiceRoom = voiceRooms.get(code)!;
         if (voiceRoom.has(socket.id)) {
           voiceRoom.delete(socket.id);
-          socket.to(code).emit('voice:peer-left', { peerId: socket.id });
+          socket.leave(`voice:${code}`);
+          io.to(code).emit('voice:peer-left', { peerId: socket.id });
           if (voiceRoom.size === 0) {
             voiceRooms.delete(code);
           }
@@ -495,7 +500,8 @@ export function setupSocketHandlers(io: SocketIOServer) {
               const voiceRoom = voiceRooms.get(code)!;
               if (voiceRoom.has(socket.id)) {
                 voiceRoom.delete(socket.id);
-                socket.to(code).emit('voice:peer-left', { peerId: socket.id });
+                socket.leave(`voice:${code}`);
+                io.to(code).emit('voice:peer-left', { peerId: socket.id });
                 if (voiceRoom.size === 0) {
                   voiceRooms.delete(code);
                 }
@@ -584,13 +590,12 @@ export function setupSocketHandlers(io: SocketIOServer) {
     socket.on('disconnect', () => {
       onlineUsers.delete(socket.id);
       // Clean up voice chat participation on disconnect
-      if (currentRoomCode && voiceRooms.has(currentRoomCode)) {
-        const voiceRoom = voiceRooms.get(currentRoomCode)!;
+      for (const [vCode, voiceRoom] of voiceRooms.entries()) {
         if (voiceRoom.has(socket.id)) {
           voiceRoom.delete(socket.id);
-          socket.to(currentRoomCode).emit('voice:peer-left', { peerId: socket.id });
+          io.to(vCode).emit('voice:peer-left', { peerId: socket.id });
           if (voiceRoom.size === 0) {
-            voiceRooms.delete(currentRoomCode);
+            voiceRooms.delete(vCode);
           }
         }
       }

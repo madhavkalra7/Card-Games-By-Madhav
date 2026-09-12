@@ -620,6 +620,8 @@ export const BluffTable: React.FC<BluffTableProps> = ({
       {/* Challenge Showdown Verdict Modal with Instant Dismissal on Continue Button */}
       <ChallengeRevealModal
         result={activeChallenge}
+        voiceLanguage={voiceLanguage}
+        isMuted={isMuted}
         onClose={() => {
           if (currentChallenge?.id) {
             setDismissedChallengeId(currentChallenge.id);

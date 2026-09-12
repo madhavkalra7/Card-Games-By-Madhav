@@ -185,6 +185,105 @@ class SoundManager {
     } catch {}
   }
 
+  private lastAwwPlayTime: number = 0;
+
+  // Funny comical "Awwwww~" sound for honest showdown reveal
+  public playAww() {
+    if (this.isMuted) return;
+    const now = Date.now();
+    if (now - this.lastAwwPlayTime < 600) return;
+    this.lastAwwPlayTime = now;
+
+    try {
+      if (typeof window !== 'undefined') {
+        const audio = new Audio('/sounds/aww.wav');
+        audio.volume = 0.95;
+        audio.loop = false;
+        const playPromise = audio.play();
+        if (playPromise !== undefined) {
+          playPromise.catch((err) => {
+            console.warn('aww.wav play error, falling back to synth:', err);
+            this.playAwwSynthFallback();
+          });
+        }
+        return;
+      }
+    } catch {
+      this.playAwwSynthFallback();
+    }
+  }
+
+  // Web Audio synthesizer fallback for comical crowd "Awwwww~"
+  private playAwwSynthFallback() {
+    try {
+      this.init();
+      if (!this.ctx) return;
+      const ctx = this.ctx;
+      const now = ctx.currentTime;
+
+      // 1. Vocal formant filter
+      const filter1 = ctx.createBiquadFilter();
+      filter1.type = 'bandpass';
+      filter1.Q.setValueAtTime(4.0, now);
+      filter1.frequency.setValueAtTime(740, now);
+      filter1.frequency.exponentialRampToValueAtTime(480, now + 1.4);
+
+      const filter2 = ctx.createBiquadFilter();
+      filter2.type = 'bandpass';
+      filter2.Q.setValueAtTime(5.0, now);
+      filter2.frequency.setValueAtTime(1220, now);
+      filter2.frequency.exponentialRampToValueAtTime(780, now + 1.4);
+
+      const masterGain = ctx.createGain();
+      masterGain.gain.setValueAtTime(0.01, now);
+      masterGain.gain.linearRampToValueAtTime(0.4, now + 0.08);
+      masterGain.gain.setValueAtTime(0.35, now + 1.0);
+      masterGain.gain.exponentialRampToValueAtTime(0.001, now + 1.6);
+
+      filter1.connect(masterGain);
+      filter2.connect(masterGain);
+      masterGain.connect(ctx.destination);
+
+      // 2. Harmonized vocal chorus oscillators sliding down
+      const pitches = [420, 426, 355]; // Root, detune, minor third
+      pitches.forEach((startFreq, idx) => {
+        const osc = ctx.createOscillator();
+        osc.type = idx === 0 ? 'sawtooth' : 'triangle';
+
+        // Pitch inflection: initial peak then gentle descent
+        osc.frequency.setValueAtTime(startFreq, now);
+        osc.frequency.linearRampToValueAtTime(startFreq * 1.06, now + 0.12);
+        osc.frequency.exponentialRampToValueAtTime(startFreq * 0.58, now + 1.5);
+
+        const oscGain = ctx.createGain();
+        oscGain.gain.setValueAtTime(idx === 0 ? 0.35 : 0.25, now);
+
+        osc.connect(oscGain);
+        oscGain.connect(filter1);
+        oscGain.connect(filter2);
+
+        osc.start(now);
+        osc.stop(now + 1.65);
+      });
+
+      // 3. Funny cartoon slide whistle
+      const slideOsc = ctx.createOscillator();
+      const slideGain = ctx.createGain();
+      slideOsc.type = 'sine';
+      slideOsc.frequency.setValueAtTime(500, now);
+      slideOsc.frequency.exponentialRampToValueAtTime(240, now + 1.3);
+
+      slideGain.gain.setValueAtTime(0.12, now);
+      slideGain.gain.exponentialRampToValueAtTime(0.001, now + 1.3);
+
+      slideOsc.connect(slideGain);
+      slideGain.connect(ctx.destination);
+
+      slideOsc.start(now);
+      slideOsc.stop(now + 1.35);
+    } catch {}
+  }
+
   // Win Victory Fanfare
   public playVictory() {
     if (this.isMuted) return;

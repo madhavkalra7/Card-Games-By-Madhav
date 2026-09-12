@@ -259,3 +259,53 @@ export function announceBluffPlay(
     console.warn('[BluffAnnouncer] Error playing TTS claim announcement:', err);
   }
 }
+
+/**
+ * Announce the showdown challenge verdict.
+ * For Honest reveal: A funny sympathetic "Awwwww! [Accused] bilkul sachhe nikle!"
+ */
+export function announceShowdownResult(
+  wasBluff: boolean,
+  accusedName: string,
+  challengerName: string,
+  lang: VoiceLanguage = 'EN'
+): void {
+  if (typeof window === 'undefined' || !('speechSynthesis' in window)) return;
+
+  try {
+    const { voice } = findBestVoice(lang);
+
+    let text = '';
+    if (wasBluff) {
+      text = lang === 'HI'
+        ? `चोरी पकड़ी गई! ${accusedName} का झूठ पकड़ा गया!`
+        : `Bluff caught! ${accusedName} was bluffing!`;
+    } else {
+      text = lang === 'HI'
+        ? `आऽऽऽऽऽव! ${accusedName} बिल्कुल सच्चे निकले! सारे पत्ते ${challengerName} के!`
+        : `Awwwww! ${accusedName} was completely honest! All cards go to ${challengerName}!`;
+    }
+
+    const utterance = new SpeechSynthesisUtterance(text);
+
+    if (voice) {
+      utterance.voice = voice;
+      utterance.lang = voice.lang;
+    } else {
+      utterance.lang = lang === 'HI' ? 'hi-IN' : 'en-IN';
+    }
+
+    utterance.rate = 0.88;
+    utterance.pitch = wasBluff ? 1.05 : 1.15;
+    utterance.volume = 1.0;
+
+    // Delay speech slightly (300ms) so the hilarious comical "awwww" sound effect leads first
+    setTimeout(() => {
+      try {
+        window.speechSynthesis.speak(utterance);
+      } catch {}
+    }, 300);
+  } catch (err) {
+    console.warn('[BluffAnnouncer] Error announcing showdown:', err);
+  }
+}

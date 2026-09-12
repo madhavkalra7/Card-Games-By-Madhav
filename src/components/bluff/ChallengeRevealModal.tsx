@@ -5,15 +5,21 @@ import { BluffChallengeResult } from '@/lib/types';
 import { PlayingCard } from '../card/PlayingCard';
 import { CheckCircle, ShieldAlert, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { sounds } from '@/lib/sound';
+import { announceShowdownResult, VoiceLanguage } from '@/lib/bluffAnnouncer';
 
 interface ChallengeRevealModalProps {
   result: BluffChallengeResult | null;
   onClose: () => void;
+  voiceLanguage?: VoiceLanguage;
+  isMuted?: boolean;
 }
 
 export const ChallengeRevealModal: React.FC<ChallengeRevealModalProps> = ({
   result,
   onClose,
+  voiceLanguage = 'EN',
+  isMuted = false,
 }) => {
   const [visible, setVisible] = useState(false);
   const [dismissedId, setDismissedId] = useState<string | null>(null);
@@ -29,6 +35,26 @@ export const ChallengeRevealModal: React.FC<ChallengeRevealModalProps> = ({
   useEffect(() => {
     if (result && result.id !== dismissedId) {
       setVisible(true);
+
+      // Play audio reaction based on showdown outcome
+      if (!result.wasBluff) {
+        // Honest move: Challenger was wrong! Play funny comical "awwww" sound!
+        sounds.playAww();
+      } else {
+        // Bluff caught: Play dramatic penalty sound!
+        sounds.playPenalty();
+      }
+
+      // Voice announcer reaction
+      if (!isMuted) {
+        announceShowdownResult(
+          result.wasBluff,
+          result.accusedName,
+          result.challengerName,
+          voiceLanguage
+        );
+      }
+
       const timer = setTimeout(() => {
         handleDismiss();
       }, 7000);
@@ -36,7 +62,7 @@ export const ChallengeRevealModal: React.FC<ChallengeRevealModalProps> = ({
     } else if (!result) {
       setVisible(false);
     }
-  }, [result?.id, dismissedId]);
+  }, [result?.id, dismissedId, isMuted, voiceLanguage]);
 
   if (!visible || !result || result.id === dismissedId) return null;
 
@@ -83,7 +109,7 @@ export const ChallengeRevealModal: React.FC<ChallengeRevealModalProps> = ({
           ) : (
             <div className="flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-3 py-0.5 sm:py-1 rounded-full bg-emerald-500/20 border border-emerald-500/50 text-emerald-400 text-[10px] sm:text-xs font-black uppercase tracking-widest animate-pulse">
               <CheckCircle className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-              <span>SHOWDOWN • HONEST MOVE</span>
+              <span>SHOWDOWN • 100% HONEST (AWWW! 🥺)</span>
             </div>
           )}
         </div>
@@ -137,7 +163,7 @@ export const ChallengeRevealModal: React.FC<ChallengeRevealModalProps> = ({
               wasBluff ? 'text-red-400' : 'text-emerald-400'
             )}
           >
-            {wasBluff ? '🚨 BLUFF CAUGHT!' : '🛡️ 100% HONEST!'}
+            {wasBluff ? '🚨 BLUFF CAUGHT!' : '🛡️ 100% HONEST! AWWWW~ 🥺'}
           </h2>
           <p className="text-[11px] sm:text-sm text-zinc-200 mt-1.5 sm:mt-2 font-medium leading-relaxed">
             {wasBluff ? (

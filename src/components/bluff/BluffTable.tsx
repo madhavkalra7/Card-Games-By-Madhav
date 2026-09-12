@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { GameStateClientView, PlayerClientView, Rank } from '@/lib/types';
 import { FanHand } from './FanHand';
@@ -14,6 +14,13 @@ import { sounds } from '@/lib/sound';
 import { useGameStore } from '@/store/gameStore';
 import { useFriendsStore } from '@/store/friendsStore';
 import { useViewportOrientation } from '@/hooks/useViewportOrientation';
+import {
+  announceBluffPlay,
+  initBluffAnnouncer,
+  getStoredVoiceLanguage,
+  setStoredVoiceLanguage,
+  VoiceLanguage,
+} from '@/lib/bluffAnnouncer';
 import {
   BookOpen,
   Check,
@@ -71,6 +78,50 @@ export const BluffTable: React.FC<BluffTableProps> = ({
   const [copied, setCopied] = useState(false);
   const [isMuted, setIsMuted] = useState(sounds.getMuted());
   const [showExitModal, setShowExitModal] = useState(false);
+
+  // Card voice announcer language preference (English vs Hindi with Indian Female Accent)
+  const [voiceLanguage, setVoiceLanguage] = useState<VoiceLanguage>('EN');
+
+  useEffect(() => {
+    setVoiceLanguage(getStoredVoiceLanguage());
+    initBluffAnnouncer();
+  }, []);
+
+  const handleSetVoiceLanguage = (lang: VoiceLanguage) => {
+    setStoredVoiceLanguage(lang);
+    setVoiceLanguage(lang);
+    showToast(lang === 'HI' ? 'हिंदी आवाज़ चालू (Hindi Voice)' : 'English Voice Enabled', 'info');
+  };
+
+  // Track latest card plays to speak claim out loud
+  const lastAnnouncedPlaySeq = useRef<number | undefined>(bluffState?.playSeq);
+  const prevPileCount = useRef<number>(bluffState?.centerPileCount || 0);
+
+  useEffect(() => {
+    if (!bluffState) return;
+
+    const playSeq = bluffState.playSeq;
+    const currentPileCount = bluffState.centerPileCount || 0;
+    const claimCount = bluffState.currentClaimCount;
+    const rank = bluffState.currentDeclaredRank;
+
+    let shouldAnnounce = false;
+
+    if (typeof playSeq === 'number' && playSeq > 0) {
+      if (playSeq !== lastAnnouncedPlaySeq.current) {
+        lastAnnouncedPlaySeq.current = playSeq;
+        shouldAnnounce = true;
+      }
+    } else if (currentPileCount > prevPileCount.current && claimCount > 0) {
+      shouldAnnounce = true;
+    }
+
+    prevPileCount.current = currentPileCount;
+
+    if (shouldAnnounce && rank && claimCount > 0 && !isMuted) {
+      announceBluffPlay(claimCount, rank, voiceLanguage);
+    }
+  }, [bluffState?.playSeq, bluffState?.centerPileCount, bluffState?.currentClaimCount, bluffState?.currentDeclaredRank, voiceLanguage, isMuted]);
 
   const me = players.find((p) => p.id === myPlayerId);
   const isMyTurn = currentTurnPlayerId === myPlayerId;
@@ -264,8 +315,41 @@ export const BluffTable: React.FC<BluffTableProps> = ({
             </button>
           </div>
 
-          {/* Top Right HUD: Voice Controls, Soundboard, Rules, Audio, Exit */}
+          {/* Top Right HUD: Voice Language Toggle, Voice Controls, Soundboard, Rules, Audio, Exit */}
           <div className="absolute top-1.5 sm:top-3 right-1.5 sm:right-3 z-30 flex items-center gap-1 sm:gap-1.5 pointer-events-auto">
+            {/* Voice Announcer Language Selector (English / Hindi Indian Female Accent) */}
+            <div
+              className="flex items-center bg-black/80 backdrop-blur-md rounded-full border border-gold/40 p-0.5 shadow-lg shrink-0"
+              title="Card Announcer Language (Indian Female Voice)"
+            >
+              <button
+                type="button"
+                onClick={() => handleSetVoiceLanguage('EN')}
+                className={cn(
+                  'px-1.5 xs:px-2 py-0.5 rounded-full text-[9px] xs:text-[10px] sm:text-[11px] font-black transition-all cursor-pointer',
+                  voiceLanguage === 'EN'
+                    ? 'bg-gradient-to-r from-amber-500 to-yellow-400 text-black shadow-sm font-extrabold'
+                    : 'text-zinc-400 hover:text-white'
+                )}
+                title="English (Female Indian Accent)"
+              >
+                EN
+              </button>
+              <button
+                type="button"
+                onClick={() => handleSetVoiceLanguage('HI')}
+                className={cn(
+                  'px-1.5 xs:px-2 py-0.5 rounded-full text-[9px] xs:text-[10px] sm:text-[11px] font-black transition-all cursor-pointer',
+                  voiceLanguage === 'HI'
+                    ? 'bg-gradient-to-r from-amber-500 to-yellow-400 text-black shadow-sm font-extrabold'
+                    : 'text-zinc-400 hover:text-white'
+                )}
+                title="हिंदी (Female Indian Accent)"
+              >
+                HI
+              </button>
+            </div>
+
             <VoiceControls roomCode={roomCode} />
 
             <button
@@ -426,7 +510,7 @@ export const BluffTable: React.FC<BluffTableProps> = ({
                 <span className="text-[9px] xs:text-[10px] sm:text-xs font-black uppercase tracking-wider text-amber-300 mb-0.5">
                   Select Claim Rank:
                 </span>
-                <div className="flex items-center gap-1 max-w-[92vw] overflow-x-auto py-1 px-2 scrollbar-none bg-black/85 rounded-2xl border border-white/15 backdrop-blur-md shadow-lg">
+                <div className="flex items-center gap-1 max-w-[92vw] overflow-x-auto py-1 px-2 no-scrollbar scrollbar-none bg-black/85 rounded-2xl border border-white/15 backdrop-blur-md shadow-lg">
                   {ALL_RANKS.map((r) => (
                     <button
                       key={r}

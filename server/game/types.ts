@@ -80,6 +80,7 @@ export interface BluffStateClientView {
   canAddCards: boolean;
   canLead: boolean;
   latestActionMessage?: string | null;
+  playSeq?: number;
 }
 
 export interface PenaltyReason {

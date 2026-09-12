@@ -124,7 +124,7 @@ export const FanHand: React.FC<FanHandProps> = ({
       </div>
 
       {/* Fan Cards Container: Anchored baseline so cards are 100% visible and NEVER cut off */}
-      <div className="relative w-full max-w-full overflow-x-auto overflow-y-visible scrollbar-none flex items-end justify-start sm:justify-center px-4 pt-8 pb-1 min-h-[95px] xs:min-h-[110px] sm:min-h-[135px]">
+      <div className="relative w-full max-w-full overflow-x-auto overflow-y-hidden no-scrollbar scrollbar-none flex items-end justify-start sm:justify-center px-4 pt-7 pb-1 min-h-[95px] xs:min-h-[110px] sm:min-h-[135px]">
         <div
           className="relative flex items-end justify-center mx-auto shrink-0"
           style={{

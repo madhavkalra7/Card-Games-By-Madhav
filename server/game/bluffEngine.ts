@@ -53,6 +53,7 @@ export class BluffMasterRoom {
   public isCycleCleared: boolean = false;
   public lastChallengeResult: BluffChallengeResult | null = null;
   public latestActionMessage: string | null = null;
+  public playSeq: number = 0;
 
   public turnTimeRemaining: number = 30;
   public rankings: Array<{
@@ -172,6 +173,7 @@ export class BluffMasterRoom {
     this.passedPlayerIds = [];
     this.isCycleCleared = false;
     this.lastChallengeResult = null;
+    this.playSeq = 0;
     this.rankings = [];
 
     // Distribute full 52 cards deck among 2 to 5 players
@@ -295,6 +297,7 @@ export class BluffMasterRoom {
     this.latestPlayerAvatar = player.avatarColor;
     this.currentDeclaredRank = declaredRank;
     this.currentClaimCount = cardIds.length;
+    this.playSeq++;
     this.passedPlayerIds = []; // reset passes on new card play
     this.isCycleCleared = false;
     this.lastChallengeResult = null;
@@ -612,6 +615,7 @@ export class BluffMasterRoom {
       canAddCards,
       canLead,
       latestActionMessage: this.latestActionMessage,
+      playSeq: this.playSeq,
     };
 
     return {

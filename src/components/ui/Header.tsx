@@ -44,7 +44,7 @@ export const Header: React.FC<HeaderProps> = ({ roomCode }) => {
 
   return (
     <>
-      <header className="w-full bg-zinc-950/80 backdrop-blur-md border-b border-white/10 px-2.5 sm:px-8 py-2 sm:py-3 flex items-center justify-between z-30 sticky top-0">
+      <header className="w-full bg-zinc-950/80 backdrop-blur-md border-b border-white/10 px-[max(0.6rem,env(safe-area-inset-left))] pr-[max(0.6rem,env(safe-area-inset-right))] sm:px-8 pt-[max(0.5rem,env(safe-area-inset-top))] pb-2 sm:py-3 flex items-center justify-between z-30 sticky top-0">
         {/* Brand Logo */}
         <Link href="/" className="flex items-center gap-1.5 sm:gap-2 group shrink-0">
           <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg bg-gradient-to-tr from-amber-600 to-yellow-400 flex items-center justify-center font-serif text-black font-black text-sm sm:text-lg shadow-md group-hover:scale-105 transition-transform shrink-0">

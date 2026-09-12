@@ -87,7 +87,7 @@ export default function RoomPage({ params }: { params: Promise<{ code: string }>
   // Direct join prompt modal if state is empty
   if (!gameState) {
     return (
-      <main className="min-h-screen min-h-[100dvh] bg-[#070d09] text-zinc-100 flex flex-col justify-between overflow-y-auto">
+      <main className="min-h-screen min-h-[100dvh] bg-[#070d09] text-zinc-100 flex flex-col justify-between overflow-y-auto pb-[max(1rem,env(safe-area-inset-bottom))]">
         <Header roomCode={roomCode} />
 
         <div className="flex-1 flex items-center justify-center p-2 sm:p-4">
@@ -183,7 +183,7 @@ export default function RoomPage({ params }: { params: Promise<{ code: string }>
   return (
     <main className={cn(
       "bg-[#070d09] text-zinc-100 flex flex-col justify-between selection:bg-gold selection:text-black",
-      isLobby ? "min-h-screen overflow-y-auto" : "h-screen h-[100dvh] overflow-hidden"
+      isLobby ? "min-h-screen min-h-[100dvh] overflow-y-auto pb-[max(1.5rem,env(safe-area-inset-bottom))]" : "h-screen h-[100dvh] overflow-hidden"
     )}>
       {/* Hide navbar when game starts (isLobby is false) */}
       {isLobby && <Header roomCode={roomCode} />}

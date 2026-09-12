@@ -228,8 +228,8 @@ export const ToonHeroSection: React.FC<ToonHeroSectionProps> = ({
 
         {/* 3. Top Header: Brand Label + Navigation (Ultra-responsive on all screen sizes) */}
         <header className={cn(
-          "absolute left-2.5 sm:left-8 right-2.5 sm:right-8 z-[60] flex items-center justify-between",
-          isShortHeight ? "top-2 sm:top-3" : "top-3 sm:top-6"
+          "absolute left-[max(0.6rem,env(safe-area-inset-left))] right-[max(0.6rem,env(safe-area-inset-right))] sm:left-8 sm:right-8 z-[60] flex items-center justify-between",
+          isShortHeight ? "top-[max(0.5rem,env(safe-area-inset-top))] sm:top-3" : "top-[max(0.75rem,env(safe-area-inset-top))] sm:top-6"
         )}>
           {/* Brand Logo & Name */}
           <div className="flex items-center gap-1.5 sm:gap-2.5 shrink-0 min-w-0">
@@ -491,8 +491,8 @@ export const ToonHeroSection: React.FC<ToonHeroSectionProps> = ({
           className={cn(
             "absolute z-[60] flex flex-col",
             isShortHeight
-              ? "bottom-2 left-2.5 sm:left-6 max-w-[270px] sm:max-w-[340px]"
-              : "bottom-3 sm:bottom-16 left-2.5 sm:left-12 lg:left-24 max-w-[calc(100vw-20px)] xs:max-w-[320px] sm:max-w-[380px]"
+              ? "bottom-[max(0.5rem,env(safe-area-inset-bottom))] left-[max(0.6rem,env(safe-area-inset-left))] sm:left-6 max-w-[270px] sm:max-w-[340px]"
+              : "bottom-[max(0.75rem,env(safe-area-inset-bottom))] sm:bottom-16 left-[max(0.6rem,env(safe-area-inset-left))] sm:left-12 lg:left-24 max-w-[calc(100vw-20px)] xs:max-w-[320px] sm:max-w-[380px]"
           )}
         >
           {/* Glass Card Container */}
@@ -615,7 +615,7 @@ export const ToonHeroSection: React.FC<ToonHeroSectionProps> = ({
         {/* 6. Bottom-right link */}
         <div className={cn(
           "absolute z-[60]",
-          isShortHeight ? "bottom-2 right-3 sm:right-8" : "bottom-4 sm:bottom-12 right-4 sm:right-12"
+          isShortHeight ? "bottom-[max(0.5rem,env(safe-area-inset-bottom))] right-[max(0.75rem,env(safe-area-inset-right))] sm:right-8" : "bottom-[max(0.75rem,env(safe-area-inset-bottom))] sm:bottom-12 right-[max(0.75rem,env(safe-area-inset-right))] sm:right-12"
         )}>
           {currentItem.isAvailable ? (
             <button

@@ -85,15 +85,15 @@ export const PokerTable: React.FC<PokerTableProps> = ({
     // Current player (Self) is always at bottom center
     if (idx === 0) {
       return isLandscape
-        ? 'bottom-0.5 sm:bottom-1 md:bottom-3 left-1/2 -translate-x-1/2'
-        : 'bottom-1 sm:bottom-2 md:bottom-4 left-1/2 -translate-x-1/2';
+        ? 'bottom-[max(0.25rem,env(safe-area-inset-bottom))] sm:bottom-1 md:bottom-3 left-1/2 -translate-x-1/2'
+        : 'bottom-[max(0.35rem,env(safe-area-inset-bottom))] sm:bottom-2 md:bottom-4 left-1/2 -translate-x-1/2';
     }
 
     // 2-Player (Self + 1 Opponent)
     if (count === 2) {
       return isLandscape
         ? 'top-1 sm:top-2 left-1/2 -translate-x-1/2 scale-90 sm:scale-100'
-        : 'top-12 xs:top-13 sm:top-14 left-1/2 -translate-x-1/2';
+        : 'top-[max(3rem,calc(env(safe-area-inset-top)+2.5rem))] sm:top-14 left-1/2 -translate-x-1/2';
     }
 
     // 3-Player (Self + 2 Opponents)
@@ -104,8 +104,8 @@ export const PokerTable: React.FC<PokerTableProps> = ({
         if (idx === 2) return 'top-1/2 -translate-y-1/2 right-1.5 sm:right-4 md:right-8';
       } else {
         // Portrait: Opponents spaced cleanly across top-left and top-right
-        if (idx === 1) return 'top-12 xs:top-13 sm:top-14 left-1.5 xs:left-3 sm:left-6';
-        if (idx === 2) return 'top-12 xs:top-13 sm:top-14 right-1.5 xs:right-3 sm:right-6';
+        if (idx === 1) return 'top-[max(3rem,calc(env(safe-area-inset-top)+2.5rem))] sm:top-14 left-1.5 xs:left-3 sm:left-6';
+        if (idx === 2) return 'top-[max(3rem,calc(env(safe-area-inset-top)+2.5rem))] sm:top-14 right-1.5 xs:right-3 sm:right-6';
       }
     }
 
@@ -120,7 +120,7 @@ export const PokerTable: React.FC<PokerTableProps> = ({
         // Portrait: Oval table layout (West flank, North center, East flank)
         // Eliminates 3-in-a-row crowding at the top on mobile phones!
         if (idx === 1) return 'top-[27%] -translate-y-1/2 left-1 xs:left-2 sm:left-4';
-        if (idx === 2) return 'top-13 xs:top-14 sm:top-15 left-1/2 -translate-x-1/2';
+        if (idx === 2) return 'top-[max(3rem,calc(env(safe-area-inset-top)+2.5rem))] sm:top-15 left-1/2 -translate-x-1/2';
         if (idx === 3) return 'top-[27%] -translate-y-1/2 right-1 xs:right-2 sm:right-4';
       }
     }
@@ -136,13 +136,13 @@ export const PokerTable: React.FC<PokerTableProps> = ({
       } else {
         // Portrait: 4 opponents in an arched semi-circle across the top
         if (idx === 1) return 'top-[28%] -translate-y-1/2 left-0.5 xs:left-1 sm:left-2';
-        if (idx === 2) return 'top-12 xs:top-13 left-[28%] -translate-x-1/2';
-        if (idx === 3) return 'top-12 xs:top-13 right-[28%] translate-x-1/2';
+        if (idx === 2) return 'top-[max(3rem,calc(env(safe-area-inset-top)+2.5rem))] sm:top-14 left-[28%] -translate-x-1/2';
+        if (idx === 3) return 'top-[max(3rem,calc(env(safe-area-inset-top)+2.5rem))] sm:top-14 right-[28%] translate-x-1/2';
         if (idx === 4) return 'top-[28%] -translate-y-1/2 right-0.5 xs:right-1 sm:right-2';
       }
     }
 
-    return 'top-1 sm:top-6 left-1/2 -translate-x-1/2';
+    return 'top-[max(3rem,calc(env(safe-area-inset-top)+2.5rem))] sm:top-6 left-1/2 -translate-x-1/2';
   };
 
   // Card size calculation per seat
@@ -179,7 +179,7 @@ export const PokerTable: React.FC<PokerTableProps> = ({
         <div className="relative w-full h-full rounded-[8px] sm:rounded-[18px] md:rounded-[32px] poker-felt-bg shadow-poker-felt border border-emerald-500/25 flex items-center justify-center overflow-hidden">
           
           {/* Minimal Floating HUD (Top Left: Room Code & Invite) - Non-Intrusive Mobile Sizing */}
-          <div className="absolute top-1 sm:top-2.5 left-1 sm:left-3 z-30 flex items-center gap-1 sm:gap-2 pointer-events-auto">
+          <div className="absolute top-[max(0.25rem,env(safe-area-inset-top))] left-[max(0.25rem,env(safe-area-inset-left))] sm:top-2.5 sm:left-3 z-30 flex items-center gap-1 sm:gap-2 pointer-events-auto">
             <div className="flex items-center gap-1 sm:gap-1.5 bg-black/80 backdrop-blur-md px-1.5 xs:px-2 sm:px-3 py-0.5 sm:py-1 rounded-full border border-gold/40 shadow-lg">
               <span className="text-[7.5px] xs:text-[8px] sm:text-[10px] text-zinc-400 font-bold uppercase tracking-wider hidden xs:inline">Room</span>
               <span className="font-mono font-black text-[10px] xs:text-[11px] sm:text-sm text-gold tracking-wider">{roomCode}</span>
@@ -203,7 +203,7 @@ export const PokerTable: React.FC<PokerTableProps> = ({
           </div>
 
           {/* Minimal Floating HUD (Top Right: Voice Controls, Soundboard, Rules, Audio, Exit) */}
-          <div className="absolute top-1 sm:top-2.5 right-1 sm:right-3 z-30 flex items-center gap-1 sm:gap-1.5 pointer-events-auto">
+          <div className="absolute top-[max(0.25rem,env(safe-area-inset-top))] right-[max(0.25rem,env(safe-area-inset-right))] sm:top-2.5 sm:right-3 z-30 flex items-center gap-1 sm:gap-1.5 pointer-events-auto">
             {/* Real-Time Voice Chat Controls */}
             <VoiceControls roomCode={roomCode} />
 

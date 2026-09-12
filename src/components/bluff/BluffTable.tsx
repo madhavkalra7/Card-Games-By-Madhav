@@ -179,7 +179,7 @@ export const BluffTable: React.FC<BluffTableProps> = ({
     if (count === 2) {
       return isLandscape
         ? 'top-3.5 sm:top-5 md:top-6 left-1/2 -translate-x-1/2'
-        : 'top-12 xs:top-14 sm:top-16 left-1/2 -translate-x-1/2';
+        : 'top-[max(3rem,calc(env(safe-area-inset-top)+2.5rem))] sm:top-16 left-1/2 -translate-x-1/2';
     }
 
     // 3-Player (Self + 2 Opponents)
@@ -188,8 +188,8 @@ export const BluffTable: React.FC<BluffTableProps> = ({
         if (idx === 1) return 'top-1/2 -translate-y-1/2 left-3 sm:left-8 md:left-12';
         if (idx === 2) return 'top-1/2 -translate-y-1/2 right-3 sm:right-8 md:right-12';
       } else {
-        if (idx === 1) return 'top-12 xs:top-14 sm:top-16 left-2 xs:left-4 sm:left-8';
-        if (idx === 2) return 'top-12 xs:top-14 sm:top-16 right-2 xs:right-4 sm:right-8';
+        if (idx === 1) return 'top-[max(3rem,calc(env(safe-area-inset-top)+2.5rem))] sm:top-16 left-2 xs:left-4 sm:left-8';
+        if (idx === 2) return 'top-[max(3rem,calc(env(safe-area-inset-top)+2.5rem))] sm:top-16 right-2 xs:right-4 sm:right-8';
       }
     }
 
@@ -200,9 +200,9 @@ export const BluffTable: React.FC<BluffTableProps> = ({
         if (idx === 2) return 'top-3.5 sm:top-5 left-1/2 -translate-x-1/2';
         if (idx === 3) return 'top-1/2 -translate-y-1/2 right-3 sm:right-8';
       } else {
-        if (idx === 1) return 'top-[28%] -translate-y-1/2 left-1 xs:left-2 sm:left-4';
-        if (idx === 2) return 'top-12 xs:top-14 sm:top-16 left-1/2 -translate-x-1/2';
-        if (idx === 3) return 'top-[28%] -translate-y-1/2 right-1 xs:right-2 sm:right-4';
+        if (idx === 1) return 'top-[30%] -translate-y-1/2 left-1 xs:left-2 sm:left-4';
+        if (idx === 2) return 'top-[max(3rem,calc(env(safe-area-inset-top)+2.5rem))] sm:top-16 left-1/2 -translate-x-1/2';
+        if (idx === 3) return 'top-[30%] -translate-y-1/2 right-1 xs:right-2 sm:right-4';
       }
     }
 
@@ -214,14 +214,14 @@ export const BluffTable: React.FC<BluffTableProps> = ({
         if (idx === 3) return 'top-[22%] -translate-y-1/2 right-2 sm:right-6';
         if (idx === 4) return 'top-[68%] -translate-y-1/2 right-2 sm:right-6';
       } else {
-        if (idx === 1) return 'top-[28%] -translate-y-1/2 left-0.5 xs:left-1 sm:left-2';
-        if (idx === 2) return 'top-12 xs:top-14 left-[28%] -translate-x-1/2';
-        if (idx === 3) return 'top-12 xs:top-14 right-[28%] translate-x-1/2';
-        if (idx === 4) return 'top-[28%] -translate-y-1/2 right-0.5 xs:right-1 sm:right-2';
+        if (idx === 1) return 'top-[30%] -translate-y-1/2 left-0.5 xs:left-1 sm:left-2';
+        if (idx === 2) return 'top-[max(3rem,calc(env(safe-area-inset-top)+2.5rem))] left-[28%] -translate-x-1/2';
+        if (idx === 3) return 'top-[max(3rem,calc(env(safe-area-inset-top)+2.5rem))] right-[28%] translate-x-1/2';
+        if (idx === 4) return 'top-[30%] -translate-y-1/2 right-0.5 xs:right-1 sm:right-2';
       }
     }
 
-    return 'top-12 xs:top-14 left-1/2 -translate-x-1/2';
+    return 'top-[max(3rem,calc(env(safe-area-inset-top)+2.5rem))] left-1/2 -translate-x-1/2';
   };
 
   // Card selection handlers (Enforces maximum 4 cards limit per play)
@@ -297,7 +297,7 @@ export const BluffTable: React.FC<BluffTableProps> = ({
         <div className="relative w-full h-full rounded-[8px] sm:rounded-[18px] md:rounded-[32px] poker-felt-bg shadow-poker-felt border border-emerald-500/25 overflow-hidden">
           
           {/* Top Unified Responsive HUD Bar: Single flex container to guarantee ZERO overlapping on mobile */}
-          <div className="absolute top-1 sm:top-2 left-1 right-1 sm:left-3 sm:right-3 z-30 flex items-center justify-between gap-1 pointer-events-none">
+          <div className="absolute top-[max(0.35rem,env(safe-area-inset-top))] left-[max(0.35rem,env(safe-area-inset-left))] right-[max(0.35rem,env(safe-area-inset-right))] sm:top-2 sm:left-3 sm:right-3 z-30 flex items-center justify-between gap-1 pointer-events-none">
             
             {/* Left Section: Room Code & Invite */}
             <div className="flex items-center gap-1 shrink-0 pointer-events-auto">
@@ -517,7 +517,7 @@ export const BluffTable: React.FC<BluffTableProps> = ({
 
           {/* ================= BOTTOM AREA: ACTION CONTROLS & FAN HAND ================= */}
           {/* Firmly anchored at the bottom edge with clean hierarchy and zero card cutoff */}
-          <div className="absolute bottom-1 sm:bottom-2 left-1/2 -translate-x-1/2 z-20 w-full max-w-5xl px-2 flex flex-col items-center pointer-events-auto">
+          <div className="absolute bottom-[max(0.25rem,env(safe-area-inset-bottom))] sm:bottom-2 left-1/2 -translate-x-1/2 z-20 w-full max-w-5xl px-2 flex flex-col items-center pointer-events-auto">
             
             {/* Rank Selector (Only shown if Fresh Cycle & It's My Turn) */}
             {isMyTurn && isCycleFresh && (

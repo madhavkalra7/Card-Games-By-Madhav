@@ -232,9 +232,9 @@ export const ToonHeroSection: React.FC<ToonHeroSectionProps> = ({
           isShortHeight ? "top-[max(0.5rem,env(safe-area-inset-top))] sm:top-3" : "top-[max(0.75rem,env(safe-area-inset-top))] sm:top-6"
         )}>
           {/* Brand Logo & Name */}
-          <div className="flex items-center gap-1.5 sm:gap-2.5 shrink-0 min-w-0">
-            <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg bg-white/20 backdrop-blur-md flex items-center justify-center text-white font-black text-xs sm:text-sm border border-white/30 shadow-sm shrink-0">
-              ♠
+          <div className="flex items-center gap-2 sm:gap-2.5 shrink-0 min-w-0">
+            <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl overflow-hidden border border-white/40 shadow-md shrink-0">
+              <img src="/logo.png" alt="Card Games Logo" className="w-full h-full object-cover" />
             </div>
             <div className="flex flex-col min-w-0 justify-center">
               <span

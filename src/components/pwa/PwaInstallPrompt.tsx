@@ -105,8 +105,8 @@ export const PwaInstallPrompt: React.FC = () => {
         >
           {/* App Icon + Text */}
           <div className="flex items-center gap-2.5 min-w-0">
-            <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-amber-500 to-yellow-600 p-0.5 shadow-gold-glow shrink-0 flex items-center justify-center text-black font-black text-sm">
-              ♠
+            <div className="w-10 h-10 rounded-xl overflow-hidden border border-gold/50 shadow-gold-glow shrink-0">
+              <img src="/logo.png" alt="Card Games Logo" className="w-full h-full object-cover" />
             </div>
             <div className="flex flex-col min-w-0">
               <div className="flex items-center gap-1.5">
@@ -158,8 +158,8 @@ export const PwaInstallPrompt: React.FC = () => {
               <X className="w-4 h-4" />
             </button>
 
-            <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-amber-500 to-yellow-600 mx-auto flex items-center justify-center text-black font-black text-xl mb-3 shadow-gold-glow">
-              ♠
+            <div className="w-16 h-16 rounded-2xl overflow-hidden border-2 border-gold/60 mx-auto mb-3 shadow-gold-glow">
+              <img src="/logo.png" alt="Card Games Logo" className="w-full h-full object-cover" />
             </div>
 
             <h3 className="text-base sm:text-lg font-black text-white font-serif mb-1">

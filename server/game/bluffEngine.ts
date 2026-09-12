@@ -1,6 +1,7 @@
 import { Card, GameStateClientView, PlayerClientView, Rank, Suit, BluffChallengeResult, BluffStateClientView } from './types';
 import { createDeck, shuffleDeck } from './deck';
 import { drawRandomRewardCard, CollectibleRewardInfo } from '../../src/lib/collectibles';
+import { calculateRankPoints } from './engine';
 
 const RANK_ORDER: Record<Rank, number> = {
   'A': 1, '2': 2, '3': 3, '4': 4, '5': 5, '6': 6, '7': 7,
@@ -55,7 +56,8 @@ export class BluffMasterRoom {
   public latestActionMessage: string | null = null;
   public playSeq: number = 0;
 
-  public turnTimeRemaining: number = 30;
+  public winner: BluffPlayer | null = null;
+  public turnTimeRemaining: number = 0;
   public rankings: Array<{
     playerId: string;
     name: string;
@@ -65,7 +67,6 @@ export class BluffMasterRoom {
     rewardCard?: CollectibleRewardInfo;
   }> = [];
 
-  private turnInterval: NodeJS.Timeout | null = null;
   private onStateChange: () => void;
   private onGameOver?: (room: BluffMasterRoom) => void;
 
@@ -202,39 +203,9 @@ export class BluffMasterRoom {
     this.cycleLeaderId = this.players[0].id;
     this.latestActionMessage = `${this.players[0].name} starts the match. Lead with any claim!`;
 
-    this.startTurnTimer();
+    this.winner = null;
+    this.onStateChange();
     return { success: true };
-  }
-
-  private startTurnTimer() {
-    if (this.turnInterval) clearInterval(this.turnInterval);
-    this.turnTimeRemaining = 30;
-
-    this.turnInterval = setInterval(() => {
-      this.turnTimeRemaining--;
-      if (this.turnTimeRemaining <= 0) {
-        this.handleTurnTimeout();
-      }
-      this.onStateChange();
-    }, 1000);
-  }
-
-  private handleTurnTimeout() {
-    const activePlayer = this.getActivePlayer();
-    if (!activePlayer) return;
-
-    // If there is an active cycle claim, auto-pass on timeout
-    if (this.currentDeclaredRank) {
-      this.passTurn(activePlayer.id);
-    } else {
-      // If leading a fresh cycle, auto-play first card of hand honestly
-      if (activePlayer.cards.length > 0) {
-        const card = activePlayer.cards[0];
-        this.playCards(activePlayer.id, [card.id], card.rank);
-      } else {
-        this.advanceTurn();
-      }
-    }
   }
 
   public getActivePlayer(): BluffPlayer | null {
@@ -251,7 +222,6 @@ export class BluffMasterRoom {
       attempts++;
     } while (this.players[this.currentTurnIndex].isFinished && attempts <= this.players.length);
 
-    this.turnTimeRemaining = 30;
     this.onStateChange();
   }
 
@@ -269,6 +239,10 @@ export class BluffMasterRoom {
 
     if (!cardIds || cardIds.length === 0) {
       return { success: false, error: "Select at least 1 card to play." };
+    }
+
+    if (cardIds.length > 4) {
+      return { success: false, error: "Cannot play more than 4 cards at once in Bluff." };
     }
 
     // Verify player actually holds these cards
@@ -310,8 +284,13 @@ export class BluffMasterRoom {
       this.latestActionMessage = `🚨 ${player.name} played their LAST card(s)! Challenge now if you suspect a bluff!`;
     }
 
+    // Check if any previous player who had 0 cards finished now that new cards were played
+    this.checkWinConditions();
+    if ((this.status as string) === 'GAME_OVER') {
+      return { success: true, message: this.latestActionMessage };
+    }
+
     this.advanceTurn();
-    this.startTurnTimer();
     return { success: true, message: this.latestActionMessage };
   }
 
@@ -383,6 +362,9 @@ export class BluffMasterRoom {
 
     // Check if any player finished
     this.checkWinConditions();
+    if ((this.status as string) === 'GAME_OVER') {
+      return { success: true, result: this.lastChallengeResult };
+    }
 
     // The winner of the challenge leads the next cycle
     const nextLeaderIndex = this.players.findIndex(p => p.id === winnerOfChallenge.id);
@@ -393,7 +375,6 @@ export class BluffMasterRoom {
       this.advanceTurn();
     }
 
-    this.startTurnTimer();
     this.onStateChange();
     return { success: true, result: this.lastChallengeResult };
   }
@@ -447,15 +428,31 @@ export class BluffMasterRoom {
         this.awardPlayerFinish(cycleWinner);
       }
 
-      this.currentTurnIndex = nextPlayerIndex;
-      this.cycleLeaderId = this.latestPlayerId;
-      this.startTurnTimer();
+      this.checkWinConditions();
+      if ((this.status as string) === 'GAME_OVER') {
+        return { success: true };
+      }
+
+      // If cycleWinner finished, advance to an active unfinished player
+      if (cycleWinner && !cycleWinner.isFinished) {
+        this.currentTurnIndex = nextPlayerIndex;
+        this.cycleLeaderId = this.latestPlayerId;
+      } else {
+        this.advanceTurn();
+        this.cycleLeaderId = this.getActivePlayer()?.id || null;
+      }
+
       this.onStateChange();
       return { success: true };
     }
 
+    // Check if any player finished on this pass
+    this.checkWinConditions();
+    if ((this.status as string) === 'GAME_OVER') {
+      return { success: true };
+    }
+
     this.advanceTurn();
-    this.startTurnTimer();
     return { success: true };
   }
 
@@ -466,12 +463,11 @@ export class BluffMasterRoom {
     const rankAwarded = this.rankings.length + 1;
     player.rank = rankAwarded;
 
-    let score = 500;
-    if (rankAwarded === 1) score = 2000;
-    else if (rankAwarded === 2) score = 1000;
-    else if (rankAwarded === 3) score = 500;
-
-    const rewardCard = (rankAwarded === 1 || rankAwarded === 2) ? drawRandomRewardCard(rankAwarded) : undefined;
+    const totalMatchPlayers = this.players.length;
+    const score = calculateRankPoints(rankAwarded, totalMatchPlayers);
+    const rewardCard = (rankAwarded === 1 || (rankAwarded === 2 && totalMatchPlayers > 2))
+      ? drawRandomRewardCard(rankAwarded)
+      : undefined;
 
     this.rankings.push({
       playerId: player.id,
@@ -482,7 +478,11 @@ export class BluffMasterRoom {
       rewardCard,
     });
 
-    this.latestActionMessage = `🎉 ${player.name} emptied their hand and took #${rankAwarded} place!`;
+    if (rankAwarded === 1) {
+      this.winner = player;
+    }
+
+    this.latestActionMessage = `🎉 ${player.name} emptied their hand and took #${rankAwarded} place (+${score} PTS)!`;
     this.checkWinConditions();
   }
 
@@ -496,27 +496,32 @@ export class BluffMasterRoom {
 
     const unfinishedPlayers = this.players.filter(p => !p.isFinished);
 
-    // If only 1 player remains with cards, match is over!
+    // If only 1 or 0 players remain with cards, match is over!
     if (unfinishedPlayers.length <= 1) {
       if (unfinishedPlayers.length === 1) {
         const lastPlayer = unfinishedPlayers[0];
         lastPlayer.isFinished = true;
         const lastRank = this.rankings.length + 1;
         lastPlayer.rank = lastRank;
+        const totalMatchPlayers = this.players.length;
+        const score = calculateRankPoints(lastRank, totalMatchPlayers);
         this.rankings.push({
           playerId: lastPlayer.id,
           name: lastPlayer.name,
           avatarColor: lastPlayer.avatarColor,
           rank: lastRank,
-          scoreEarned: 50,
+          scoreEarned: score,
         });
       }
 
       this.status = 'GAME_OVER';
-      if (this.turnInterval) {
-        clearInterval(this.turnInterval);
-        this.turnInterval = null;
+      this.rankings.sort((a, b) => a.rank - b.rank);
+      if (!this.winner && this.rankings[0]) {
+        const winP = this.players.find(p => p.id === this.rankings[0].playerId);
+        this.winner = winP || null;
       }
+
+      this.latestActionMessage = `🏆 Match Finished! Winner: ${this.rankings[0]?.name || 'Champion'}!`;
 
       this.onStateChange();
       if (this.onGameOver) {
@@ -633,7 +638,11 @@ export class BluffMasterRoom {
       myFloatingCard: null,
       bluffState,
       lastMove: null,
-      winner: this.rankings[0] ? {
+      winner: this.winner ? {
+        id: this.winner.id,
+        name: this.winner.name,
+        avatarColor: this.winner.avatarColor,
+      } : this.rankings[0] ? {
         id: this.rankings[0].playerId,
         name: this.rankings[0].name,
         avatarColor: this.rankings[0].avatarColor,

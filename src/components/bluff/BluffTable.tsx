@@ -6,7 +6,8 @@ import { GameStateClientView, PlayerClientView, Rank } from '@/lib/types';
 import { FanHand } from './FanHand';
 import { BluffPlayerSeat } from './BluffPlayerSeat';
 import { ChallengeRevealModal } from './ChallengeRevealModal';
-import { ThrowablesOverlay } from '../table/ThrowablesOverlay';
+import { BluffThrowablesOverlay } from './BluffThrowablesOverlay';
+import { ThrowablePicker } from '../table/ThrowablePicker';
 import { ExitConfirmModal } from '../modal/ExitConfirmModal';
 import { VoiceControls } from '../voice/VoiceControls';
 import { PlayingCard } from '../card/PlayingCard';
@@ -57,14 +58,16 @@ export const BluffTable: React.FC<BluffTableProps> = ({
     players,
     myPlayerId,
     currentTurnPlayerId,
-    turnTimeRemaining,
     bluffState,
   } = state;
 
-  const { setRulesModalOpen, setSoundboardOpen, showToast, leaveRoom } = useGameStore();
+  const { setRulesModalOpen, setSoundboardOpen, showToast, leaveRoom, throwItem } = useGameStore();
   const { setInviteModalOpen } = useFriendsStore();
   const router = useRouter();
   const { isLandscape, isMobile } = useViewportOrientation();
+
+  // Active target for throwable picker (managed at table level to avoid container transform issues)
+  const [throwableTarget, setThrowableTarget] = useState<{ id: string; name: string } | null>(null);
 
   // Local card selection state
   const [selectedCardIds, setSelectedCardIds] = useState<Set<string>>(new Set());
@@ -172,11 +175,11 @@ export const BluffTable: React.FC<BluffTableProps> = ({
   const getSeatPositionClass = (idx: number, count: number): string => {
     if (idx === 0) return 'bottom-1 left-1/2 -translate-x-1/2';
 
-    // 2-Player (Self + 1 Opponent at top center)
+    // 2-Player (Self + 1 Opponent at top center with safe margin from walnut rail)
     if (count === 2) {
       return isLandscape
-        ? 'top-2 sm:top-4 md:top-6 left-1/2 -translate-x-1/2'
-        : 'top-10 xs:top-12 sm:top-14 left-1/2 -translate-x-1/2';
+        ? 'top-3.5 sm:top-5 md:top-6 left-1/2 -translate-x-1/2'
+        : 'top-12 xs:top-14 sm:top-16 left-1/2 -translate-x-1/2';
     }
 
     // 3-Player (Self + 2 Opponents)
@@ -185,8 +188,8 @@ export const BluffTable: React.FC<BluffTableProps> = ({
         if (idx === 1) return 'top-1/2 -translate-y-1/2 left-3 sm:left-8 md:left-12';
         if (idx === 2) return 'top-1/2 -translate-y-1/2 right-3 sm:right-8 md:right-12';
       } else {
-        if (idx === 1) return 'top-10 xs:top-12 sm:top-14 left-2 xs:left-4 sm:left-8';
-        if (idx === 2) return 'top-10 xs:top-12 sm:top-14 right-2 xs:right-4 sm:right-8';
+        if (idx === 1) return 'top-12 xs:top-14 sm:top-16 left-2 xs:left-4 sm:left-8';
+        if (idx === 2) return 'top-12 xs:top-14 sm:top-16 right-2 xs:right-4 sm:right-8';
       }
     }
 
@@ -194,12 +197,12 @@ export const BluffTable: React.FC<BluffTableProps> = ({
     if (count === 4) {
       if (isLandscape) {
         if (idx === 1) return 'top-1/2 -translate-y-1/2 left-3 sm:left-8';
-        if (idx === 2) return 'top-2 sm:top-4 left-1/2 -translate-x-1/2';
+        if (idx === 2) return 'top-3.5 sm:top-5 left-1/2 -translate-x-1/2';
         if (idx === 3) return 'top-1/2 -translate-y-1/2 right-3 sm:right-8';
       } else {
-        if (idx === 1) return 'top-[26%] -translate-y-1/2 left-1 xs:left-2 sm:left-4';
-        if (idx === 2) return 'top-10 xs:top-12 sm:top-14 left-1/2 -translate-x-1/2';
-        if (idx === 3) return 'top-[26%] -translate-y-1/2 right-1 xs:right-2 sm:right-4';
+        if (idx === 1) return 'top-[28%] -translate-y-1/2 left-1 xs:left-2 sm:left-4';
+        if (idx === 2) return 'top-12 xs:top-14 sm:top-16 left-1/2 -translate-x-1/2';
+        if (idx === 3) return 'top-[28%] -translate-y-1/2 right-1 xs:right-2 sm:right-4';
       }
     }
 
@@ -211,23 +214,27 @@ export const BluffTable: React.FC<BluffTableProps> = ({
         if (idx === 3) return 'top-[22%] -translate-y-1/2 right-2 sm:right-6';
         if (idx === 4) return 'top-[68%] -translate-y-1/2 right-2 sm:right-6';
       } else {
-        if (idx === 1) return 'top-[27%] -translate-y-1/2 left-0.5 xs:left-1 sm:left-2';
-        if (idx === 2) return 'top-10 xs:top-12 left-[28%] -translate-x-1/2';
-        if (idx === 3) return 'top-10 xs:top-12 right-[28%] translate-x-1/2';
-        if (idx === 4) return 'top-[27%] -translate-y-1/2 right-0.5 xs:right-1 sm:right-2';
+        if (idx === 1) return 'top-[28%] -translate-y-1/2 left-0.5 xs:left-1 sm:left-2';
+        if (idx === 2) return 'top-12 xs:top-14 left-[28%] -translate-x-1/2';
+        if (idx === 3) return 'top-12 xs:top-14 right-[28%] translate-x-1/2';
+        if (idx === 4) return 'top-[28%] -translate-y-1/2 right-0.5 xs:right-1 sm:right-2';
       }
     }
 
-    return 'top-10 left-1/2 -translate-x-1/2';
+    return 'top-12 xs:top-14 left-1/2 -translate-x-1/2';
   };
 
-  // Card selection handlers
+  // Card selection handlers (Enforces maximum 4 cards limit per play)
   const handleToggleCard = (cardId: string) => {
     setSelectedCardIds((prev) => {
       const next = new Set(prev);
       if (next.has(cardId)) {
         next.delete(cardId);
       } else {
+        if (next.size >= 4) {
+          showToast('Ek baar mein maximum 4 cards hi khel sakte hain! (Max 4 cards)', 'info');
+          return prev;
+        }
         next.add(cardId);
         if (isCycleFresh) {
           const card = rawCards.find((c) => c.id === cardId);
@@ -245,6 +252,10 @@ export const BluffTable: React.FC<BluffTableProps> = ({
   // Actions
   const handlePlayCards = () => {
     if (!isMyTurn || selectedCardIds.size === 0) return;
+    if (selectedCardIds.size > 4) {
+      showToast('Maximum 4 cards can be played at once!', 'error');
+      return;
+    }
     const rankToPlay = declaredRank || selectedRank;
     onPlayCards(Array.from(selectedCardIds), rankToPlay);
     setSelectedCardIds(new Set());
@@ -285,110 +296,114 @@ export const BluffTable: React.FC<BluffTableProps> = ({
         {/* Physical Felt Table Inner Area */}
         <div className="relative w-full h-full rounded-[8px] sm:rounded-[18px] md:rounded-[32px] poker-felt-bg shadow-poker-felt border border-emerald-500/25 overflow-hidden">
           
-          {/* Top Left HUD: Room Code & Invite */}
-          <div className="absolute top-1.5 sm:top-3 left-1.5 sm:left-3 z-30 flex items-center gap-1 sm:gap-2 pointer-events-auto">
-            <div className="flex items-center gap-1 sm:gap-1.5 bg-black/80 backdrop-blur-md px-2 sm:px-3 py-0.5 sm:py-1 rounded-full border border-gold/40 shadow-lg">
-              <span className="text-[8px] sm:text-[10px] text-zinc-400 font-bold uppercase tracking-wider hidden xs:inline">
-                BLUFF
-              </span>
-              <span className="font-mono font-black text-[11px] sm:text-sm text-gold tracking-wider">
-                {roomCode}
-              </span>
+          {/* Top Unified Responsive HUD Bar: Single flex container to guarantee ZERO overlapping on mobile */}
+          <div className="absolute top-1 sm:top-2 left-1 right-1 sm:left-3 sm:right-3 z-30 flex items-center justify-between gap-1 pointer-events-none">
+            
+            {/* Left Section: Room Code & Invite */}
+            <div className="flex items-center gap-1 shrink-0 pointer-events-auto">
+              <div className="flex items-center gap-1 bg-black/80 backdrop-blur-md px-1.5 xs:px-2.5 py-0.5 sm:py-1 rounded-full border border-gold/40 shadow-lg">
+                <span className="text-[7.5px] xs:text-[8.5px] sm:text-[10px] text-zinc-400 font-bold uppercase tracking-wider hidden xs:inline">
+                  BLUFF
+                </span>
+                <span className="font-mono font-black text-[10px] xs:text-[11px] sm:text-sm text-gold tracking-wider">
+                  {roomCode}
+                </span>
+                <button
+                  type="button"
+                  onClick={handleCopy}
+                  title="Copy Room Code"
+                  className="p-0.5 rounded-full text-zinc-400 hover:text-white hover:bg-white/10 active:scale-90 transition-all cursor-pointer"
+                >
+                  {copied ? <Check className="w-2.5 h-2.5 sm:w-3 sm:h-3 text-green-400" /> : <Copy className="w-2.5 h-2.5 sm:w-3 sm:h-3" />}
+                </button>
+              </div>
+
               <button
                 type="button"
-                onClick={handleCopy}
-                title="Copy Room Code"
-                className="p-0.5 rounded-full text-zinc-400 hover:text-white hover:bg-white/10 active:scale-90 transition-all cursor-pointer"
+                onClick={() => setInviteModalOpen(true)}
+                title="Direct Invite Friends"
+                className="flex items-center justify-center w-6 h-6 xs:w-7 xs:h-7 sm:w-auto sm:px-2.5 sm:py-1 rounded-full bg-black/80 hover:bg-gold/20 backdrop-blur-md border border-gold/50 text-gold text-[9px] sm:text-[11px] font-bold shadow-lg transition-all active:scale-95 cursor-pointer"
               >
-                {copied ? <Check className="w-2.5 h-2.5 sm:w-3 sm:h-3 text-green-400" /> : <Copy className="w-2.5 h-2.5 sm:w-3 sm:h-3" />}
+                <UserPlus className="w-2.5 h-2.5 xs:w-3 xs:h-3" />
+                <span className="hidden sm:inline sm:ml-1">Invite</span>
               </button>
             </div>
 
-            <button
-              type="button"
-              onClick={() => setInviteModalOpen(true)}
-              title="Direct Invite Friends"
-              className="flex items-center justify-center w-6 h-6 xs:w-7 xs:h-7 sm:w-auto sm:px-2.5 sm:py-1 rounded-full bg-black/80 hover:bg-gold/20 backdrop-blur-md border border-gold/50 text-gold text-[9px] sm:text-[11px] font-bold shadow-lg transition-all active:scale-95 cursor-pointer"
-            >
-              <UserPlus className="w-2.5 h-2.5 xs:w-3 xs:h-3" />
-              <span className="hidden sm:inline sm:ml-1">Invite</span>
-            </button>
-          </div>
+            {/* Right Section: Language Toggle, Voice Chat, Sounds, Rules, Audio, Exit */}
+            <div className="flex items-center gap-0.5 xs:gap-1 sm:gap-1.5 shrink-0 pointer-events-auto justify-end">
+              {/* Voice Announcer Language Selector (English / Hindi Indian Accent) */}
+              <div
+                className="flex items-center bg-black/80 backdrop-blur-md rounded-full border border-gold/40 p-0.5 shadow-lg shrink-0"
+                title="Card Announcer Language"
+              >
+                <button
+                  type="button"
+                  onClick={() => handleSetVoiceLanguage('EN')}
+                  className={cn(
+                    'px-1.5 xs:px-2 py-0.5 rounded-full text-[8.5px] xs:text-[9.5px] sm:text-[11px] font-black transition-all cursor-pointer',
+                    voiceLanguage === 'EN'
+                      ? 'bg-gradient-to-r from-amber-500 to-yellow-400 text-black shadow-sm font-extrabold'
+                      : 'text-zinc-400 hover:text-white'
+                  )}
+                  title="English Voice"
+                >
+                  EN
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleSetVoiceLanguage('HI')}
+                  className={cn(
+                    'px-1.5 xs:px-2 py-0.5 rounded-full text-[8.5px] xs:text-[9.5px] sm:text-[11px] font-black transition-all cursor-pointer',
+                    voiceLanguage === 'HI'
+                      ? 'bg-gradient-to-r from-amber-500 to-yellow-400 text-black shadow-sm font-extrabold'
+                      : 'text-zinc-400 hover:text-white'
+                  )}
+                  title="हिंदी आवाज़"
+                >
+                  HI
+                </button>
+              </div>
 
-          {/* Top Right HUD: Voice Language Toggle, Voice Controls, Soundboard, Rules, Audio, Exit */}
-          <div className="absolute top-1.5 sm:top-3 right-1.5 sm:right-3 z-30 flex items-center gap-1 sm:gap-1.5 pointer-events-auto">
-            {/* Voice Announcer Language Selector (English / Hindi Indian Female Accent) */}
-            <div
-              className="flex items-center bg-black/80 backdrop-blur-md rounded-full border border-gold/40 p-0.5 shadow-lg shrink-0"
-              title="Card Announcer Language (Indian Female Voice)"
-            >
+              <VoiceControls roomCode={roomCode} />
+
               <button
                 type="button"
-                onClick={() => handleSetVoiceLanguage('EN')}
-                className={cn(
-                  'px-1.5 xs:px-2 py-0.5 rounded-full text-[9px] xs:text-[10px] sm:text-[11px] font-black transition-all cursor-pointer',
-                  voiceLanguage === 'EN'
-                    ? 'bg-gradient-to-r from-amber-500 to-yellow-400 text-black shadow-sm font-extrabold'
-                    : 'text-zinc-400 hover:text-white'
-                )}
-                title="English (Female Indian Accent)"
+                onClick={() => setSoundboardOpen(true)}
+                title="Real-Time Desi Meme Soundboard"
+                className="flex items-center justify-center w-6 h-6 xs:w-7 xs:h-7 sm:w-auto sm:px-2.5 sm:py-1.5 rounded-full bg-gradient-to-r from-amber-600/30 via-orange-600/30 to-amber-600/30 hover:from-amber-600/50 hover:to-orange-600/50 backdrop-blur-md border border-amber-500/50 text-[10px] sm:text-[11px] font-extrabold text-amber-300 hover:text-white shadow-lg transition-all active:scale-95 cursor-pointer"
               >
-                EN
+                <Volume2 className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-amber-400 animate-pulse" />
+                <span className="hidden md:inline md:ml-1">Sounds</span>
               </button>
+
               <button
                 type="button"
-                onClick={() => handleSetVoiceLanguage('HI')}
-                className={cn(
-                  'px-1.5 xs:px-2 py-0.5 rounded-full text-[9px] xs:text-[10px] sm:text-[11px] font-black transition-all cursor-pointer',
-                  voiceLanguage === 'HI'
-                    ? 'bg-gradient-to-r from-amber-500 to-yellow-400 text-black shadow-sm font-extrabold'
-                    : 'text-zinc-400 hover:text-white'
-                )}
-                title="हिंदी (Female Indian Accent)"
+                onClick={() => setRulesModalOpen(true)}
+                title="View Rules"
+                className="flex items-center justify-center w-6 h-6 xs:w-7 xs:h-7 sm:w-auto sm:px-2.5 sm:py-1.5 rounded-full bg-black/75 backdrop-blur-md border border-white/15 text-[10px] sm:text-[11px] font-bold text-zinc-300 hover:text-gold hover:border-gold/40 shadow transition-all active:scale-95 cursor-pointer"
               >
-                HI
+                <BookOpen className="w-3.5 h-3.5 text-gold" />
+                <span className="hidden md:inline md:ml-1">Rules</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={handleToggleSound}
+                title={isMuted ? 'Unmute' : 'Mute'}
+                className="flex items-center justify-center w-6 h-6 xs:w-7 xs:h-7 sm:w-8 sm:h-8 rounded-full bg-black/75 backdrop-blur-md border border-white/15 text-zinc-300 hover:text-white shadow transition-all active:scale-95 cursor-pointer"
+              >
+                {isMuted ? <VolumeX className="w-3 h-3 text-red-400" /> : <Volume2 className="w-3 h-3 text-emerald-400" />}
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setShowExitModal(true)}
+                title="Leave Room"
+                className="flex items-center justify-center w-6 h-6 xs:w-7 xs:h-7 sm:w-8 sm:h-8 rounded-full bg-red-950/70 backdrop-blur-md border border-red-800/60 text-red-300 hover:text-white shadow transition-all active:scale-95 cursor-pointer"
+              >
+                <LogOut className="w-3 h-3 text-red-400" />
               </button>
             </div>
-
-            <VoiceControls roomCode={roomCode} />
-
-            <button
-              type="button"
-              onClick={() => setSoundboardOpen(true)}
-              title="Real-Time Desi Meme Soundboard"
-              className="flex items-center justify-center w-6 h-6 xs:w-7 xs:h-7 sm:w-auto sm:px-2.5 sm:py-1.5 rounded-full bg-gradient-to-r from-amber-600/30 via-orange-600/30 to-amber-600/30 hover:from-amber-600/50 hover:to-orange-600/50 backdrop-blur-md border border-amber-500/50 text-[10px] sm:text-[11px] font-extrabold text-amber-300 hover:text-white shadow-lg transition-all active:scale-95 cursor-pointer"
-            >
-              <Volume2 className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-amber-400 animate-pulse" />
-              <span className="hidden sm:inline sm:ml-1">Sounds</span>
-            </button>
-
-            <button
-              type="button"
-              onClick={() => setRulesModalOpen(true)}
-              title="View Rules"
-              className="flex items-center justify-center w-6 h-6 xs:w-7 xs:h-7 sm:w-auto sm:px-2.5 sm:py-1.5 rounded-full bg-black/75 backdrop-blur-md border border-white/15 text-[10px] sm:text-[11px] font-bold text-zinc-300 hover:text-gold hover:border-gold/40 shadow transition-all active:scale-95 cursor-pointer"
-            >
-              <BookOpen className="w-3.5 h-3.5 text-gold" />
-              <span className="hidden md:inline md:ml-1">Rules</span>
-            </button>
-
-            <button
-              type="button"
-              onClick={handleToggleSound}
-              title={isMuted ? 'Unmute' : 'Mute'}
-              className="flex items-center justify-center w-6 h-6 xs:w-7 xs:h-7 sm:w-8 sm:h-8 rounded-full bg-black/75 backdrop-blur-md border border-white/15 text-zinc-300 hover:text-white shadow transition-all active:scale-95 cursor-pointer"
-            >
-              {isMuted ? <VolumeX className="w-3 h-3 text-red-400" /> : <Volume2 className="w-3 h-3 text-emerald-400" />}
-            </button>
-
-            <button
-              type="button"
-              onClick={() => setShowExitModal(true)}
-              title="Leave Room"
-              className="flex items-center justify-center w-6 h-6 xs:w-7 xs:h-7 sm:w-8 sm:h-8 rounded-full bg-red-950/70 backdrop-blur-md border border-red-800/60 text-red-300 hover:text-white shadow transition-all active:scale-95 cursor-pointer"
-            >
-              <LogOut className="w-3 h-3 text-red-400" />
-            </button>
           </div>
 
           {/* Opponent Seats Positioned Around Table */}
@@ -410,7 +425,7 @@ export const BluffTable: React.FC<BluffTableProps> = ({
                 hasPassed={hasPassed}
                 cardsCount={count}
                 positionClass={posClass}
-                turnTimeRemaining={turnTimeRemaining}
+                onOpenThrowablePicker={(playerId, playerName) => setThrowableTarget({ id: playerId, name: playerName })}
               />
             );
           })}
@@ -448,11 +463,11 @@ export const BluffTable: React.FC<BluffTableProps> = ({
               <div className="mt-1 flex items-center gap-1">
                 {isMyTurn ? (
                   <span className="px-3 sm:px-4 py-0.5 rounded-full bg-amber-400 text-black text-[9px] xs:text-[10px] sm:text-xs font-black uppercase tracking-wider shadow-gold-glow animate-pulse">
-                    ⭐ Your Turn ({turnTimeRemaining}s)
+                    ⭐ Your Turn
                   </span>
                 ) : (
                   <span className="px-2.5 sm:px-3.5 py-0.5 rounded-full bg-black/65 text-zinc-300 border border-white/10 text-[9px] xs:text-[10px] sm:text-xs font-medium">
-                    Turn: <strong className="text-white">{currentTurnPlayer?.name}</strong> ({turnTimeRemaining}s)
+                    Turn: <strong className="text-white">{currentTurnPlayer?.name}</strong>
                   </span>
                 )}
               </div>
@@ -580,9 +595,9 @@ export const BluffTable: React.FC<BluffTableProps> = ({
                 </>
               ) : (
                 <div className="px-3 sm:px-4 py-1 rounded-full bg-black/65 backdrop-blur-md border border-white/10 text-[10px] xs:text-xs text-zinc-300 flex items-center gap-2 shadow">
-                  <Clock className="w-3.5 h-3.5 text-gold animate-spin" />
+                  <span className="w-2 h-2 rounded-full bg-amber-400 animate-ping" />
                   <span>
-                    Waiting for <strong className="text-white">{currentTurnPlayer?.name}</strong> ({turnTimeRemaining}s)...
+                    Waiting for <strong className="text-white">{currentTurnPlayer?.name}</strong> to make a move...
                   </span>
                 </div>
               )}
@@ -612,8 +627,22 @@ export const BluffTable: React.FC<BluffTableProps> = ({
         }}
       />
 
-      {/* Throwables Animation Overlay */}
-      <ThrowablesOverlay />
+      {/* Dedicated Bluff Throwables Animation Overlay */}
+      <BluffThrowablesOverlay />
+
+      {/* Top-Level Fullscreen Centered Throwable Picker (Zero clipping, zero parent transform issues) */}
+      <ThrowablePicker
+        targetPlayerId={throwableTarget?.id || ''}
+        targetPlayerName={throwableTarget?.name || ''}
+        isOpen={!!throwableTarget}
+        onClose={() => setThrowableTarget(null)}
+        onSelect={(type) => {
+          if (throwableTarget) {
+            throwItem(throwableTarget.id, type);
+            setThrowableTarget(null);
+          }
+        }}
+      />
 
       {/* Leave Room Modal */}
       <ExitConfirmModal

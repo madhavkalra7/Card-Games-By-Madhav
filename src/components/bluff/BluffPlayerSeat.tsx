@@ -18,6 +18,7 @@ interface BluffPlayerSeatProps {
   cardsCount: number;
   positionClass?: string;
   turnTimeRemaining?: number;
+  onOpenThrowablePicker?: (playerId: string, playerName: string) => void;
 }
 
 export const BluffPlayerSeat: React.FC<BluffPlayerSeatProps> = ({
@@ -29,6 +30,7 @@ export const BluffPlayerSeat: React.FC<BluffPlayerSeatProps> = ({
   cardsCount,
   positionClass = '',
   turnTimeRemaining = 30,
+  onOpenThrowablePicker,
 }) => {
   const [showPicker, setShowPicker] = useState(false);
   const activeImpacts = useGameStore((s) => s.activeImpacts);
@@ -49,6 +51,21 @@ export const BluffPlayerSeat: React.FC<BluffPlayerSeatProps> = ({
     ? isInVoice && isMicMuted
     : !!peerStates[player.id]?.isMuted;
 
+  // Seat position detection for zero-cut-off splatter anchoring
+  const isTopSeat = (
+    positionClass.includes('top-1') ||
+    positionClass.includes('top-2') ||
+    positionClass.includes('top-3') ||
+    positionClass.includes('top-4') ||
+    positionClass.includes('top-5') ||
+    positionClass.includes('top-6') ||
+    positionClass.includes('top-12') ||
+    positionClass.includes('top-13') ||
+    positionClass.includes('top-14') ||
+    positionClass.includes('top-15') ||
+    positionClass.includes('top-16')
+  ) && !positionClass.includes('top-1/2');
+
   const isLeftFlank = positionClass.includes('left-0') || positionClass.includes('left-1') || positionClass.includes('left-2') || positionClass.includes('left-3');
   const isRightFlank = positionClass.includes('right-0') || positionClass.includes('right-1') || positionClass.includes('right-2') || positionClass.includes('right-3');
   const pickerAlign: 'center' | 'left' | 'right' = isLeftFlank ? 'left' : isRightFlank ? 'right' : 'center';
@@ -67,31 +84,38 @@ export const BluffPlayerSeat: React.FC<BluffPlayerSeatProps> = ({
         positionClass
       )}
     >
-      {/* Real-time Impact Splatters */}
+      {/* Real-time Impact Splatters (Never cut off: Anchored safely below avatar for top seats, avoiding the walnut rail) */}
       {currentImpact && (
-        <div className="absolute -top-7 sm:-top-8 left-1/2 -translate-x-1/2 pointer-events-none z-50 flex items-center justify-center animate-bounce">
+        <div
+          className={cn(
+            'absolute pointer-events-none z-50 flex items-center justify-center animate-bounce',
+            isTopSeat
+              ? 'top-7 xs:top-8 sm:top-10 left-1/2 -translate-x-1/2'
+              : '-top-7 sm:-top-8 left-1/2 -translate-x-1/2'
+          )}
+        >
           {currentImpact.itemType === 'chappal' && (
-            <div className="bg-red-600/95 text-white font-black text-[10px] sm:text-xs px-2 py-0.5 rounded-full border border-yellow-300 shadow-lg whitespace-nowrap">
+            <div className="bg-red-600/95 text-white font-black text-[10px] sm:text-xs px-2.5 py-0.5 rounded-full border border-yellow-300 shadow-[0_4px_15px_rgba(220,38,38,0.7)] whitespace-nowrap">
               PHATAK! 🩴💥
             </div>
           )}
           {currentImpact.itemType === 'chai' && (
-            <div className="bg-amber-700/95 text-white font-black text-[10px] sm:text-xs px-2 py-0.5 rounded-full border border-amber-300 shadow-lg whitespace-nowrap">
+            <div className="bg-amber-700/95 text-white font-black text-[10px] sm:text-xs px-2.5 py-0.5 rounded-full border border-amber-300 shadow-[0_4px_15px_rgba(217,119,6,0.7)] whitespace-nowrap">
               GARAM CHAI! ☕♨️
             </div>
           )}
           {currentImpact.itemType === 'tomato' && (
-            <div className="bg-red-700/95 text-white font-black text-[10px] sm:text-xs px-2 py-0.5 rounded-full border border-red-300 shadow-lg whitespace-nowrap">
+            <div className="bg-red-700/95 text-white font-black text-[10px] sm:text-xs px-2.5 py-0.5 rounded-full border border-red-300 shadow-[0_4px_15px_rgba(185,28,28,0.7)] whitespace-nowrap">
               SPLATTER! 🍅💦
             </div>
           )}
           {currentImpact.itemType === 'cash' && (
-            <div className="bg-emerald-600/95 text-white font-black text-[10px] sm:text-xs px-2 py-0.5 rounded-full border border-yellow-200 shadow-lg whitespace-nowrap">
+            <div className="bg-emerald-600/95 text-white font-black text-[10px] sm:text-xs px-2.5 py-0.5 rounded-full border border-yellow-200 shadow-[0_4px_15px_rgba(16,185,129,0.7)] whitespace-nowrap">
               PAISA HI PAISA! 💸✨
             </div>
           )}
           {currentImpact.itemType === 'rose' && (
-            <div className="bg-pink-600/95 text-white font-black text-[10px] sm:text-xs px-2 py-0.5 rounded-full border border-pink-200 shadow-lg whitespace-nowrap">
+            <div className="bg-pink-600/95 text-white font-black text-[10px] sm:text-xs px-2.5 py-0.5 rounded-full border border-pink-200 shadow-[0_4px_15px_rgba(236,72,153,0.7)] whitespace-nowrap">
               PYAAR SE! 🌹💖
             </div>
           )}
@@ -101,8 +125,15 @@ export const BluffPlayerSeat: React.FC<BluffPlayerSeatProps> = ({
       {/* Avatar Container */}
       <div className="relative">
         <div
-          onClick={() => !isSelf && setShowPicker(!showPicker)}
-          title={!isSelf ? "Click to throw items at this player!" : undefined}
+          onClick={() => {
+            if (isSelf) return;
+            if (onOpenThrowablePicker) {
+              onOpenThrowablePicker(player.id, player.name);
+            } else {
+              setShowPicker(!showPicker);
+            }
+          }}
+          title={!isSelf ? `Throw items at ${player.name}!` : undefined}
           className={cn(
             'relative w-8 h-8 xs:w-9 xs:h-9 sm:w-12 sm:h-12 rounded-full flex items-center justify-center font-black text-white text-xs sm:text-base shadow-xl transition-transform',
             !isSelf && 'cursor-pointer hover:scale-110 active:scale-95 touch-manipulation',
@@ -138,8 +169,8 @@ export const BluffPlayerSeat: React.FC<BluffPlayerSeatProps> = ({
           )}
         </div>
 
-        {/* Throwable Picker Popup */}
-        {!isSelf && (
+        {/* Fallback Throwable Picker Popup if top-level handler not provided */}
+        {!isSelf && !onOpenThrowablePicker && (
           <ThrowablePicker
             isOpen={showPicker}
             targetPlayerId={player.id}
@@ -180,8 +211,8 @@ export const BluffPlayerSeat: React.FC<BluffPlayerSeatProps> = ({
             </span>
           )}
           {isCurrentTurn && (
-            <span className="text-[7px] xs:text-[8px] bg-amber-400 text-black px-1.5 py-0.2 rounded-full font-black animate-pulse flex items-center gap-0.5">
-              <span>{turnTimeRemaining}s</span>
+            <span className="text-[7px] xs:text-[8px] bg-gradient-to-r from-amber-400 to-yellow-300 text-black px-1.5 py-0.2 rounded-full font-black animate-pulse uppercase tracking-wider shadow-sm">
+              TURN
             </span>
           )}
         </div>

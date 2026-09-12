@@ -95,9 +95,16 @@ export const FanHand: React.FC<FanHandProps> = ({
         </div>
 
         {selectedCardIds.size > 0 && (
-          <div className="flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-amber-500/25 backdrop-blur-md border border-gold/60 text-gold text-[10px] xs:text-[11px] font-bold shadow-md animate-in fade-in zoom-in-95 duration-150">
+          <div
+            className={cn(
+              'flex items-center gap-1.5 px-2.5 py-0.5 rounded-full backdrop-blur-md border text-[10px] xs:text-[11px] font-bold shadow-md animate-in fade-in zoom-in-95 duration-150',
+              selectedCardIds.size === 4
+                ? 'bg-amber-500/35 border-amber-400 text-amber-300 font-black ring-1 ring-amber-400/40'
+                : 'bg-amber-500/25 border-gold/60 text-gold'
+            )}
+          >
             <Check className="w-3 h-3" />
-            <span>{selectedCardIds.size} Selected</span>
+            <span>{selectedCardIds.size}/4 Selected</span>
             {onClearSelection && (
               <button
                 type="button"

@@ -3,10 +3,25 @@ import { useVoiceStore } from '@/store/voiceStore';
 
 // Multi-layered ICE servers: High-speed Google + Cloudflare Anycast STUN + Twilio + Nextcloud + OpenRelay TCP TURN.
 // Engineered specifically for resilient cross-network mobile & desktop connections (Jio, Airtel, Vi, Wi-Fi, symmetric NATs).
+
+let dynamicTurnConfig: { turnUrl?: string; username?: string; credential?: string } | null = null;
+
+// Pre-fetch server-side TURN config if configured as Vercel Secret (TURN_URL / TURN_USERNAME / TURN_CREDENTIAL)
+if (typeof window !== 'undefined') {
+  fetch('/api/turn-servers')
+    .then((r) => r.json())
+    .then((data) => {
+      if (data && data.turnUrl) {
+        dynamicTurnConfig = data;
+      }
+    })
+    .catch(() => {});
+}
+
 const getIceServers = (): RTCConfiguration => {
-  const customTurnUrl = process.env.NEXT_PUBLIC_TURN_URL;
-  const customTurnUsername = process.env.NEXT_PUBLIC_TURN_USERNAME;
-  const customTurnCredential = process.env.NEXT_PUBLIC_TURN_CREDENTIAL;
+  const customTurnUrl = process.env.NEXT_PUBLIC_TURN_URL || dynamicTurnConfig?.turnUrl;
+  const customTurnUsername = process.env.NEXT_PUBLIC_TURN_USERNAME || dynamicTurnConfig?.username;
+  const customTurnCredential = process.env.NEXT_PUBLIC_TURN_CREDENTIAL || dynamicTurnConfig?.credential;
 
   const servers: RTCIceServer[] = [
     // 1. Google Public STUN (Ultra-fast 18ms latency, 5 multi-port global anycast endpoints)
@@ -139,6 +154,17 @@ class VoiceManager {
     store.setIsConnecting(true);
     store.setError(null);
     this.currentRoomCode = roomCode.toUpperCase();
+
+    // Ensure dynamic TURN config is loaded before peer connections start
+    if (!dynamicTurnConfig && typeof window !== 'undefined') {
+      try {
+        const res = await fetch('/api/turn-servers');
+        const data = await res.json();
+        if (data && data.turnUrl) {
+          dynamicTurnConfig = data;
+        }
+      } catch (e) {}
+    }
 
     try {
       // 1. Initialize and unlock AudioContext on user gesture (crucial for iOS Safari & Android Chrome)

@@ -36,6 +36,14 @@ function generateRoomCode(): string {
   return code;
 }
 
+interface RoomAutoAbort {
+  timer: NodeJS.Timeout;
+  deadline: number;
+  playerName: string;
+}
+
+const roomAutoAbortTimers = new Map<string, RoomAutoAbort>();
+
 export function setupSocketHandlers(io: SocketIOServer) {
   function broadcastRoomState(room: DukkiBazaarRoom | BluffMasterRoom) {
     for (const player of room.players) {
@@ -44,14 +52,18 @@ export function setupSocketHandlers(io: SocketIOServer) {
         io.to(player.id).emit('syncState', clientView);
       }
     }
+    for (const spectator of (room as any).spectators || []) {
+      const clientView = room.getClientView(spectator.id);
+      io.to(spectator.id).emit('syncState', clientView);
+    }
   }
 
   function createRoomInstance(code: string, gameType: GameType = 'DUKKI_BAZAAR'): DukkiBazaarRoom | BluffMasterRoom {
     const handleGameOver = async (finishedRoom: DukkiBazaarRoom | BluffMasterRoom) => {
       try {
         for (const r of finishedRoom.rankings) {
-          if (r.scoreEarned) {
-            await updatePlayerStats(r.name, r.scoreEarned, r.rank === 1);
+          if (r.scoreEarned || r.coinsEarned) {
+            await updatePlayerStats(r.name, r.scoreEarned || 0, r.rank === 1, r.coinsEarned || 0);
           }
         }
         const winner = finishedRoom.rankings.find(r => r.rank === 1) || (finishedRoom as any).winner;
@@ -61,7 +73,7 @@ export function setupSocketHandlers(io: SocketIOServer) {
             winnerName: winner.name,
             roundsCount: finishedRoom.rankings.length,
             playerCount: finishedRoom.players.length,
-            summary: finishedRoom.rankings.map(r => `#${r.rank} ${r.name} (+${r.scoreEarned || 0} PTS)`).join(', '),
+            summary: finishedRoom.rankings.map(r => `#${r.rank} ${r.name} (+${r.scoreEarned || 0} PTS, +${r.coinsEarned || 0} Coins)`).join(', '),
           });
         }
         try {
@@ -117,6 +129,10 @@ export function setupSocketHandlers(io: SocketIOServer) {
         activeRooms.set(code, room);
         currentRoomCode = code;
         playerSessionId = data.sessionId;
+
+        if (onlineUsers.has(socket.id)) {
+          onlineUsers.get(socket.id)!.currentRoomCode = code;
+        }
 
         socket.join(code);
 
@@ -193,14 +209,38 @@ export function setupSocketHandlers(io: SocketIOServer) {
           }
         }
 
-        if (!reconnected) {
-          // New player joining
-          room.addPlayer({
-            id: socket.id,
-            sessionId: data.sessionId,
-            name: data.name,
-            avatarColor: data.avatarColor,
-          });
+        let isSpectator = false;
+
+        if (reconnected) {
+          // If this player returned, check if all active players are now connected
+          const hasDisconnectedActive = room.players.some(p => !p.isConnected && !p.isFinished);
+          if (!hasDisconnectedActive && roomAutoAbortTimers.has(code)) {
+            const abortEntry = roomAutoAbortTimers.get(code)!;
+            clearTimeout(abortEntry.timer);
+            roomAutoAbortTimers.delete(code);
+            room.autoAbortTimer = null;
+            io.to(code).emit('player_reconnected', { playerName: data.name });
+          }
+        } else {
+          // New user joining room
+          if (room.status === 'PLAYING') {
+            // Match already in progress: Add as Spectator to watch and play next round
+            (room as any).addSpectator({
+              id: socket.id,
+              sessionId: data.sessionId,
+              name: data.name,
+              avatarColor: data.avatarColor,
+            });
+            isSpectator = true;
+          } else {
+            // Join as active player in lobby
+            room.addPlayer({
+              id: socket.id,
+              sessionId: data.sessionId,
+              name: data.name,
+              avatarColor: data.avatarColor,
+            });
+          }
         }
 
         if (currentRoomCode && currentRoomCode !== code) {
@@ -210,8 +250,12 @@ export function setupSocketHandlers(io: SocketIOServer) {
         currentRoomCode = code;
         playerSessionId = data.sessionId;
 
+        if (onlineUsers.has(socket.id)) {
+          onlineUsers.get(socket.id)!.currentRoomCode = code;
+        }
+
         socket.join(code);
-        callback({ success: true, roomCode: code, state: room.getClientView(socket.id) });
+        callback({ success: true, roomCode: code, state: room.getClientView(socket.id), isSpectator });
         broadcastRoomState(room);
       } catch (err: any) {
         callback({ success: false, error: err.message || 'Failed to join room' });
@@ -559,7 +603,8 @@ export function setupSocketHandlers(io: SocketIOServer) {
               }
             }
 
-            // Remove player from game engine (distributing cards if PLAYING)
+            // Remove spectator or player from game engine
+            (room as any).removeSpectator?.(socket.id);
             room.removePlayer(socket.id);
 
             // Clean up voice participation
@@ -578,6 +623,12 @@ export function setupSocketHandlers(io: SocketIOServer) {
             // Unsubscribe socket from room channel
             socket.leave(code);
 
+            // If no players remain, cancel auto-abort timers
+            if (room.players.length === 0 && roomAutoAbortTimers.has(code)) {
+              clearTimeout(roomAutoAbortTimers.get(code)!.timer);
+              roomAutoAbortTimers.delete(code);
+            }
+
             // Broadcast new state to remaining players
             if (room.players.length === 0) {
               // Retain empty lobby room for a grace period before evicting from memory
@@ -594,6 +645,9 @@ export function setupSocketHandlers(io: SocketIOServer) {
         }
 
         currentRoomCode = null;
+        if (onlineUsers.has(socket.id)) {
+          onlineUsers.get(socket.id)!.currentRoomCode = null;
+        }
         if (callback) callback({ success: true });
       } catch (err: any) {
         if (callback) callback({ success: false, error: err.message });
@@ -642,16 +696,111 @@ export function setupSocketHandlers(io: SocketIOServer) {
       }
     });
 
-    // Get list of online players for quick invite
+    // Get list of online players with active room & game status for 1-click Join / Spectate
     socket.on('get_online_players', (callback) => {
-      const list = Array.from(onlineUsers.values()).map(u => ({
-        userId: u.userId,
-        name: u.name,
-        avatarUrl: u.avatarUrl,
-        avatarColor: u.avatarColor,
-        inRoom: !!u.currentRoomCode,
-      }));
+      const list = Array.from(onlineUsers.values()).map(u => {
+        const activeRoom = u.currentRoomCode ? activeRooms.get(u.currentRoomCode) : null;
+        return {
+          userId: u.userId,
+          name: u.name,
+          avatarUrl: u.avatarUrl,
+          avatarColor: u.avatarColor,
+          inRoom: !!u.currentRoomCode,
+          currentRoomCode: u.currentRoomCode || null,
+          roomStatus: activeRoom ? activeRoom.status : null,
+          gameType: activeRoom ? activeRoom.gameType : null,
+          playerCount: activeRoom ? activeRoom.players.length : 0,
+        };
+      });
       if (callback) callback(list);
+    });
+
+    // Check if player has an ongoing active match to offer "Resume Match?" on home screen
+    socket.on('check_active_match', (data: { sessionId?: string }, callback) => {
+      try {
+        const sessionId = data?.sessionId;
+        if (!sessionId) {
+          return callback ? callback({ hasActiveMatch: false }) : undefined;
+        }
+
+        // Search active rooms for this sessionId
+        for (const [code, room] of activeRooms.entries()) {
+          const player = room.players.find(p => p.sessionId === sessionId);
+          if (player) {
+            return callback ? callback({
+              hasActiveMatch: true,
+              roomCode: code,
+              gameType: room.gameType,
+              roomStatus: room.status,
+              playerCount: room.players.length,
+              isSpectator: false,
+              playerName: player.name,
+              autoAbortRemaining: room.autoAbortTimer ? Math.max(0, Math.ceil((room.autoAbortTimer.deadline - Date.now()) / 1000)) : null,
+            }) : undefined;
+          }
+
+          const spectator = room.spectators.find(s => s.sessionId === sessionId);
+          if (spectator) {
+            return callback ? callback({
+              hasActiveMatch: true,
+              roomCode: code,
+              gameType: room.gameType,
+              roomStatus: room.status,
+              playerCount: room.players.length,
+              isSpectator: true,
+              playerName: spectator.name,
+            }) : undefined;
+          }
+        }
+
+        if (callback) callback({ hasActiveMatch: false });
+      } catch (err: any) {
+        if (callback) callback({ hasActiveMatch: false, error: err.message });
+      }
+    });
+
+    // Explicit leave room action
+    socket.on('leaveRoom', (data: { roomCode: string; sessionId?: string }, callback) => {
+      try {
+        const code = data?.roomCode?.trim().toUpperCase();
+        if (code && activeRooms.has(code)) {
+          const room = activeRooms.get(code)!;
+          const sessionId = data.sessionId;
+
+          // If room has active auto-abort timer for this player, cancel it
+          if (roomAutoAbortTimers.has(code)) {
+            const entry = roomAutoAbortTimers.get(code)!;
+            const targetPlayer = room.players.find(p => p.id === socket.id || (sessionId && p.sessionId === sessionId));
+            if (targetPlayer && targetPlayer.name === entry.playerName) {
+              clearTimeout(entry.timer);
+              roomAutoAbortTimers.delete(code);
+              room.autoAbortTimer = null;
+            }
+          }
+
+          // Remove player or spectator
+          const player = room.players.find(p => p.id === socket.id || (sessionId && p.sessionId === sessionId));
+          if (player) {
+            room.removePlayer(player.id);
+            if (room.players.length === 0) {
+              activeRooms.delete(code);
+            } else {
+              broadcastRoomState(room);
+            }
+          } else {
+            room.removeSpectator(socket.id);
+            broadcastRoomState(room);
+          }
+
+          socket.leave(code);
+          if (onlineUsers.has(socket.id) && onlineUsers.get(socket.id)?.currentRoomCode === code) {
+            onlineUsers.get(socket.id)!.currentRoomCode = null;
+          }
+        }
+        if (callback) callback({ success: true });
+      } catch (err: any) {
+        if (callback) callback({ success: false, error: err.message });
+      }
     });
 
     socket.on('disconnect', () => {
@@ -670,17 +819,13 @@ export function setupSocketHandlers(io: SocketIOServer) {
       if (currentRoomCode && playerSessionId) {
         const room = activeRooms.get(currentRoomCode);
         if (room) {
+          (room as any).removeSpectator?.(socket.id);
           room.markDisconnected(socket.id);
           broadcastRoomState(room);
 
           // Only auto-remove disconnected players during LOBBY phase!
-          // During active PLAYING game, DO NOT kick players on disconnect to prevent premature victory.
-          // Players can seamlessly reconnect back to their ongoing match anytime.
           if (room.status === 'LOBBY') {
             const timerKey = `${currentRoomCode}:${playerSessionId}`;
-            // 30-minute lobby disconnect grace period:
-            // Allows hosts and players to switch apps (e.g. WhatsApp to invite friends), take calls,
-            // or lock screens without the lobby room vanishing into thin air!
             const timer = setTimeout(() => {
               disconnectTimers.delete(timerKey);
               const targetRoom = activeRooms.get(currentRoomCode!);
@@ -696,8 +841,71 @@ export function setupSocketHandlers(io: SocketIOServer) {
                 }
               }
             }, 30 * 60 * 1000); // 30 minutes grace period
-
             disconnectTimers.set(timerKey, timer);
+          } else if (room.status === 'PLAYING') {
+            // Player disconnected during active PLAYING match:
+            // Trigger 2-minute (120-second) auto-abort grace window!
+            const disconnectedPlayer = room.players.find(p => p.sessionId === playerSessionId);
+            const remainingConnectedActive = room.players.some(p => p.isConnected && !p.isFinished);
+
+            if (disconnectedPlayer && !disconnectedPlayer.isFinished && remainingConnectedActive) {
+              const code = currentRoomCode;
+              if (!roomAutoAbortTimers.has(code)) {
+                const deadline = Date.now() + 120_000;
+                room.autoAbortTimer = {
+                  deadline,
+                  secondsRemaining: 120,
+                  disconnectedPlayerName: disconnectedPlayer.name,
+                };
+                broadcastRoomState(room);
+
+                const abortTimer = setTimeout(() => {
+                  const targetRoom = activeRooms.get(code);
+                  if (targetRoom && targetRoom.status === 'PLAYING') {
+                    const stillDisc = targetRoom.players.find(p => p.sessionId === playerSessionId);
+                    if (stillDisc && !stillDisc.isConnected) {
+                      console.log(`[Auto-Abort] Room ${code} match aborted: ${stillDisc.name} did not reconnect within 2 minutes.`);
+                      targetRoom.status = 'LOBBY';
+                      targetRoom.autoAbortTimer = null;
+                      if ('centerBazaar' in targetRoom) {
+                        (targetRoom as any).centerBazaar = [];
+                        (targetRoom as any).unusedCards = [];
+                        (targetRoom as any).centerDecks = (targetRoom as any).centerDecks.map((d: any) => ({
+                          ...d,
+                          cards: [],
+                          topCard: null,
+                          isOpen: false,
+                          isCompleted: false,
+                        }));
+                      }
+                      if ('centerPile' in targetRoom) {
+                        (targetRoom as any).centerPile = [];
+                        (targetRoom as any).currentDeclaredRank = null;
+                        (targetRoom as any).currentClaimCount = 0;
+                      }
+                      targetRoom.players.forEach((p: any) => {
+                        if ('hiddenCards' in p) p.hiddenCards = [];
+                        if ('rightDeck' in p) p.rightDeck = [];
+                        if ('floatingCard' in p) p.floatingCard = null;
+                        if ('cards' in p) p.cards = [];
+                      });
+
+                      io.to(code).emit('match_aborted', {
+                        reason: `${stillDisc.name} did not reconnect within 2 minutes. Match returned to lobby.`,
+                      });
+                      broadcastRoomState(targetRoom);
+                    }
+                  }
+                  roomAutoAbortTimers.delete(code);
+                }, 120_000);
+
+                roomAutoAbortTimers.set(code, {
+                  timer: abortTimer,
+                  deadline,
+                  playerName: disconnectedPlayer.name,
+                });
+              }
+            }
           }
         }
       }

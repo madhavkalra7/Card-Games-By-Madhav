@@ -6,6 +6,7 @@ import { CreateRoomModal } from '@/components/modal/CreateRoomModal';
 import { JoinRoomModal } from '@/components/modal/JoinRoomModal';
 import { AuthModal } from '@/components/modal/AuthModal';
 import { ProfileModal } from '@/components/modal/ProfileModal';
+import { ResumeMatchModal } from '@/components/modal/ResumeMatchModal';
 import { GameType } from '@/lib/types';
 
 export default function LandingPage() {
@@ -33,6 +34,9 @@ export default function LandingPage() {
         initialGameType={createGameType}
       />
       <JoinRoomModal isOpen={isJoinOpen} onClose={() => setIsJoinOpen(false)} />
+
+      {/* Resume Match Prompt Modal if player has an active session */}
+      <ResumeMatchModal />
 
       {/* Authentication & Profile Modals */}
       <AuthModal />

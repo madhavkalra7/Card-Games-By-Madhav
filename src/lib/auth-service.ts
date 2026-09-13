@@ -12,6 +12,7 @@ export interface SafeUser {
   avatarColor: string;
   avatarId: string;
   totalScore: number;
+  coins: number;
   totalGamesWon: number;
   totalGamesPlayed: number;
   createdAt?: Date;
@@ -26,6 +27,7 @@ export function formatSafeUser(user: any): SafeUser {
     avatarColor: user.avatarColor || DEFAULT_AVATAR.color,
     avatarId: user.avatarId || DEFAULT_AVATAR.id,
     totalScore: typeof user.totalScore === 'number' ? user.totalScore : 100,
+    coins: typeof user.coins === 'number' ? user.coins : 1000,
     totalGamesWon: user.totalGamesWon || 0,
     totalGamesPlayed: user.totalGamesPlayed || 0,
     createdAt: user.createdAt,
@@ -44,6 +46,7 @@ interface InMemoryUser {
   avatarColor: string;
   avatarId: string;
   totalScore: number;
+  coins: number;
   totalGamesWon: number;
   totalGamesPlayed: number;
   createdAt: Date;
@@ -138,6 +141,7 @@ export async function processSignup(data: {
         avatarColor: DEFAULT_AVATAR.color,
         avatarId: DEFAULT_AVATAR.id,
         totalScore: 100,
+        coins: 1000,
         totalGamesWon: 0,
         totalGamesPlayed: 0,
       });
@@ -176,6 +180,7 @@ export async function processSignup(data: {
     avatarColor: DEFAULT_AVATAR.color,
     avatarId: DEFAULT_AVATAR.id,
     totalScore: 100,
+    coins: 1000,
     totalGamesWon: 0,
     totalGamesPlayed: 0,
     createdAt: new Date(),
@@ -314,6 +319,7 @@ export async function processGoogleAuth(data: {
           avatarColor: DEFAULT_AVATAR.color,
           avatarId: DEFAULT_AVATAR.id,
           totalScore: 100,
+          coins: 1000,
           totalGamesWon: 0,
           totalGamesPlayed: 0,
         });
@@ -360,6 +366,7 @@ export async function processGoogleAuth(data: {
       avatarColor: DEFAULT_AVATAR.color,
       avatarId: DEFAULT_AVATAR.id,
       totalScore: 100,
+      coins: 1000,
       totalGamesWon: 0,
       totalGamesPlayed: 0,
       createdAt: new Date(),
@@ -436,6 +443,7 @@ export async function processGetMe(token: string | null) {
     avatarColor: DEFAULT_AVATAR.color,
     avatarId: DEFAULT_AVATAR.id,
     totalScore: 100,
+    coins: 1000,
     totalGamesWon: 0,
     totalGamesPlayed: 0,
     createdAt: new Date(),

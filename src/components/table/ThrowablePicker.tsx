@@ -42,10 +42,10 @@ export const ThrowablePicker: React.FC<ThrowablePickerProps> = ({
           animate={{ opacity: 1, scale: 1 }}
           exit={{ opacity: 0, scale: 0.85 }}
           transition={{ type: 'spring', damping: 24, stiffness: 380 }}
-          className="bg-zinc-950/95 backdrop-blur-2xl border-2 border-gold/70 rounded-2xl sm:rounded-3xl p-3.5 sm:p-4 shadow-[0_0_50px_rgba(212,175,55,0.45)] flex flex-col items-center"
+          className="bg-zinc-950/95 backdrop-blur-2xl border-2 border-gold/70 rounded-2xl sm:rounded-3xl p-3 sm:p-4 shadow-[0_0_50px_rgba(212,175,55,0.45)] flex flex-col items-center max-h-[90dvh] overflow-y-auto touch-manipulation"
         >
           {/* Header Bar */}
-          <div className="w-full flex items-center justify-between pb-2 mb-2 border-b border-white/10 text-white">
+          <div className="w-full flex items-center justify-between pb-1.5 sm:pb-2 mb-2 border-b border-white/10 text-white">
             <div className="flex items-center gap-1.5 min-w-0">
               <span className="text-base sm:text-lg">🎯</span>
               <span className="text-xs sm:text-sm font-black uppercase text-amber-300 tracking-wider truncate max-w-[200px] sm:max-w-xs">
@@ -54,7 +54,7 @@ export const ThrowablePicker: React.FC<ThrowablePickerProps> = ({
             </div>
             <button
               onClick={onClose}
-              className="p-1 rounded-full text-zinc-400 hover:text-white bg-white/10 hover:bg-white/20 transition-colors cursor-pointer"
+              className="p-1 rounded-full text-zinc-400 hover:text-white bg-white/10 hover:bg-white/20 transition-colors cursor-pointer touch-manipulation"
             >
               <X className="w-4 h-4" />
             </button>
@@ -70,15 +70,15 @@ export const ThrowablePicker: React.FC<ThrowablePickerProps> = ({
                   onSelect(t.id);
                   onClose();
                 }}
-                className="group relative flex flex-col items-center justify-center py-2.5 px-1 rounded-xl sm:rounded-2xl bg-white/10 hover:bg-white/20 border border-white/15 hover:border-amber-400 transition-all hover:scale-105 active:scale-95 cursor-pointer shadow-md"
+                className="group relative flex flex-col items-center justify-center py-2 sm:py-2.5 px-0.5 sm:px-1 rounded-xl sm:rounded-2xl bg-white/10 hover:bg-white/20 border border-white/15 hover:border-amber-400 transition-all hover:scale-105 active:scale-95 cursor-pointer shadow-md touch-manipulation select-none"
                 style={{
                   boxShadow: `0 0 10px ${t.glowColor}`,
                 }}
               >
-                <span className="text-2xl sm:text-3xl transform group-hover:scale-125 transition-transform">
+                <span className="text-xl sm:text-3xl transform group-hover:scale-125 transition-transform">
                   {t.emoji}
                 </span>
-                <span className="text-[9.5px] sm:text-[11px] font-black text-zinc-100 group-hover:text-amber-300 mt-1 truncate max-w-full">
+                <span className="text-[8.5px] sm:text-[11px] font-black text-zinc-100 group-hover:text-amber-300 mt-0.5 sm:mt-1 truncate max-w-full">
                   {t.hindiName}
                 </span>
               </button>

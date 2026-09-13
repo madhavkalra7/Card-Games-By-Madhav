@@ -145,12 +145,20 @@ export interface GameStateClientView {
     name: string;
     avatarColor: string;
   } | null;
+  isSpectator?: boolean;
+  spectatorCount?: number;
+  autoAbortTimer?: {
+    deadline: number;
+    secondsRemaining: number;
+    disconnectedPlayerName: string;
+  } | null;
   rankings?: Array<{
     playerId: string;
     name: string;
     avatarColor: string;
     rank: number;
     scoreEarned?: number;
+    coinsEarned?: number;
     totalScore?: number;
     rewardCard?: {
       id: string;
@@ -167,4 +175,11 @@ export interface GameStateClientView {
       glowColor: string;
     };
   }>;
+}
+
+export interface Spectator {
+  id: string;
+  sessionId: string;
+  name: string;
+  avatarColor: string;
 }

@@ -1,7 +1,7 @@
-import { Card, GameStateClientView, PlayerClientView, Rank, Suit, BluffChallengeResult, BluffStateClientView } from './types';
+import { Card, GameStateClientView, PlayerClientView, Rank, Suit, BluffChallengeResult, BluffStateClientView, Spectator } from './types';
 import { createDeck, shuffleDeck } from './deck';
 import { drawRandomRewardCard, CollectibleRewardInfo } from '../../src/lib/collectibles';
-import { calculateRankPoints } from './engine';
+import { calculateRankPoints, calculateRankCoins } from './engine';
 
 const RANK_ORDER: Record<Rank, number> = {
   'A': 1, '2': 2, '3': 3, '4': 4, '5': 5, '6': 6, '7': 7,
@@ -64,8 +64,16 @@ export class BluffMasterRoom {
     avatarColor: string;
     rank: number;
     scoreEarned?: number;
+    coinsEarned?: number;
     rewardCard?: CollectibleRewardInfo;
   }> = [];
+
+  public spectators: Spectator[] = [];
+  public autoAbortTimer: {
+    deadline: number;
+    secondsRemaining: number;
+    disconnectedPlayerName: string;
+  } | null = null;
 
   private onStateChange: () => void;
   private onGameOver?: (room: BluffMasterRoom) => void;
@@ -74,6 +82,34 @@ export class BluffMasterRoom {
     this.roomCode = roomCode;
     this.onStateChange = onStateChange;
     this.onGameOver = onGameOver;
+  }
+
+  public addSpectator(data: { id: string; sessionId: string; name: string; avatarColor: string }): Spectator {
+    const existing = this.spectators.find(s => s.sessionId === data.sessionId);
+    if (existing) {
+      existing.id = data.id;
+      existing.name = data.name;
+      existing.avatarColor = data.avatarColor;
+      this.onStateChange();
+      return existing;
+    }
+    const spectator: Spectator = {
+      id: data.id,
+      sessionId: data.sessionId,
+      name: data.name.trim() || 'Spectator',
+      avatarColor: data.avatarColor,
+    };
+    this.spectators.push(spectator);
+    this.onStateChange();
+    return spectator;
+  }
+
+  public removeSpectator(socketId: string): void {
+    const idx = this.spectators.findIndex(s => s.id === socketId);
+    if (idx !== -1) {
+      this.spectators.splice(idx, 1);
+      this.onStateChange();
+    }
   }
 
   public addPlayer(data: { id: string; sessionId: string; name: string; avatarColor: string }): BluffPlayer {
@@ -156,6 +192,24 @@ export class BluffMasterRoom {
       if (!requester?.isHost) {
         return { success: false, error: "Only the host can start the game." };
       }
+    }
+
+    // Promote waiting spectators into available player seats
+    while (this.players.length < 5 && this.spectators.length > 0) {
+      const nextSpectator = this.spectators.shift()!;
+      this.players.push({
+        id: nextSpectator.id,
+        sessionId: nextSpectator.sessionId,
+        name: nextSpectator.name,
+        avatarColor: nextSpectator.avatarColor,
+        isHost: false,
+        isConnected: true,
+        disconnectTime: null,
+        seatIndex: this.players.length,
+        cards: [],
+        isFinished: false,
+        rank: null,
+      });
     }
 
     if (this.players.length < 2) {
@@ -404,14 +458,18 @@ export class BluffMasterRoom {
     // Check if all OTHER active players have passed in succession back to the latest player who contributed cards!
     const activeUnfinishedPlayers = this.players.filter(p => !p.isFinished);
     const otherActivePlayers = activeUnfinishedPlayers.filter(p => p.id !== this.latestPlayerId);
-    const allOthersPassed = otherActivePlayers.every(p => this.passedPlayerIds.includes(p.id));
+    const allOthersPassed = otherActivePlayers.length > 0 && otherActivePlayers.every(p => this.passedPlayerIds.includes(p.id));
 
-    // If turn has travelled back to the player who played cards, and everyone else passed:
-    // Cycle is SWEPT / DISCARDED from the table!
-    const nextPlayerIndex = (this.currentTurnIndex + 1) % this.players.length;
-    const nextPlayerId = this.players[nextPlayerIndex]?.id;
+    const contributor = this.players.find(p => p.id === this.latestPlayerId);
+    const contributorCannotPlay = !contributor || contributor.isFinished || contributor.cards.length === 0;
 
-    if (allOthersPassed && nextPlayerId === this.latestPlayerId) {
+    // Condition to sweep / clear the table pile:
+    // 1. The contributor themselves just passed (playerId === this.latestPlayerId) AND all other players already passed!
+    // 2. OR all other players passed and the contributor has 0 cards / already finished (so they cannot play or pass anyway).
+    const isContributorPassingAfterAllPassed = (playerId === this.latestPlayerId) && allOthersPassed;
+    const isContributorUnableToPlay = allOthersPassed && contributorCannotPlay;
+
+    if (isContributorPassingAfterAllPassed || isContributorUnableToPlay) {
       const sweptCount = this.centerPile.length;
       this.centerPile = [];
       this.latestPlayedCards = [];
@@ -420,7 +478,7 @@ export class BluffMasterRoom {
       this.passedPlayerIds = [];
       this.isCycleCleared = true;
 
-      const cycleWinner = this.players.find(p => p.id === this.latestPlayerId);
+      const cycleWinner = contributor;
       this.latestActionMessage = `🧹 All passed! Table pile (${sweptCount} cards) swept! ${cycleWinner?.name || 'Leader'} leads fresh cycle!`;
 
       // Check if the cycle winner had emptied their hand with that last play!
@@ -435,8 +493,11 @@ export class BluffMasterRoom {
 
       // If cycleWinner finished, advance to an active unfinished player
       if (cycleWinner && !cycleWinner.isFinished) {
-        this.currentTurnIndex = nextPlayerIndex;
-        this.cycleLeaderId = this.latestPlayerId;
+        const winnerIndex = this.players.findIndex(p => p.id === cycleWinner.id);
+        if (winnerIndex !== -1) {
+          this.currentTurnIndex = winnerIndex;
+        }
+        this.cycleLeaderId = cycleWinner.id;
       } else {
         this.advanceTurn();
         this.cycleLeaderId = this.getActivePlayer()?.id || null;
@@ -452,6 +513,7 @@ export class BluffMasterRoom {
       return { success: true };
     }
 
+    // Turn advances to the next player (travels back around to the latest contributor so they can play more cards or pass)
     this.advanceTurn();
     return { success: true };
   }
@@ -465,6 +527,7 @@ export class BluffMasterRoom {
 
     const totalMatchPlayers = this.players.length;
     const score = calculateRankPoints(rankAwarded, totalMatchPlayers);
+    const coins = calculateRankCoins(rankAwarded, totalMatchPlayers);
     const rewardCard = (rankAwarded === 1 || (rankAwarded === 2 && totalMatchPlayers > 2))
       ? drawRandomRewardCard(rankAwarded)
       : undefined;
@@ -475,6 +538,7 @@ export class BluffMasterRoom {
       avatarColor: player.avatarColor,
       rank: rankAwarded,
       scoreEarned: score,
+      coinsEarned: coins,
       rewardCard,
     });
 
@@ -505,12 +569,14 @@ export class BluffMasterRoom {
         lastPlayer.rank = lastRank;
         const totalMatchPlayers = this.players.length;
         const score = calculateRankPoints(lastRank, totalMatchPlayers);
+        const coins = calculateRankCoins(lastRank, totalMatchPlayers);
         this.rankings.push({
           playerId: lastPlayer.id,
           name: lastPlayer.name,
           avatarColor: lastPlayer.avatarColor,
           rank: lastRank,
           scoreEarned: score,
+          coinsEarned: coins,
         });
       }
 
@@ -535,6 +601,23 @@ export class BluffMasterRoom {
     if (!host || !host.isHost) {
       return { success: false, error: "Only the host can start a new match." };
     }
+    // Promote waiting spectators into available player seats
+    while (this.players.length < 5 && this.spectators.length > 0) {
+      const nextSpectator = this.spectators.shift()!;
+      this.players.push({
+        id: nextSpectator.id,
+        sessionId: nextSpectator.sessionId,
+        name: nextSpectator.name,
+        avatarColor: nextSpectator.avatarColor,
+        isHost: false,
+        isConnected: true,
+        disconnectTime: null,
+        seatIndex: this.players.length,
+        cards: [],
+        isFinished: false,
+        rank: null,
+      });
+    }
     return this.startGame(hostSocketId);
   }
 
@@ -554,6 +637,7 @@ export class BluffMasterRoom {
   public getClientView(requesterSocketId: string): GameStateClientView {
     const requestingPlayer = this.players.find(p => p.id === requesterSocketId);
     const activePlayer = this.getActivePlayer();
+    const isSpectator = !requestingPlayer && this.spectators.some(s => s.id === requesterSocketId);
 
     const isMyTurn = activePlayer?.id === requesterSocketId;
     const canChallenge = !!(
@@ -638,6 +722,9 @@ export class BluffMasterRoom {
       myFloatingCard: null,
       bluffState,
       lastMove: null,
+      isSpectator,
+      spectatorCount: this.spectators.length,
+      autoAbortTimer: this.autoAbortTimer,
       winner: this.winner ? {
         id: this.winner.id,
         name: this.winner.name,

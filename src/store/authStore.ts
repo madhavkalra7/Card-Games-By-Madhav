@@ -9,6 +9,7 @@ export interface UserProfile {
   avatarColor: string;
   avatarId: string;
   totalScore: number;
+  coins: number;
   totalGamesWon: number;
   totalGamesPlayed: number;
   createdAt?: string;
@@ -31,6 +32,7 @@ interface AuthState {
   loginWithGoogle: (data?: { email?: string; name?: string; avatarUrl?: string; googleId?: string; credential?: string }) => Promise<{ success: boolean; error?: string }>;
   updateAvatar: (avatarId: string) => Promise<{ success: boolean; error?: string }>;
   updateProfile: (data: { name?: string; avatarId?: string }) => Promise<{ success: boolean; error?: string }>;
+  addCoins: (amount: number) => void;
   logout: () => void;
 }
 
@@ -40,7 +42,10 @@ function getInitialUser(): UserProfile | null {
     const saved = localStorage.getItem('cg_user_profile');
     if (saved) {
       const parsed = JSON.parse(saved);
-      if (parsed && parsed.id && parsed.name) return parsed;
+      if (parsed && parsed.id && parsed.name) {
+        if (typeof parsed.coins !== 'number') parsed.coins = 1000;
+        return parsed;
+      }
     }
   } catch {}
   return null;
@@ -256,6 +261,18 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     } finally {
       set({ isLoading: false });
     }
+  },
+
+  addCoins: (amount: number) => {
+    const current = get().user;
+    if (!current) return;
+    const updated = { ...current, coins: (current.coins ?? 1000) + amount };
+    if (typeof window !== 'undefined') {
+      try {
+        localStorage.setItem('cg_user_profile', JSON.stringify(updated));
+      } catch {}
+    }
+    set({ user: updated });
   },
 
   logout: () => {

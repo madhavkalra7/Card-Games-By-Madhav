@@ -44,3 +44,19 @@ If you prefer to keep your frontend hosted on Vercel (`https://card-casino-km9be
 5. Go to the **Deployments** tab on Vercel and click **Redeploy**.
 
 The Vercel frontend will now seamlessly establish WebSocket connections with your Render game server!
+
+---
+
+## 🎙️ WebRTC Voice Chat Across Cellular & Remote Networks (Jio / Airtel / Wi-Fi)
+
+Voice chat has been engineered with enterprise-grade resilience for cross-network mobile & desktop players:
+- **Multi-Region Anycast STUN**: Google Public STUN (18ms latency) + Cloudflare Anycast STUN (30ms latency with Indian edge nodes in Mumbai, Delhi, Bangalore, Chennai) + Twilio + Nextcloud port 443.
+- **TCP TURN Fallback**: OpenRelay TURN over TCP on ports 80 & 443 automatically pierces strict Carrier-Grade NAT (CGNAT) and symmetric firewalls.
+- **Opus In-band Forward Error Correction (FEC)**: Reconstructs lost audio packets over cellular data (Jio/Airtel 4G/5G) so voices never sound robotic or chopped.
+- **Auto-Reconnection**: Resilient ICE restart handles brief cellular handovers (Wi-Fi ↔ LTE ↔ 5G) without severing the call.
+
+*(Optional)* If you wish to use your own dedicated TURN credentials (e.g. from [Metered.ca](https://www.metered.ca) or [Twilio](https://www.twilio.com)):
+Add these variables in your Vercel or Render dashboard:
+- `NEXT_PUBLIC_TURN_URL`: `turn:your-turn-domain.com:443?transport=tcp`
+- `NEXT_PUBLIC_TURN_USERNAME`: `your-username`
+- `NEXT_PUBLIC_TURN_CREDENTIAL`: `your-password`

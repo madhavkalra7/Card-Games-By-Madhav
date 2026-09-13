@@ -7,6 +7,7 @@ import { useGameStore } from '@/store/gameStore';
 import { getAvatarById } from '@/lib/avatars';
 import { sounds } from '@/lib/sound';
 import { cn } from '@/lib/utils';
+import { useRouter } from 'next/navigation';
 import {
   Trophy,
   Users,
@@ -20,7 +21,9 @@ import {
   WifiOff,
   Flame,
   Medal,
-  RefreshCw
+  RefreshCw,
+  Eye,
+  Play
 } from 'lucide-react';
 
 interface FriendsModalProps {
@@ -46,6 +49,7 @@ export const FriendsModal: React.FC<FriendsModalProps> = ({ currentRoomCode }) =
 
   const { user, setAuthModalOpen } = useAuthStore();
   const { showToast } = useGameStore();
+  const router = useRouter();
 
   const [searchFriendInput, setSearchFriendInput] = useState('');
   const [addingFriend, setAddingFriend] = useState(false);
@@ -143,22 +147,22 @@ export const FriendsModal: React.FC<FriendsModalProps> = ({ currentRoomCode }) =
   return (
     <div
       onClick={handleClose}
-      className="fixed inset-0 z-[120] flex items-center justify-center p-2 sm:p-4 bg-black/85 backdrop-blur-md animate-in fade-in zoom-in duration-200 select-none overflow-y-auto"
+      className="fixed inset-0 z-[120] flex items-center justify-center p-2.5 xs:p-3 sm:p-4 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-[max(0.75rem,env(safe-area-inset-top))] bg-black/85 backdrop-blur-md animate-in fade-in zoom-in duration-200 select-none overflow-y-auto"
     >
       <div
         onClick={(e) => e.stopPropagation()}
-        className="relative w-full max-w-2xl max-h-[92vh] flex flex-col bg-gradient-to-b from-zinc-950 via-[#18110b] to-[#0d0a06] border-2 border-gold/70 rounded-2xl sm:rounded-3xl shadow-[0_0_50px_rgba(212,175,55,0.35)] overflow-hidden"
+        className="relative w-full max-w-2xl max-h-[92dvh] my-auto flex flex-col bg-gradient-to-b from-zinc-950 via-[#18110b] to-[#0d0a06] border-2 border-gold/70 rounded-2xl sm:rounded-3xl shadow-[0_0_50px_rgba(212,175,55,0.35)] overflow-hidden"
       >
         
         {/* Glow Header Accent */}
         <div className="absolute top-0 left-1/2 -translate-x-1/2 w-64 h-16 bg-gold/20 blur-2xl pointer-events-none rounded-full" />
 
         {/* Modal Top Bar */}
-        <div className="relative flex items-center justify-between p-4 sm:p-6 border-b border-white/10 shrink-0">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-2xl bg-gradient-to-tr from-amber-600 via-yellow-400 to-amber-200 p-0.5 shadow-gold-glow flex items-center justify-center shrink-0">
-              <div className="w-full h-full rounded-2xl bg-black/85 flex items-center justify-center">
-                <Trophy className="w-5 h-5 sm:w-6 sm:h-6 text-amber-400" />
+        <div className="relative flex items-center justify-between p-3.5 xs:p-4 sm:p-6 border-b border-white/10 shrink-0">
+          <div className="flex items-center gap-2.5 sm:gap-3">
+            <div className="w-9 h-9 sm:w-12 sm:h-12 rounded-xl sm:rounded-2xl bg-gradient-to-tr from-amber-600 via-yellow-400 to-amber-200 p-0.5 shadow-gold-glow flex items-center justify-center shrink-0">
+              <div className="w-full h-full rounded-xl sm:rounded-2xl bg-black/85 flex items-center justify-center">
+                <Trophy className="w-4 h-4 sm:w-6 sm:h-6 text-amber-400" />
               </div>
             </div>
             <div>
@@ -605,7 +609,11 @@ export const FriendsModal: React.FC<FriendsModalProps> = ({ currentRoomCode }) =
                 <div className="space-y-2">
                   {friends.map((friend) => {
                     const cartoon = getAvatarById(friend.avatarId);
-                    const isOnline = friend.isOnline || onlinePlayers.some((op) => op.name === friend.name || op.userId === friend.id);
+                    const onlineInfo = onlinePlayers.find((op) => op.name === friend.name || op.userId === friend.id);
+                    const isOnline = friend.isOnline || !!onlineInfo;
+                    const friendRoomCode = onlineInfo?.currentRoomCode;
+                    const friendRoomStatus = onlineInfo?.roomStatus;
+                    const isFriendPlaying = friendRoomStatus === 'PLAYING';
                     const isInvited = invitedIds[friend.id] || invitedIds[friend.name];
 
                     return (
@@ -637,8 +645,8 @@ export const FriendsModal: React.FC<FriendsModalProps> = ({ currentRoomCode }) =
                           </div>
 
                           <div className="flex flex-col min-w-0">
-                            <div className="flex items-center gap-1.5">
-                              <span className="font-bold text-xs sm:text-sm text-white truncate max-w-[130px] sm:max-w-[180px]">
+                            <div className="flex items-center gap-1 sm:gap-1.5 flex-wrap">
+                              <span className="font-bold text-xs sm:text-sm text-white truncate max-w-[80px] xs:max-w-[120px] sm:max-w-[180px]">
                                 {friend.name}
                               </span>
                               {isOnline && (
@@ -646,40 +654,80 @@ export const FriendsModal: React.FC<FriendsModalProps> = ({ currentRoomCode }) =
                                   ONLINE
                                 </span>
                               )}
+                              {friendRoomCode && (
+                                <span className={cn(
+                                  "text-[8px] font-black uppercase px-1.5 py-0.2 rounded border flex items-center gap-1",
+                                  isFriendPlaying
+                                    ? "bg-purple-500/20 text-purple-300 border-purple-500/40"
+                                    : "bg-emerald-500/20 text-emerald-300 border-emerald-500/40"
+                                )}>
+                                  {isFriendPlaying ? <Eye className="w-2.5 h-2.5" /> : <Play className="w-2.5 h-2.5 fill-current" />}
+                                  <span><span className="hidden xs:inline">Room </span>#{friendRoomCode} <span className="hidden xs:inline">({isFriendPlaying ? 'Match Live' : 'Lobby'})</span></span>
+                                </span>
+                              )}
                             </div>
-                            <span className="text-[10px] text-zinc-400 font-mono">
+                            <span className="text-[9.5px] sm:text-[10px] text-zinc-400 font-mono">
                               🏆 {friend.totalGamesWon} Wins • {friend.totalScore.toLocaleString()} PTS
                             </span>
                           </div>
                         </div>
 
-                        {/* Direct Invite Button */}
-                        <div>
+                        {/* Action Buttons: Join / Spectate Table or Direct Invite */}
+                        <div className="flex items-center gap-1 sm:gap-1.5 shrink-0">
+                          {friendRoomCode && friendRoomCode !== currentRoomCode && (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setFriendsModalOpen(false);
+                                router.push(`/room/${friendRoomCode}`);
+                              }}
+                              className={cn(
+                                'px-2 xs:px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-xl font-black text-[10px] xs:text-[11px] sm:text-xs uppercase tracking-wider flex items-center gap-1 sm:gap-1.5 shadow-sm transition-all cursor-pointer active:scale-95 touch-manipulation',
+                                isFriendPlaying
+                                  ? 'bg-gradient-to-r from-purple-600 to-indigo-500 hover:from-purple-500 hover:to-indigo-400 text-white shadow-lg border border-purple-400/50'
+                                  : 'bg-gradient-to-r from-amber-500 to-yellow-400 hover:from-amber-400 hover:to-yellow-300 text-black shadow-gold-glow'
+                              )}
+                              title={isFriendPlaying ? `Spectate match in room #${friendRoomCode}` : `Join table in room #${friendRoomCode}`}
+                            >
+                              {isFriendPlaying ? (
+                                <>
+                                  <Eye className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
+                                  <span>Spectate</span>
+                                </>
+                              ) : (
+                                <>
+                                  <Play className="w-3 h-3 sm:w-3.5 sm:h-3.5 fill-black" />
+                                  <span><span className="hidden xs:inline">Join </span>Table</span>
+                                </>
+                              )}
+                            </button>
+                          )}
+
                           {currentRoomCode ? (
                             <button
                               type="button"
                               disabled={isInvited}
                               onClick={() => handleDirectInvite(friend.id || friend.name, friend.name)}
                               className={cn(
-                                'px-2.5 sm:px-3 py-1.5 rounded-xl font-black text-[11px] sm:text-xs uppercase tracking-wider flex items-center gap-1.5 shadow-sm transition-all cursor-pointer',
+                                'px-2 xs:px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-xl font-black text-[10px] xs:text-[11px] sm:text-xs uppercase tracking-wider flex items-center gap-1 sm:gap-1.5 shadow-sm transition-all cursor-pointer touch-manipulation',
                                 isInvited
                                   ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40'
-                                  : 'bg-gradient-to-r from-amber-500 to-yellow-400 hover:from-amber-400 hover:to-yellow-300 text-black shadow-gold-glow active:scale-95'
+                                  : 'bg-white/10 hover:bg-white/20 text-white border border-white/20 active:scale-95'
                               )}
                             >
                               {isInvited ? (
                                 <>
-                                  <Check className="w-3.5 h-3.5" />
+                                  <Check className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
                                   <span>Invited</span>
                                 </>
                               ) : (
                                 <>
-                                  <Send className="w-3.5 h-3.5" />
+                                  <Send className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
                                   <span><span className="hidden xs:inline">Direct </span>Invite</span>
                                 </>
                               )}
                             </button>
-                          ) : (
+                          ) : !friendRoomCode && (
                             <span className="text-[10px] text-zinc-500 font-medium">
                               {isOnline ? 'Active in Casino' : 'Offline'}
                             </span>
@@ -704,6 +752,7 @@ export const FriendsModal: React.FC<FriendsModalProps> = ({ currentRoomCode }) =
                   {onlinePlayers.map((p, idx) => {
                     if (user && p.name === user.name) return null;
                     const isInvited = invitedIds[p.userId || p.name] || invitedIds[p.name];
+                    const pPlaying = p.roomStatus === 'PLAYING';
 
                     return (
                       <div
@@ -717,26 +766,55 @@ export const FriendsModal: React.FC<FriendsModalProps> = ({ currentRoomCode }) =
                           >
                             {p.name.charAt(0).toUpperCase()}
                           </div>
-                          <span className="font-bold text-xs text-zinc-200 truncate max-w-[100px]">
-                            {p.name}
-                          </span>
+                          <div className="flex flex-col min-w-0">
+                            <span className="font-bold text-xs text-zinc-200 truncate max-w-[90px] sm:max-w-[120px]">
+                              {p.name}
+                            </span>
+                            {p.currentRoomCode && (
+                              <span className="text-[8px] text-amber-400 font-mono">
+                                Room #{p.currentRoomCode} ({pPlaying ? 'Playing' : 'Lobby'})
+                              </span>
+                            )}
+                          </div>
                         </div>
 
-                        {currentRoomCode && (
-                          <button
-                            type="button"
-                            disabled={isInvited}
-                            onClick={() => handleDirectInvite(p.userId || p.name, p.name)}
-                            className={cn(
-                              'px-2 py-1 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all cursor-pointer',
-                              isInvited
-                                ? 'bg-emerald-500/20 text-emerald-300'
-                                : 'bg-amber-400/20 hover:bg-amber-400/30 text-amber-300 border border-amber-400/40 active:scale-95'
-                            )}
-                          >
-                            {isInvited ? 'Invited ✓' : 'Invite'}
-                          </button>
-                        )}
+                        <div className="flex items-center gap-1">
+                          {p.currentRoomCode && p.currentRoomCode !== currentRoomCode && (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setFriendsModalOpen(false);
+                                router.push(`/room/${p.currentRoomCode}`);
+                              }}
+                              className={cn(
+                                'px-2 py-1 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all cursor-pointer flex items-center gap-1',
+                                pPlaying
+                                  ? 'bg-purple-600/30 hover:bg-purple-600/50 text-purple-200 border border-purple-400/40'
+                                  : 'bg-amber-400/20 hover:bg-amber-400/30 text-amber-300 border border-amber-400/40'
+                              )}
+                              title={pPlaying ? `Spectate room #${p.currentRoomCode}` : `Join room #${p.currentRoomCode}`}
+                            >
+                              {pPlaying ? <Eye className="w-2.5 h-2.5" /> : <Play className="w-2.5 h-2.5 fill-current" />}
+                              <span>{pPlaying ? 'Watch' : 'Join'}</span>
+                            </button>
+                          )}
+
+                          {currentRoomCode && (
+                            <button
+                              type="button"
+                              disabled={isInvited}
+                              onClick={() => handleDirectInvite(p.userId || p.name, p.name)}
+                              className={cn(
+                                'px-2 py-1 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all cursor-pointer',
+                                isInvited
+                                  ? 'bg-emerald-500/20 text-emerald-300'
+                                  : 'bg-white/10 hover:bg-white/20 text-zinc-300 border border-white/20 active:scale-95'
+                              )}
+                            >
+                              {isInvited ? 'Invited ✓' : 'Invite'}
+                            </button>
+                          )}
+                        </div>
                       </div>
                     );
                   })}

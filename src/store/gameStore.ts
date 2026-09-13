@@ -5,6 +5,7 @@ import { getOrCreateSessionId, saveProfile, getSavedProfile } from '@/lib/utils'
 import { sounds } from '@/lib/sound';
 import { ThrownItemEvent, ThrowableType } from '@/lib/throwables';
 import { playSoundboardAudio } from '@/lib/soundboard';
+import { saveActiveRoom, clearActiveRoom } from '@/lib/activeMatch';
 
 // Deduplication cache to prevent duplicate playback on socket reconnections or rapid events
 const recentSoundboardPlays = new Map<string, number>();
@@ -119,6 +120,8 @@ export const useGameStore = create<GameStore>((set, get) => ({
       s.off('item_thrown');
       s.off('soundboard_played');
       s.off('card_played');
+      s.off('player_reconnected');
+      s.off('match_aborted');
 
       // Set current connection status immediately
       set({ isConnected: s.connected });
@@ -134,6 +137,18 @@ export const useGameStore = create<GameStore>((set, get) => ({
       s.on('connect_error', (err: any) => {
         set({ isConnected: false });
         console.warn('Socket connection error:', err.message);
+      });
+
+      // Listen for player reconnection notifications
+      s.on('player_reconnected', (data: { playerName?: string }) => {
+        sounds.playVictory();
+        get().showToast(`🎉 ${data.playerName || 'Player'} wapas jud gaye! Khel jari hai.`, 'success');
+      });
+
+      // Listen for match aborted notifications
+      s.on('match_aborted', (data: { reason?: string }) => {
+        sounds.playPenalty();
+        get().showToast(data.reason || '⚠️ Match abort ho gaya hai.', 'error');
       });
 
       // Listen for real-time card flight animations across the table
@@ -273,6 +288,9 @@ export const useGameStore = create<GameStore>((set, get) => ({
         }
 
         set({ gameState: state, roomCode: state.roomCode });
+        if (state.roomCode) {
+          saveActiveRoom(state.roomCode, state.gameType || 'DUKKI_BAZAAR');
+        }
       });
     };
 
@@ -316,6 +334,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
 
           if (res && res.success) {
             set({ gameState: res.state, roomCode: res.roomCode });
+            saveActiveRoom(res.roomCode, gameType);
             resolve({ success: true, code: res.roomCode });
           } else {
             const errMsg = res?.error || 'Failed to create room';
@@ -362,6 +381,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
 
           if (res && res.success) {
             set({ gameState: res.state, roomCode: res.roomCode });
+            saveActiveRoom(code, res.state?.gameType || 'DUKKI_BAZAAR');
             resolve({ success: true });
           } else {
             const errMsg = res?.error || 'Failed to join room';
@@ -565,8 +585,10 @@ export const useGameStore = create<GameStore>((set, get) => ({
   leaveRoom: () => {
     const socket = getSocket();
     const { roomCode } = get();
+    clearActiveRoom();
     if (roomCode) {
-      socket.emit('leaveRoom', { roomCode }, () => {});
+      const sessionId = getOrCreateSessionId();
+      socket.emit('leaveRoom', { roomCode, sessionId }, () => {});
     }
     set({
       gameState: null,

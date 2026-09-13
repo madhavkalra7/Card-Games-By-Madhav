@@ -8,6 +8,7 @@ import { Crown, RotateCcw, Trophy, LogOut, Medal, Sparkles, BookOpen, Gem } from
 import { cn } from '@/lib/utils';
 import { sounds } from '@/lib/sound';
 import { useAlbumStore } from '@/store/albumStore';
+import { useAuthStore } from '@/store/authStore';
 
 interface GameOverModalProps {
   status: 'LOBBY' | 'PLAYING' | 'GAME_OVER';
@@ -18,6 +19,7 @@ interface GameOverModalProps {
     avatarColor: string;
     rank: number;
     scoreEarned?: number;
+    coinsEarned?: number;
     totalScore?: number;
     rewardCard?: {
       id: string;
@@ -64,6 +66,11 @@ export const GameOverModal: React.FC<GameOverModalProps> = ({
         setTimeout(() => sounds.playCardShimmer(), 600);
       }
 
+      // Automatically credit match coins into user's persistent balance!
+      if (myRanking?.coinsEarned) {
+        useAuthStore.getState().addCoins(myRanking.coinsEarned);
+      }
+
       // Fire victory confetti burst
       const count = 180;
       const defaults = { origin: { y: 0.6 } };
@@ -93,6 +100,7 @@ export const GameOverModal: React.FC<GameOverModalProps> = ({
     avatarColor: string;
     rank: number;
     scoreEarned?: number;
+    coinsEarned?: number;
     totalScore?: number;
     cardsLeft?: number;
     rewardCard?: {
@@ -118,6 +126,7 @@ export const GameOverModal: React.FC<GameOverModalProps> = ({
       avatarColor: r.avatarColor,
       rank: r.rank,
       scoreEarned: r.scoreEarned,
+      coinsEarned: r.coinsEarned,
       totalScore: r.totalScore,
       rewardCard: r.rewardCard,
     }));
@@ -179,6 +188,12 @@ export const GameOverModal: React.FC<GameOverModalProps> = ({
             <span className="text-[10px] sm:text-xs text-amber-300 font-bold bg-amber-400/20 px-2 py-0.5 rounded-full border border-amber-400/40">
               +{firstWinner.scoreEarned || 2000} PTS
             </span>
+            {firstWinner.coinsEarned && (
+              <span className="flex items-center gap-1 text-[10px] sm:text-xs text-red-300 font-bold bg-red-500/20 px-2 py-0.5 rounded-full border border-red-500/40 shadow-sm">
+                <img src="/icons/casino-chip.png" alt="Casino Coins" className="w-3.5 h-3.5 object-contain filter drop-shadow" />
+                <span>+{firstWinner.coinsEarned}</span>
+              </span>
+            )}
           </div>
         )}
 
@@ -321,6 +336,13 @@ export const GameOverModal: React.FC<GameOverModalProps> = ({
                         <span className="truncate max-w-[55px] xs:max-w-[65px] sm:max-w-[100px]">
                           {p.rewardCard.hindiName}
                         </span>
+                      </span>
+                    )}
+
+                    {p.coinsEarned !== undefined && (
+                      <span className="flex items-center gap-1 px-1.5 xs:px-2 py-0.5 rounded-full font-black text-[9px] xs:text-[10px] sm:text-[11px] bg-red-500/20 border border-red-500/50 text-red-300 font-mono shrink-0 shadow-sm">
+                        <img src="/icons/casino-chip.png" alt="Casino Coins" className="w-3 h-3 xs:w-3.5 xs:h-3.5 object-contain filter drop-shadow" />
+                        <span>+{p.coinsEarned.toLocaleString()}</span>
                       </span>
                     )}
 

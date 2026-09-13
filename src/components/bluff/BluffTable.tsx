@@ -35,6 +35,7 @@ import {
   Flame,
   Clock,
   ChevronRight,
+  Eye,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -81,6 +82,25 @@ export const BluffTable: React.FC<BluffTableProps> = ({
   const [copied, setCopied] = useState(false);
   const [isMuted, setIsMuted] = useState(sounds.getMuted());
   const [showExitModal, setShowExitModal] = useState(false);
+
+  // Auto-abort countdown timer tracking (120 seconds countdown)
+  const [abortSeconds, setAbortSeconds] = useState<number | null>(null);
+
+  useEffect(() => {
+    if (!state.autoAbortTimer) {
+      setAbortSeconds(null);
+      return;
+    }
+    const updateRemaining = () => {
+      const remaining = Math.max(0, Math.ceil((state.autoAbortTimer!.deadline - Date.now()) / 1000));
+      setAbortSeconds(remaining);
+    };
+    updateRemaining();
+    const interval = setInterval(updateRemaining, 1000);
+    return () => clearInterval(interval);
+  }, [state.autoAbortTimer]);
+
+  const formatAbortTime = (sec: number) => `${Math.floor(sec / 60)}:${(sec % 60).toString().padStart(2, '0')}`;
 
   // Card voice announcer language preference (English vs Hindi with Indian Female Accent)
   const [voiceLanguage, setVoiceLanguage] = useState<VoiceLanguage>('EN');
@@ -173,6 +193,32 @@ export const BluffTable: React.FC<BluffTableProps> = ({
 
   // Seat positioning tailored dynamically for Desktop and Mobile orientations
   const getSeatPositionClass = (idx: number, count: number): string => {
+    if (state.isSpectator) {
+      if (count === 2) {
+        return idx === 0
+          ? (isLandscape ? 'top-1/2 -translate-y-1/2 left-3 sm:left-12' : 'top-[35%] -translate-y-1/2 left-2 xs:left-4 sm:left-8')
+          : (isLandscape ? 'top-1/2 -translate-y-1/2 right-3 sm:right-12' : 'top-[35%] -translate-y-1/2 right-2 xs:right-4 sm:right-8');
+      }
+      if (count === 3) {
+        if (idx === 0) return isLandscape ? 'top-1/2 -translate-y-1/2 left-3 sm:left-8' : 'top-[35%] -translate-y-1/2 left-2 sm:left-4';
+        if (idx === 1) return isLandscape ? 'top-3.5 sm:top-5 left-1/2 -translate-x-1/2' : 'top-[max(3rem,calc(env(safe-area-inset-top)+2.5rem))] sm:top-16 left-1/2 -translate-x-1/2';
+        if (idx === 2) return isLandscape ? 'top-1/2 -translate-y-1/2 right-3 sm:right-8' : 'top-[35%] -translate-y-1/2 right-2 sm:right-4';
+      }
+      if (count === 4) {
+        if (idx === 0) return 'top-1/2 -translate-y-1/2 left-2 sm:left-6';
+        if (idx === 1) return 'top-[max(3rem,calc(env(safe-area-inset-top)+2.5rem))] left-[28%] -translate-x-1/2';
+        if (idx === 2) return 'top-[max(3rem,calc(env(safe-area-inset-top)+2.5rem))] right-[28%] translate-x-1/2';
+        if (idx === 3) return 'top-1/2 -translate-y-1/2 right-2 sm:right-6';
+      }
+      if (count >= 5) {
+        if (idx === 0) return 'top-[68%] -translate-y-1/2 left-2 sm:left-6';
+        if (idx === 1) return 'top-[22%] -translate-y-1/2 left-2 sm:left-6';
+        if (idx === 2) return 'top-[max(3rem,calc(env(safe-area-inset-top)+2.5rem))] left-1/2 -translate-x-1/2';
+        if (idx === 3) return 'top-[22%] -translate-y-1/2 right-2 sm:right-6';
+        if (idx === 4) return 'top-[68%] -translate-y-1/2 right-2 sm:right-6';
+      }
+    }
+
     if (idx === 0) return 'bottom-1 left-1/2 -translate-x-1/2';
 
     // 2-Player (Self + 1 Opponent at top center with safe margin from walnut rail)
@@ -327,7 +373,31 @@ export const BluffTable: React.FC<BluffTableProps> = ({
                 <UserPlus className="w-2.5 h-2.5 xs:w-3 xs:h-3" />
                 <span className="hidden sm:inline sm:ml-1">Invite</span>
               </button>
+
+              {/* Spectator Mode Pill */}
+              {state.isSpectator && (
+                <div className="flex items-center gap-1.5 px-2 xs:px-2.5 py-0.5 sm:py-1 rounded-full bg-purple-900/80 border border-purple-400/60 text-purple-200 text-[9px] xs:text-[10px] sm:text-xs font-black shadow-lg animate-pulse">
+                  <Eye className="w-2.5 h-2.5 xs:w-3 xs:h-3 text-purple-300" />
+                  <span>Spectating</span>
+                </div>
+              )}
             </div>
+
+            {/* Floating Disconnect Auto-Abort Warning Banner */}
+            {state.autoAbortTimer && abortSeconds !== null && (
+              <div
+                className={cn(
+                  "absolute left-1/2 -translate-x-1/2 z-40 max-w-[94vw] px-2.5 xs:px-3.5 py-1 sm:py-1.5 rounded-2xl bg-amber-950/95 border-2 border-amber-500/90 shadow-2xl backdrop-blur-md flex items-center gap-2 text-amber-200 animate-pulse text-[10.5px] xs:text-xs sm:text-sm font-bold pointer-events-auto touch-manipulation select-none",
+                  isLandscape ? "top-[15%] sm:top-[16%]" : "top-[18%] xs:top-[19%] sm:top-[20%]"
+                )}
+              >
+                <ShieldAlert className="w-3.5 h-3.5 xs:w-4 xs:h-4 text-amber-400 shrink-0" />
+                <span>
+                  ⚠️ <span className="text-white font-extrabold">{state.autoAbortTimer.disconnectedPlayerName}</span> disconnected! Auto-abort in{' '}
+                  <span className="text-amber-300 font-mono font-black">{formatAbortTime(abortSeconds)}</span>
+                </span>
+              </div>
+            )}
 
             {/* Right Section: Language Toggle, Voice Chat, Sounds, Rules, Audio, Exit */}
             <div className="flex items-center gap-0.5 xs:gap-1 sm:gap-1.5 shrink-0 pointer-events-auto justify-end">
@@ -408,7 +478,7 @@ export const BluffTable: React.FC<BluffTableProps> = ({
 
           {/* Opponent Seats Positioned Around Table */}
           {reorderedPlayers.map(({ player, positionIndex }) => {
-            if (positionIndex === 0) return null; // Self is rendered at bottom
+            if (positionIndex === 0 && !state.isSpectator) return null; // Self is rendered at bottom when playing
             const posClass = getSeatPositionClass(positionIndex, totalPlayers);
             const isTurn = player.id === currentTurnPlayerId;
             const isLeader = player.id === cycleLeaderId;
@@ -518,100 +588,132 @@ export const BluffTable: React.FC<BluffTableProps> = ({
           {/* ================= BOTTOM AREA: ACTION CONTROLS & FAN HAND ================= */}
           {/* Firmly anchored at the bottom edge with clean hierarchy and zero card cutoff */}
           <div className="absolute bottom-[max(0.25rem,env(safe-area-inset-bottom))] sm:bottom-2 left-1/2 -translate-x-1/2 z-20 w-full max-w-5xl px-2 flex flex-col items-center pointer-events-auto">
-            
-            {/* Rank Selector (Only shown if Fresh Cycle & It's My Turn) */}
-            {isMyTurn && isCycleFresh && (
-              <div className="mb-1.5 flex flex-col items-center animate-in slide-in-from-bottom-2 duration-200">
-                <span className="text-[9px] xs:text-[10px] sm:text-xs font-black uppercase tracking-wider text-amber-300 mb-0.5">
-                  Select Claim Rank:
-                </span>
-                <div className="flex items-center gap-1 max-w-[92vw] overflow-x-auto py-1 px-2 no-scrollbar scrollbar-none bg-black/85 rounded-2xl border border-white/15 backdrop-blur-md shadow-lg">
-                  {ALL_RANKS.map((r) => (
-                    <button
-                      key={r}
-                      type="button"
-                      onClick={() => setSelectedRank(r)}
-                      className={cn(
-                        'w-7 h-7 sm:w-8 sm:h-8 rounded-xl font-black text-xs sm:text-sm transition-all cursor-pointer flex items-center justify-center shrink-0 touch-manipulation',
-                        selectedRank === r
-                          ? 'bg-gradient-to-r from-amber-500 to-yellow-400 text-black scale-105 shadow-gold-glow'
-                          : 'bg-zinc-800/90 text-zinc-300 hover:bg-zinc-700 hover:text-white'
-                      )}
-                    >
-                      {r}
-                    </button>
-                  ))}
+            {state.isSpectator ? (
+              /* Spectator Mode Bottom Display Card */
+              <div
+                className={cn(
+                  "w-full rounded-2xl sm:rounded-3xl bg-black/90 border border-purple-500/50 shadow-2xl backdrop-blur-md flex flex-col items-center text-center animate-in fade-in zoom-in-95 duration-300 touch-manipulation select-none",
+                  isLandscape ? "p-2 sm:p-2.5 max-w-sm" : "p-3 xs:p-4 sm:p-5 max-w-md"
+                )}
+              >
+                <div className="flex items-center gap-1.5 sm:gap-2 text-purple-300 font-black text-xs sm:text-sm uppercase tracking-wider">
+                  <Eye className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-purple-400 animate-pulse" />
+                  <span>Spectator Mode Active</span>
+                </div>
+                <p
+                  className={cn(
+                    "text-zinc-300 font-medium leading-tight",
+                    isLandscape ? "text-[9.5px] sm:text-[10.5px] mt-0.5" : "text-[11px] xs:text-xs sm:text-sm mt-1 sm:mt-1.5"
+                  )}
+                >
+                  You are watching the match live. You will automatically receive cards when the host starts the next round!
+                </p>
+                <div
+                  className={cn(
+                    "text-amber-400 font-semibold flex items-center gap-1.5 bg-amber-500/10 border border-amber-500/25 px-2.5 sm:px-3 py-0.5 sm:py-1 rounded-full",
+                    isLandscape ? "mt-1 text-[9px] sm:text-[10px]" : "mt-2 text-[10px] sm:text-[11px]"
+                  )}
+                >
+                  <span>🎙️ Voice chat and Desi soundboard remain fully active!</span>
                 </div>
               </div>
-            )}
-
-            {/* Action Buttons Bar */}
-            <div className="flex flex-wrap items-center justify-center gap-2 sm:gap-3 mb-1 sm:mb-1.5 z-30">
-              {isMyTurn ? (
-                <>
-                  {/* 1. SHOW (CALL BLUFF) BUTTON */}
-                  {canShow && (
-                    <button
-                      type="button"
-                      onClick={handleCallShow}
-                      className="flex items-center gap-1 sm:gap-1.5 px-3 xs:px-4 sm:px-6 py-1.5 sm:py-2.5 rounded-xl sm:rounded-2xl bg-gradient-to-r from-red-600 via-rose-600 to-red-600 hover:from-red-500 hover:to-rose-500 text-white font-black text-[11px] xs:text-xs sm:text-sm uppercase tracking-wider shadow-lg shadow-red-950/50 active:scale-95 transition-all cursor-pointer animate-pulse touch-manipulation"
-                    >
-                      <ShieldAlert className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-                      <span>Show! (Call Bluff)</span>
-                    </button>
-                  )}
-
-                  {/* 2. PLAY / ADD CARDS BUTTON */}
-                  <button
-                    type="button"
-                    onClick={handlePlayCards}
-                    disabled={selectedCardIds.size === 0}
-                    className={cn(
-                      'flex items-center gap-1 sm:gap-1.5 px-4 xs:px-5 sm:px-7 py-1.5 sm:py-2.5 rounded-xl sm:rounded-2xl font-black text-[11px] xs:text-xs sm:text-sm uppercase tracking-wider transition-all shadow-gold-glow cursor-pointer touch-manipulation',
-                      selectedCardIds.size > 0
-                        ? 'bg-gradient-to-r from-amber-500 via-yellow-400 to-amber-500 hover:from-amber-400 hover:to-yellow-300 text-black active:scale-95'
-                        : 'bg-zinc-800/80 text-zinc-500 border border-zinc-700 cursor-not-allowed'
-                    )}
-                  >
-                    <Flame className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-                    <span>
-                      {isCycleFresh
-                        ? `Lead ${selectedCardIds.size || 0} × '${selectedRank}'`
-                        : `Play ${selectedCardIds.size || 0} × '${declaredRank}'`}
+            ) : (
+              <>
+                {/* Rank Selector (Only shown if Fresh Cycle & It's My Turn) */}
+                {isMyTurn && isCycleFresh && (
+                  <div className="mb-1.5 flex flex-col items-center animate-in slide-in-from-bottom-2 duration-200">
+                    <span className="text-[9px] xs:text-[10px] sm:text-xs font-black uppercase tracking-wider text-amber-300 mb-0.5">
+                      Select Claim Rank:
                     </span>
-                  </button>
+                    <div className="flex items-center gap-1 max-w-[92vw] overflow-x-auto py-1 px-2 no-scrollbar scrollbar-none bg-black/85 rounded-2xl border border-white/15 backdrop-blur-md shadow-lg">
+                      {ALL_RANKS.map((r) => (
+                        <button
+                          key={r}
+                          type="button"
+                          onClick={() => setSelectedRank(r)}
+                          className={cn(
+                            'w-7 h-7 sm:w-8 sm:h-8 rounded-xl font-black text-xs sm:text-sm transition-all cursor-pointer flex items-center justify-center shrink-0 touch-manipulation',
+                            selectedRank === r
+                              ? 'bg-gradient-to-r from-amber-500 to-yellow-400 text-black scale-105 shadow-gold-glow'
+                              : 'bg-zinc-800/90 text-zinc-300 hover:bg-zinc-700 hover:text-white'
+                          )}
+                        >
+                          {r}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
 
-                  {/* 3. PASS BUTTON */}
-                  {!isCycleFresh && (
-                    <button
-                      type="button"
-                      onClick={handlePass}
-                      className="flex items-center gap-1 px-3 xs:px-3.5 sm:px-5 py-1.5 sm:py-2.5 rounded-xl sm:rounded-2xl bg-zinc-900/90 hover:bg-zinc-800 border border-zinc-700 text-zinc-300 hover:text-white font-bold text-[11px] xs:text-xs sm:text-sm uppercase tracking-wider active:scale-95 transition-all cursor-pointer touch-manipulation"
-                    >
-                      <span>Pass</span>
-                      <ChevronRight className="w-3.5 h-3.5" />
-                    </button>
+                {/* Action Buttons Bar */}
+                <div className="flex flex-wrap items-center justify-center gap-2 sm:gap-3 mb-1 sm:mb-1.5 z-30">
+                  {isMyTurn ? (
+                    <>
+                      {/* 1. SHOW (CALL BLUFF) BUTTON */}
+                      {canShow && (
+                        <button
+                          type="button"
+                          onClick={handleCallShow}
+                          className="flex items-center gap-1 sm:gap-1.5 px-3 xs:px-4 sm:px-6 py-1.5 sm:py-2.5 rounded-xl sm:rounded-2xl bg-gradient-to-r from-red-600 via-rose-600 to-red-600 hover:from-red-500 hover:to-rose-500 text-white font-black text-[11px] xs:text-xs sm:text-sm uppercase tracking-wider shadow-lg shadow-red-950/50 active:scale-95 transition-all cursor-pointer animate-pulse touch-manipulation"
+                        >
+                          <ShieldAlert className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                          <span>Show! (Call Bluff)</span>
+                        </button>
+                      )}
+
+                      {/* 2. PLAY / ADD CARDS BUTTON */}
+                      <button
+                        type="button"
+                        onClick={handlePlayCards}
+                        disabled={selectedCardIds.size === 0}
+                        className={cn(
+                          'flex items-center gap-1 sm:gap-1.5 px-4 xs:px-5 sm:px-7 py-1.5 sm:py-2.5 rounded-xl sm:rounded-2xl font-black text-[11px] xs:text-xs sm:text-sm uppercase tracking-wider transition-all shadow-gold-glow cursor-pointer touch-manipulation',
+                          selectedCardIds.size > 0
+                            ? 'bg-gradient-to-r from-amber-500 via-yellow-400 to-amber-500 hover:from-amber-400 hover:to-yellow-300 text-black active:scale-95'
+                            : 'bg-zinc-800/80 text-zinc-500 border border-zinc-700 cursor-not-allowed'
+                        )}
+                      >
+                        <Flame className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                        <span>
+                          {isCycleFresh
+                            ? `Lead ${selectedCardIds.size || 0} × '${selectedRank}'`
+                            : `Play ${selectedCardIds.size || 0} × '${declaredRank}'`}
+                        </span>
+                      </button>
+
+                      {/* 3. PASS BUTTON */}
+                      {!isCycleFresh && (
+                        <button
+                          type="button"
+                          onClick={handlePass}
+                          className="flex items-center gap-1 px-3 xs:px-3.5 sm:px-5 py-1.5 sm:py-2.5 rounded-xl sm:rounded-2xl bg-zinc-900/90 hover:bg-zinc-800 border border-zinc-700 text-zinc-300 hover:text-white font-bold text-[11px] xs:text-xs sm:text-sm uppercase tracking-wider active:scale-95 transition-all cursor-pointer touch-manipulation"
+                        >
+                          <span>Pass</span>
+                          <ChevronRight className="w-3.5 h-3.5" />
+                        </button>
+                      )}
+                    </>
+                  ) : (
+                    <div className="px-3 sm:px-4 py-1 rounded-full bg-black/65 backdrop-blur-md border border-white/10 text-[10px] xs:text-xs text-zinc-300 flex items-center gap-2 shadow">
+                      <span className="w-2 h-2 rounded-full bg-amber-400 animate-ping" />
+                      <span>
+                        Waiting for <strong className="text-white">{currentTurnPlayer?.name}</strong> to make a move...
+                      </span>
+                    </div>
                   )}
-                </>
-              ) : (
-                <div className="px-3 sm:px-4 py-1 rounded-full bg-black/65 backdrop-blur-md border border-white/10 text-[10px] xs:text-xs text-zinc-300 flex items-center gap-2 shadow">
-                  <span className="w-2 h-2 rounded-full bg-amber-400 animate-ping" />
-                  <span>
-                    Waiting for <strong className="text-white">{currentTurnPlayer?.name}</strong> to make a move...
-                  </span>
                 </div>
-              )}
-            </div>
 
-            {/* The Authentic Fan Hand of Cards */}
-            <FanHand
-              cards={cards}
-              selectedCardIds={selectedCardIds}
-              onToggleCard={handleToggleCard}
-              onClearSelection={handleClearSelection}
-              onSortCards={() => setIsSorted(!isSorted)}
-              isMyTurn={isMyTurn}
-            />
+                {/* The Authentic Fan Hand of Cards */}
+                <FanHand
+                  cards={cards}
+                  selectedCardIds={selectedCardIds}
+                  onToggleCard={handleToggleCard}
+                  onClearSelection={handleClearSelection}
+                  onSortCards={() => setIsSorted(!isSorted)}
+                  isMyTurn={isMyTurn}
+                />
+              </>
+            )}
           </div>
 
         </div>

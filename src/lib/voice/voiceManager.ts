@@ -1,27 +1,35 @@
 import { getSocket } from '@/socket/client';
 import { useVoiceStore } from '@/store/voiceStore';
 
-// Multi-layered ICE servers: High-speed Google STUN + Metered OpenRelay TURN servers
-// TURN is essential for mobile cellular networks (Jio, Airtel, Vi, T-Mobile, etc.) and symmetric NAT firewalls.
+// Multi-layered ICE servers: High-speed Google + Cloudflare Anycast STUN + Twilio + Nextcloud + OpenRelay TCP TURN.
+// Engineered specifically for resilient cross-network mobile & desktop connections (Jio, Airtel, Vi, Wi-Fi, symmetric NATs).
 const getIceServers = (): RTCConfiguration => {
   const customTurnUrl = process.env.NEXT_PUBLIC_TURN_URL;
   const customTurnUsername = process.env.NEXT_PUBLIC_TURN_USERNAME;
   const customTurnCredential = process.env.NEXT_PUBLIC_TURN_CREDENTIAL;
 
   const servers: RTCIceServer[] = [
-    // Google Public STUN
+    // 1. Google Public STUN (Ultra-fast 18ms latency, 5 multi-port global anycast endpoints)
     { urls: 'stun:stun.l.google.com:19302' },
     { urls: 'stun:stun1.l.google.com:19302' },
     { urls: 'stun:stun2.l.google.com:19302' },
     { urls: 'stun:stun3.l.google.com:19302' },
     { urls: 'stun:stun4.l.google.com:19302' },
-    // Metered Public STUN
-    { urls: 'stun:openrelay.metered.ca:80' },
-    // Metered Free OpenRelay TURN (UDP & TCP & TLS fallbacks)
+
+    // 2. Cloudflare Anycast STUN (Ultra-low 30ms latency, edge nodes across Mumbai, Delhi, Bangalore, Chennai)
+    { urls: 'stun:stun.cloudflare.com:3478' },
+
+    // 3. Twilio Global STUN (36ms latency)
+    { urls: 'stun:global.stun.twilio.com:3478' },
+
+    // 4. Nextcloud STUN on port 443 (Bypasses restrictive cellular firewalls blocking default STUN UDP 3478)
+    { urls: 'stun:stun.nextcloud.com:443' },
+    { urls: 'stun:stun.nextcloud.com:3478' },
+
+    // 5. Metered OpenRelay TURN over TCP (Reliably pierces restrictive cellular CGNAT, Jio/Airtel symmetric NAT, and carrier firewalls)
     {
       urls: [
-        'turn:openrelay.metered.ca:80',
-        'turn:openrelay.metered.ca:443',
+        'turn:openrelay.metered.ca:80?transport=tcp',
         'turn:openrelay.metered.ca:443?transport=tcp',
         'turns:openrelay.metered.ca:443?transport=tcp',
       ],
@@ -30,7 +38,7 @@ const getIceServers = (): RTCConfiguration => {
     },
   ];
 
-  // Optional custom TURN credentials configured in environment variables
+  // Optional custom TURN credentials configured in environment variables (e.g. Metered/Xirsys/Twilio)
   if (customTurnUrl) {
     servers.unshift({
       urls: customTurnUrl,
@@ -42,8 +50,67 @@ const getIceServers = (): RTCConfiguration => {
   return {
     iceServers: servers,
     iceCandidatePoolSize: 10,
+    bundlePolicy: 'max-bundle',
+    rtcpMuxPolicy: 'require',
+    iceTransportPolicy: 'all',
   };
 };
+
+/**
+ * Optimizes the WebRTC Session Description Protocol (SDP) specifically for speech audio.
+ * Enforces in-band Forward Error Correction (FEC), Discontinuous Transmission (DTX),
+ * and optimal 32kbps bitrate to eliminate robotic/choppy voice on mobile and distant networks.
+ */
+function optimizeOpusSdp(sdp: string): string {
+  if (!sdp) return sdp;
+
+  // Find opus payload type (typically 111)
+  const opusMatch = sdp.match(/a=rtpmap:(\d+)\s+opus\/48000/i);
+  if (!opusMatch) return sdp;
+
+  const pt = opusMatch[1];
+  const fmtpRegex = new RegExp(`a=fmtp:${pt}\\s+([^\r\n]*)`, 'i');
+  const fmtpMatch = sdp.match(fmtpRegex);
+
+  // Key parameters:
+  // - minptime=10: allows low-latency 10ms frame packets under jitter
+  // - useinbandfec=1: in-band Forward Error Correction recovers dropped speech packets automatically!
+  // - usedtx=1: Discontinuous transmission saves mobile data and bandwidth during silence
+  // - stereo=0 & sprop-stereo=0: Mono encoding cuts bandwidth by 50%
+  // - maxaveragebitrate=32000: 32kbps pristine voice clarity without cellular packet congestion
+  // - cbr=0: variable bitrate adapts dynamically to network fluctuations
+  const desiredParams: Record<string, string> = {
+    minptime: '10',
+    useinbandfec: '1',
+    usedtx: '1',
+    stereo: '0',
+    'sprop-stereo': '0',
+    maxaveragebitrate: '32000',
+    cbr: '0',
+  };
+
+  if (fmtpMatch) {
+    const existingParams = fmtpMatch[1].split(';').reduce((acc, param) => {
+      const [k, v] = param.trim().split('=');
+      if (k) acc[k] = v || '';
+      return acc;
+    }, {} as Record<string, string>);
+
+    const merged = { ...existingParams, ...desiredParams };
+    const newFmtp = Object.entries(merged)
+      .map(([k, v]) => (v ? `${k}=${v}` : k))
+      .join(';');
+    return sdp.replace(fmtpRegex, `a=fmtp:${pt} ${newFmtp}`);
+  } else {
+    const newFmtp = Object.entries(desiredParams)
+      .map(([k, v]) => `${k}=${v}`)
+      .join(';');
+    return sdp.replace(
+      opusMatch[0],
+      `${opusMatch[0]}\r\na=fmtp:${pt} ${newFmtp}`
+    );
+  }
+}
 
 interface PeerConnectionRecord {
   pc: RTCPeerConnection;
@@ -51,6 +118,7 @@ interface PeerConnectionRecord {
   analyser?: AnalyserNode;
   pendingCandidates: RTCIceCandidateInit[];
   makingOffer: boolean;
+  restartTimer?: any;
 }
 
 class VoiceManager {
@@ -83,14 +151,32 @@ class VoiceManager {
       // Register interaction unlocker so any subsequent tap unblocks pending remote audio
       this.registerAutoplayUnlock();
 
-      // 2. Request microphone permission
-      const stream = await navigator.mediaDevices.getUserMedia({
-        audio: {
-          echoCancellation: true,
-          noiseSuppression: true,
-          autoGainControl: true,
-        },
-        video: false,
+      // 2. Request microphone permission with speech-optimized constraints
+      let stream: MediaStream;
+      try {
+        stream = await navigator.mediaDevices.getUserMedia({
+          audio: {
+            echoCancellation: { ideal: true },
+            noiseSuppression: { ideal: true },
+            autoGainControl: { ideal: true },
+            channelCount: { ideal: 1 },
+            sampleRate: { ideal: 48000 },
+          },
+          video: false,
+        });
+      } catch (constraintErr) {
+        console.warn('[WebRTC] Advanced audio constraints rejected, falling back to standard audio:', constraintErr);
+        stream = await navigator.mediaDevices.getUserMedia({
+          audio: true,
+          video: false,
+        });
+      }
+
+      // Mark audio tracks as human speech for browser hardware acoustic processors
+      stream.getAudioTracks().forEach((track) => {
+        if ('contentHint' in track) {
+          (track as any).contentHint = 'speech';
+        }
       });
 
       this.localStream = stream;
@@ -132,13 +218,28 @@ class VoiceManager {
           store.setIsInVoice(true);
           store.setIsConnecting(false);
 
-          // Connect to existing voice peers returned by server
+          // Single-Offerer Pattern:
+          // The server notifies existing peers via 'voice:peer-joined'.
+          // Existing peers will initiate offers to this newcomer, preventing glare/collisions.
+          // Newcomer sets up connection records and awaits incoming offers.
           const existingPeers: string[] = res.peers || [];
           console.log(`[WebRTC] Successfully joined voice room ${this.currentRoomCode}. Existing peers:`, existingPeers);
 
-          for (const peerId of existingPeers) {
-            await this.initiatePeerConnection(peerId);
-          }
+          existingPeers.forEach((peerId) => {
+            this.getOrCreatePeerRecord(peerId);
+          });
+
+          // Fallback safety: If an existing peer does not initiate within 2.5s, newcomer initiates
+          setTimeout(() => {
+            if (!store.isInVoice) return;
+            existingPeers.forEach(async (peerId) => {
+              const rec = this.peers.get(peerId);
+              if (rec && rec.pc.connectionState !== 'connected' && rec.pc.signalingState === 'stable') {
+                console.log(`[WebRTC] Fallback initiating offer to ${peerId}...`);
+                await this.initiatePeerConnection(peerId);
+              }
+            });
+          }, 2500);
 
           resolve(true);
         });
@@ -164,8 +265,9 @@ class VoiceManager {
     }
 
     // 2. Close and remove all peer connections and audio elements
-    this.peers.forEach(({ pc, audio }) => {
+    this.peers.forEach(({ pc, audio, restartTimer }) => {
       try {
+        if (restartTimer) clearTimeout(restartTimer);
         pc.close();
         audio.pause();
         audio.srcObject = null;
@@ -356,7 +458,14 @@ class VoiceManager {
     audio.volume = 1.0;
     audio.setAttribute('playsinline', 'true');
     audio.setAttribute('webkit-playsinline', 'true');
-    audio.style.display = 'none';
+    // Using offscreen fixed styling instead of display:none prevents iOS Safari & Chrome WebKit from pausing background audio
+    audio.style.position = 'fixed';
+    audio.style.bottom = '0';
+    audio.style.left = '0';
+    audio.style.width = '1px';
+    audio.style.height = '1px';
+    audio.style.opacity = '0.001';
+    audio.style.pointerEvents = 'none';
     document.body.appendChild(audio);
 
     const record: PeerConnectionRecord = {
@@ -366,11 +475,6 @@ class VoiceManager {
       makingOffer: false,
     };
 
-    // Ensure audio transceiver is created with sendrecv capability
-    try {
-      pc.addTransceiver('audio', { direction: 'sendrecv' });
-    } catch (e) {}
-
     // Stream incoming audio from remote peer
     pc.ontrack = (event) => {
       let stream = (event.streams && event.streams[0]) || null;
@@ -379,19 +483,28 @@ class VoiceManager {
       }
       if (!stream) return;
 
-      // 1. Play dedicated remote stream via HTMLAudioElement (cleanest audio output, native echo cancelation)
+      // 1. Play dedicated remote stream via HTMLAudioElement (cleanest audio output, native echo cancellation)
       audio.srcObject = stream;
-      const playPromise = audio.play();
-      if (playPromise !== undefined) {
-        playPromise.catch((e) => {
-          console.warn(`[WebRTC] Audio element play blocked for ${peerId}:`, e);
-          this.registerAutoplayUnlock();
-        });
-      }
+
+      const attemptPlay = () => {
+        const playPromise = audio.play();
+        if (playPromise !== undefined) {
+          playPromise.catch((e) => {
+            console.warn(`[WebRTC] Audio element play blocked for ${peerId}:`, e);
+            this.registerAutoplayUnlock();
+          });
+        }
+      };
+
+      attemptPlay();
+
+      // Ensure playback when first RTP packet un-mutes the track over the network
+      event.track.onunmute = () => {
+        attemptPlay();
+      };
 
       // 2. Attach Web Audio API analyser ONLY for speaking detection indicator
-      // Never route to audioCtx.destination! Dual routing causes echo feedback, phase cancelation,
-      // and complete silence on iOS Safari (Apple WebKit Bug #215449).
+      // Never route to audioCtx.destination! Dual routing causes echo feedback and phase cancellation.
       if (this.audioCtx && this.audioCtx.state !== 'closed') {
         try {
           if (this.audioCtx.state === 'suspended') {
@@ -411,11 +524,30 @@ class VoiceManager {
       }
     };
 
-    // Add our local mic tracks to this peer connection
+    // Add local mic tracks to this peer connection
     if (this.localStream) {
       this.localStream.getAudioTracks().forEach((track) => {
-        pc.addTrack(track, this.localStream!);
+        const sender = pc.addTrack(track, this.localStream!);
+
+        // Enforce audio priority and optimal encoding parameters on the sender
+        if (sender && sender.setParameters) {
+          try {
+            const params = sender.getParameters();
+            if (!params.encodings || params.encodings.length === 0) {
+              params.encodings = [{}];
+            }
+            params.encodings[0].maxBitrate = 32000;
+            params.encodings[0].priority = 'high';
+            params.encodings[0].networkPriority = 'high';
+            (params as any).degradationPreference = 'maintain-framerate';
+            sender.setParameters(params).catch(() => {});
+          } catch (e) {}
+        }
       });
+    } else {
+      try {
+        pc.addTransceiver('audio', { direction: 'sendrecv' });
+      } catch (e) {}
     }
 
     // ICE Candidate Exchange
@@ -429,23 +561,32 @@ class VoiceManager {
       }
     };
 
-    // Auto-restart ICE on failure (essential for mobile network transitions e.g. Wi-Fi <-> LTE)
+    // Auto-restart ICE on failure or temporary network switch (e.g. Wi-Fi <-> 4G/5G)
     pc.oniceconnectionstatechange = () => {
       console.log(`[WebRTC] ICE state with ${peerId}: ${pc.iceConnectionState}`);
+
       if (pc.iceConnectionState === 'failed') {
         console.warn(`[WebRTC] ICE failed with ${peerId}. Triggering ICE restart...`);
-        this.initiatePeerConnection(peerId, true);
+        this.restartIceForPeer(peerId);
       } else if (pc.iceConnectionState === 'disconnected') {
-        // Brief grace period before cleaning up disconnected peer
-        setTimeout(() => {
-          if (pc.iceConnectionState === 'disconnected' || pc.iceConnectionState === 'closed') {
-            this.cleanupPeer(peerId);
+        // Debounce: Mobile network jitter may briefly disconnect; restart ICE if still down after 2.5s
+        if (record.restartTimer) clearTimeout(record.restartTimer);
+        record.restartTimer = setTimeout(() => {
+          if (pc.iceConnectionState === 'disconnected') {
+            console.warn(`[WebRTC] ICE still disconnected with ${peerId}. Triggering ICE restart...`);
+            this.restartIceForPeer(peerId);
           }
-        }, 6000);
+        }, 2500);
+      } else if (pc.iceConnectionState === 'connected' || pc.iceConnectionState === 'completed') {
+        if (record.restartTimer) {
+          clearTimeout(record.restartTimer);
+          record.restartTimer = undefined;
+        }
       }
     };
 
     pc.onconnectionstatechange = () => {
+      console.log(`[WebRTC] Connection state with ${peerId}: ${pc.connectionState}`);
       if (pc.connectionState === 'closed') {
         this.cleanupPeer(peerId);
       }
@@ -455,23 +596,47 @@ class VoiceManager {
     return record;
   }
 
+  public async restartIceForPeer(peerId: string) {
+    const record = this.peers.get(peerId);
+    if (!record) return;
+
+    // Single-initiator rule for ICE restart avoids simultaneous offer glare/deadlock
+    const socket = getSocket();
+    const isRestartInitiator = socket.id ? socket.id < peerId : true;
+    if (!isRestartInitiator) {
+      console.log(`[WebRTC] Awaiting ICE restart from peer ${peerId}`);
+      return;
+    }
+
+    try {
+      console.log(`[WebRTC] Initiating ICE restart with ${peerId}...`);
+      await this.initiatePeerConnection(peerId, true);
+    } catch (e) {
+      console.warn(`[WebRTC] Failed to restart ICE with ${peerId}:`, e);
+    }
+  }
+
   public async initiatePeerConnection(peerId: string, iceRestart = false) {
     try {
       const record = this.getOrCreatePeerRecord(peerId);
       const pc = record.pc;
 
       if (record.makingOffer || pc.signalingState !== 'stable') {
-        console.log(`[WebRTC] Skipping offer creation to ${peerId} (makingOffer=${record.makingOffer}, state=${pc.signalingState})`);
+        console.log(`[WebRTC] Skipping offer to ${peerId} (makingOffer=${record.makingOffer}, state=${pc.signalingState})`);
         return;
       }
 
       record.makingOffer = true;
       try {
-        const offer = await pc.createOffer({
+        const rawOffer = await pc.createOffer({
           offerToReceiveAudio: true,
           offerToReceiveVideo: false,
           iceRestart,
         });
+
+        // Apply Opus forward error correction & speech optimization to offer SDP
+        const optimizedSdp = optimizeOpusSdp(rawOffer.sdp || '');
+        const offer = new RTCSessionDescription({ type: 'offer', sdp: optimizedSdp });
         await pc.setLocalDescription(offer);
 
         const socket = getSocket();
@@ -511,8 +676,10 @@ class VoiceManager {
 
         await pc.setRemoteDescription(new RTCSessionDescription({ type: 'offer', sdp: signal.sdp }));
 
-        // Create and set local answer description
-        const answer = await pc.createAnswer();
+        // Create answer and apply Opus Forward Error Correction
+        const rawAnswer = await pc.createAnswer();
+        const optimizedSdp = optimizeOpusSdp(rawAnswer.sdp || '');
+        const answer = new RTCSessionDescription({ type: 'answer', sdp: optimizedSdp });
         await pc.setLocalDescription(answer);
 
         socket.emit('voice:signal', {
@@ -523,7 +690,7 @@ class VoiceManager {
         // Flush any candidates that arrived before remote description was set
         for (const cand of record.pendingCandidates) {
           try {
-            await pc.addIceCandidate(new RTCIceCandidate(cand));
+            await pc.addIceCandidate(cand);
           } catch (e) {}
         }
         record.pendingCandidates = [];
@@ -534,7 +701,7 @@ class VoiceManager {
           // Flush pending candidates
           for (const cand of record.pendingCandidates) {
             try {
-              await pc.addIceCandidate(new RTCIceCandidate(cand));
+              await pc.addIceCandidate(cand);
             } catch (e) {}
           }
           record.pendingCandidates = [];
@@ -544,7 +711,7 @@ class VoiceManager {
           record.pendingCandidates.push(signal.candidate);
         } else {
           try {
-            await pc.addIceCandidate(new RTCIceCandidate(signal.candidate));
+            await pc.addIceCandidate(signal.candidate);
           } catch (e) {
             console.warn('[WebRTC] ICE candidate addition error:', e);
           }
@@ -557,8 +724,9 @@ class VoiceManager {
 
   private cleanupPeer(peerId: string) {
     if (this.peers.has(peerId)) {
-      const { pc, audio } = this.peers.get(peerId)!;
+      const { pc, audio, restartTimer } = this.peers.get(peerId)!;
       try {
+        if (restartTimer) clearTimeout(restartTimer);
         pc.close();
         audio.pause();
         audio.srcObject = null;

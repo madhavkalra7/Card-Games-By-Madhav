@@ -61,6 +61,7 @@ const userSchema = new mongoose.Schema({
   avatarColor: { type: String, default: '#F4845F' },
   avatarId: { type: String, default: 'toon-orange' },
   totalScore: { type: Number, default: 100 },
+  coins: { type: Number, default: 1000 },
   totalGamesWon: { type: Number, default: 0 },
   totalGamesPlayed: { type: Number, default: 0 },
   friends: [{ type: String }],
@@ -279,7 +280,12 @@ export async function connectDB(): Promise<boolean> {
 }
 
 // Update player stats after match ends
-export async function updatePlayerStats(nameOrEmailOrId: string, scoreEarned: number, won: boolean): Promise<any> {
+export async function updatePlayerStats(
+  nameOrEmailOrId: string,
+  scoreEarned: number,
+  won: boolean,
+  coinsEarned: number = 0
+): Promise<any> {
   const isConnected = await connectDB();
   if (!isConnected) return null;
 
@@ -300,6 +306,7 @@ export async function updatePlayerStats(nameOrEmailOrId: string, scoreEarned: nu
 
     if (user) {
       user.totalScore = (user.totalScore || 100) + scoreEarned;
+      user.coins = (user.coins ?? 1000) + coinsEarned;
       user.totalGamesPlayed = (user.totalGamesPlayed || 0) + 1;
       if (won) {
         user.totalGamesWon = (user.totalGamesWon || 0) + 1;
@@ -332,6 +339,7 @@ export async function getGlobalLeaderboard(limit = 50) {
         avatarColor: u.avatarColor,
         avatarId: u.avatarId || 'toon-orange',
         totalScore: u.totalScore || 100,
+        coins: u.coins ?? 1000,
         totalGamesWon: u.totalGamesWon || 0,
         totalGamesPlayed: u.totalGamesPlayed || 0,
         winRate: u.totalGamesPlayed > 0 ? Math.round((u.totalGamesWon / u.totalGamesPlayed) * 100) : 0,

@@ -1,4 +1,4 @@
-import { Card, GameStateClientView, PenaltyLog, Player, PlayerClientView, Rank, Suit, CenterDeck } from './types';
+import { Card, GameStateClientView, PenaltyLog, Player, PlayerClientView, Rank, Suit, CenterDeck, Spectator } from './types';
 import { createDeck, getNextRank, isNextRank, shuffleDeck } from './deck';
 import { canPlayOnAnyCenterDeck, canPlayOnCenterDeck, canPlayOnOtherRightDeck } from './validator';
 import { drawRandomRewardCard, CollectibleRewardInfo } from '../../src/lib/collectibles';
@@ -27,8 +27,17 @@ export function calculateRankPoints(rank: number, totalPlayers: number): number 
   return 10;
 }
 
+export function calculateRankCoins(rank: number, totalPlayers: number): number {
+  if (rank === 1) return totalPlayers >= 4 ? 600 : 500;
+  if (rank === 2) return totalPlayers >= 4 ? 300 : 250;
+  if (rank === 3) return 150;
+  if (rank === 4) return 75;
+  return 50; // Participation chips
+}
+
 export class DukkiBazaarRoom {
   public roomCode: string;
+  public gameType: 'DUKKI_BAZAAR' = 'DUKKI_BAZAAR';
   public status: 'LOBBY' | 'PLAYING' | 'GAME_OVER' = 'LOBBY';
   public players: Player[] = [];
   public currentTurnIndex: number = 0;
@@ -58,6 +67,7 @@ export class DukkiBazaarRoom {
     avatarColor: string; 
     rank: number;
     scoreEarned?: number;
+    coinsEarned?: number;
     totalScore?: number;
     rewardCard?: CollectibleRewardInfo;
   }> = [];
@@ -70,6 +80,13 @@ export class DukkiBazaarRoom {
     reason?: string;
   } | null = null;
 
+  public spectators: Spectator[] = [];
+  public autoAbortTimer: {
+    deadline: number;
+    secondsRemaining: number;
+    disconnectedPlayerName: string;
+  } | null = null;
+
   private turnInterval: NodeJS.Timeout | null = null;
   private onStateChange: () => void;
   private onGameOver?: (room: DukkiBazaarRoom) => void;
@@ -78,6 +95,34 @@ export class DukkiBazaarRoom {
     this.roomCode = roomCode;
     this.onStateChange = onStateChange;
     this.onGameOver = onGameOver;
+  }
+
+  public addSpectator(data: { id: string; sessionId: string; name: string; avatarColor: string }): Spectator {
+    const existing = this.spectators.find(s => s.sessionId === data.sessionId);
+    if (existing) {
+      existing.id = data.id;
+      existing.name = data.name;
+      existing.avatarColor = data.avatarColor;
+      this.notifyState();
+      return existing;
+    }
+    const spectator: Spectator = {
+      id: data.id,
+      sessionId: data.sessionId,
+      name: data.name.trim() || 'Spectator',
+      avatarColor: data.avatarColor,
+    };
+    this.spectators.push(spectator);
+    this.notifyState();
+    return spectator;
+  }
+
+  public removeSpectator(socketId: string): void {
+    const idx = this.spectators.findIndex(s => s.id === socketId);
+    if (idx !== -1) {
+      this.spectators.splice(idx, 1);
+      this.notifyState();
+    }
   }
 
   public addPlayer(data: { id: string; sessionId: string; name: string; avatarColor: string }): Player {
@@ -218,6 +263,7 @@ export class DukkiBazaarRoom {
         const totalMatchPlayers = this.players.length;
         for (const r of this.rankings) {
           r.scoreEarned = calculateRankPoints(r.rank, totalMatchPlayers);
+          r.coinsEarned = calculateRankCoins(r.rank, totalMatchPlayers);
           if (r.rank === 1 || r.rank === 2) {
             r.rewardCard = drawRandomRewardCard(r.rank);
           }
@@ -284,6 +330,27 @@ export class DukkiBazaarRoom {
     const host = this.players.find(p => p.id === hostSocketId);
     if (!host || !host.isHost) {
       return { success: false, error: "Only the host can start the game." };
+    }
+
+    // Promote waiting spectators into available player seats
+    while (this.players.length < 5 && this.spectators.length > 0) {
+      const nextSpectator = this.spectators.shift()!;
+      this.players.push({
+        id: nextSpectator.id,
+        sessionId: nextSpectator.sessionId,
+        name: nextSpectator.name,
+        avatarColor: nextSpectator.avatarColor,
+        isHost: false,
+        isConnected: true,
+        disconnectTime: null,
+        seatIndex: this.players.length,
+        hiddenCards: [],
+        rightDeck: [],
+        isBazaarOpen: false,
+        floatingCard: null,
+        isFinished: false,
+        rank: null,
+      });
     }
 
     if (this.players.length < 2) {
@@ -966,6 +1033,26 @@ export class DukkiBazaarRoom {
     if (!host || !host.isHost) {
       return { success: false, error: "Only the host can start a new match." };
     }
+    // Promote waiting spectators into available player seats
+    while (this.players.length < 5 && this.spectators.length > 0) {
+      const nextSpectator = this.spectators.shift()!;
+      this.players.push({
+        id: nextSpectator.id,
+        sessionId: nextSpectator.sessionId,
+        name: nextSpectator.name,
+        avatarColor: nextSpectator.avatarColor,
+        isHost: false,
+        isConnected: true,
+        disconnectTime: null,
+        seatIndex: this.players.length,
+        hiddenCards: [],
+        rightDeck: [],
+        isBazaarOpen: false,
+        floatingCard: null,
+        isFinished: false,
+        rank: null,
+      });
+    }
     return this.startGame(hostSocketId);
   }
 
@@ -1042,6 +1129,7 @@ export class DukkiBazaarRoom {
       const totalMatchPlayers = this.players.length;
       for (const r of this.rankings) {
         r.scoreEarned = calculateRankPoints(r.rank, totalMatchPlayers);
+        r.coinsEarned = calculateRankCoins(r.rank, totalMatchPlayers);
         if (r.rank === 1 || r.rank === 2) {
           r.rewardCard = drawRandomRewardCard(r.rank);
         }
@@ -1081,6 +1169,7 @@ export class DukkiBazaarRoom {
   public getClientView(forPlayerSocketId: string): GameStateClientView {
     const currentTurnPlayer = this.getCurrentPlayer();
     const requestingPlayer = this.players.find(p => p.id === forPlayerSocketId);
+    const isSpectator = !requestingPlayer && this.spectators.some(s => s.id === forPlayerSocketId);
 
     const clientPlayers: PlayerClientView[] = this.players.map(p => ({
       id: p.id,
@@ -1119,6 +1208,9 @@ export class DukkiBazaarRoom {
         name: this.winner.name,
         avatarColor: this.winner.avatarColor,
       } : null,
+      isSpectator,
+      spectatorCount: this.spectators.length,
+      autoAbortTimer: this.autoAbortTimer,
       rankings: this.rankings,
     };
   }

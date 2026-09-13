@@ -35,6 +35,10 @@ export interface OnlinePlayer {
   avatarUrl?: string;
   avatarColor?: string;
   inRoom?: boolean;
+  currentRoomCode?: string | null;
+  roomStatus?: 'LOBBY' | 'PLAYING' | 'GAME_OVER' | null;
+  gameType?: string | null;
+  playerCount?: number;
 }
 
 export interface RoomInvite {

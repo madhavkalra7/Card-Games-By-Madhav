@@ -21,11 +21,11 @@ export const ExitConfirmModal: React.FC<ExitConfirmModalProps> = ({
   return (
     <div
       onClick={onClose}
-      className="fixed inset-0 z-[130] flex items-center justify-center p-3 sm:p-4 bg-black/80 backdrop-blur-md animate-in fade-in duration-200"
+      className="fixed inset-0 z-[130] flex items-center justify-center p-2.5 xs:p-3 sm:p-4 pt-[max(0.75rem,env(safe-area-inset-top))] pb-[max(0.75rem,env(safe-area-inset-bottom))] bg-black/80 backdrop-blur-md animate-in fade-in duration-200 overflow-y-auto"
     >
       <div
         onClick={(e) => e.stopPropagation()}
-        className="relative w-full max-w-md bg-zinc-950 border-2 border-red-800/80 rounded-2xl sm:rounded-3xl p-5 sm:p-7 shadow-2xl flex flex-col overflow-hidden"
+        className="relative w-full max-w-md max-h-[90dvh] overflow-y-auto my-auto bg-zinc-950 border-2 border-red-800/80 rounded-2xl sm:rounded-3xl p-4 xs:p-5 sm:p-7 shadow-2xl flex flex-col touch-manipulation"
       >
         
         {/* Close Button */}

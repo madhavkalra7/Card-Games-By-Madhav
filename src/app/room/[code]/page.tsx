@@ -9,6 +9,7 @@ import { BluffTable } from '@/components/bluff/BluffTable';
 import { PenaltyModal } from '@/components/modal/PenaltyModal';
 import { GameOverModal } from '@/components/modal/GameOverModal';
 import { RulesModal } from '@/components/modal/RulesModal';
+import { ExitConfirmModal } from '@/components/modal/ExitConfirmModal';
 import { InviteFriendsModal } from '@/components/modal/InviteFriendsModal';
 import { DesiSoundboardModal } from '@/components/table/DesiSoundboardModal';
 import { Toast } from '@/components/ui/Toast';
@@ -53,6 +54,44 @@ export default function RoomPage({ params }: { params: Promise<{ code: string }>
   const [isJoining, setIsJoining] = useState(false);
   const [joinError, setJoinError] = useState<string | null>(null);
   const [hasPromptedJoin, setHasPromptedJoin] = useState(false);
+  const [showExitModal, setShowExitModal] = useState(false);
+
+  // Mobile side-swipe back and browser back navigation interception
+  useEffect(() => {
+    // Push an entry into history so the back action triggers popstate instead of immediately leaving
+    window.history.pushState({ inGame: true }, '', window.location.href);
+
+    const handlePopState = () => {
+      // Re-push history entry so user doesn't leave without confirmation
+      window.history.pushState({ inGame: true }, '', window.location.href);
+      setShowExitModal(true);
+    };
+
+    window.addEventListener('popstate', handlePopState);
+    return () => {
+      window.removeEventListener('popstate', handlePopState);
+    };
+  }, []);
+
+  // Beforeunload handler to warn on reload/tab close during active match
+  useEffect(() => {
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      if (gameState && gameState.status === 'PLAYING') {
+        e.preventDefault();
+        e.returnValue = '';
+      }
+    };
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+    };
+  }, [gameState]);
+
+  const handleConfirmExit = () => {
+    setShowExitModal(false);
+    useGameStore.getState().leaveRoom();
+    router.push('/');
+  };
 
   useEffect(() => {
     initSocketListeners();
@@ -90,8 +129,8 @@ export default function RoomPage({ params }: { params: Promise<{ code: string }>
       <main className="min-h-screen min-h-[100dvh] bg-[#070d09] text-zinc-100 flex flex-col justify-between overflow-y-auto pb-[max(1rem,env(safe-area-inset-bottom))]">
         <Header roomCode={roomCode} />
 
-        <div className="flex-1 flex items-center justify-center p-2 sm:p-4">
-          <div className="w-full max-w-md max-h-[92vh] overflow-y-auto bg-zinc-950 border-2 border-gold/70 rounded-2xl sm:rounded-3xl p-4 sm:p-8 shadow-2xl">
+        <div className="flex-1 flex items-center justify-center p-2.5 xs:p-4 sm:p-6 pb-[max(1rem,env(safe-area-inset-bottom))] pt-[max(0.5rem,env(safe-area-inset-top))]">
+          <div className="w-full max-w-md max-h-[92dvh] my-auto overflow-y-auto bg-zinc-950/95 border-2 border-gold/70 rounded-2xl sm:rounded-3xl p-4 xs:p-6 sm:p-8 shadow-2xl backdrop-blur-md">
             <div className="text-center mb-4 sm:mb-6">
               <span className="text-[10px] sm:text-xs font-bold text-gold uppercase tracking-widest">
                 Invited to Table
@@ -167,7 +206,7 @@ export default function RoomPage({ params }: { params: Promise<{ code: string }>
                     : 'bg-zinc-800 text-zinc-500 cursor-not-allowed border border-zinc-700'
                 )}
               >
-                {isJoining ? 'Joining Table...' : 'Join Dukki Bazaar'}
+                {isJoining ? 'Joining Table...' : 'Join Table / Spectate'}
               </button>
             </form>
           </div>
@@ -190,9 +229,9 @@ export default function RoomPage({ params }: { params: Promise<{ code: string }>
 
       {isLobby ? (
         /* ==================== LOBBY VIEW ==================== */
-        <div className="flex-1 flex flex-col items-center justify-center p-2 sm:p-6 md:p-8 max-w-4xl mx-auto w-full">
+        <div className="flex-1 flex flex-col items-center justify-center p-2 xs:p-3 sm:p-6 md:p-8 max-w-4xl mx-auto w-full">
           {/* Lobby Card Container */}
-          <div className="w-full bg-zinc-950/80 border-2 border-gold/70 rounded-2xl sm:rounded-3xl p-4 sm:p-8 md:p-10 shadow-2xl backdrop-blur-md">
+          <div className="w-full bg-zinc-950/80 border-2 border-gold/70 rounded-2xl sm:rounded-3xl p-3.5 xs:p-5 sm:p-8 md:p-10 shadow-2xl backdrop-blur-md">
             
             {/* Lobby Header */}
             <div className="flex flex-col sm:flex-row items-center justify-between gap-4 border-b border-white/10 pb-6">
@@ -243,6 +282,19 @@ export default function RoomPage({ params }: { params: Promise<{ code: string }>
               </div>
             </div>
 
+            {/* Spectator Status Banner if waiting in lobby */}
+            {gameState.isSpectator && (
+              <div className="mt-6 p-3.5 rounded-2xl bg-purple-950/70 border border-purple-500/60 text-purple-200 text-xs sm:text-sm font-semibold flex items-center gap-3 shadow-lg">
+                <span className="text-xl">👀</span>
+                <div className="flex flex-col">
+                  <span className="font-extrabold text-white">Spectator Mode Active</span>
+                  <span className="text-purple-300/80 text-[11px] sm:text-xs">
+                    You are in spectator mode and will automatically take an open seat when the host starts the next round!
+                  </span>
+                </div>
+              </div>
+            )}
+
             {/* Players Roster */}
             <div className="mt-8">
               <h2 className="text-xs font-black uppercase tracking-wider text-zinc-400 mb-4">
@@ -266,7 +318,7 @@ export default function RoomPage({ params }: { params: Promise<{ code: string }>
                       </div>
                       <div className="flex flex-col">
                         <div className="flex items-center gap-1.5">
-                          <span className="font-bold text-sm text-zinc-100 truncate max-w-[110px]">
+                          <span className="font-bold text-sm text-zinc-100 truncate max-w-[85px] xs:max-w-[120px] sm:max-w-[160px]">
                             {p.name}
                           </span>
                           {p.id === gameState.myPlayerId && (
@@ -300,7 +352,7 @@ export default function RoomPage({ params }: { params: Promise<{ code: string }>
                     type="button"
                     key={`empty-${i}`}
                     onClick={() => setInviteModalOpen(true)}
-                    className="flex items-center justify-center gap-2 p-3.5 rounded-2xl border border-dashed border-zinc-700/80 hover:border-gold/60 bg-black/20 hover:bg-gold/5 text-zinc-500 hover:text-gold text-xs font-bold transition-all group cursor-pointer"
+                    className="flex items-center justify-center gap-2 p-3.5 rounded-2xl border border-dashed border-zinc-700/80 hover:border-gold/60 bg-black/20 hover:bg-gold/5 text-zinc-500 hover:text-gold text-xs font-bold transition-all group cursor-pointer touch-manipulation active:scale-98"
                     title="Click to invite a friend to this empty seat"
                   >
                     <UserPlus className="w-3.5 h-3.5 text-zinc-500 group-hover:text-gold transition-colors" />
@@ -329,7 +381,7 @@ export default function RoomPage({ params }: { params: Promise<{ code: string }>
                   onClick={startGame}
                   disabled={gameState.players.length < 2}
                   className={cn(
-                    'w-full sm:w-auto flex items-center justify-center gap-2 px-6 sm:px-8 py-2.5 sm:py-3.5 rounded-xl sm:rounded-2xl font-black text-xs sm:text-sm uppercase tracking-wider transition-all shadow-gold-glow',
+                    'w-full sm:w-auto flex items-center justify-center gap-2 px-6 sm:px-8 py-2.5 sm:py-3.5 rounded-xl sm:rounded-2xl font-black text-xs sm:text-sm uppercase tracking-wider transition-all shadow-gold-glow touch-manipulation',
                     gameState.players.length >= 2
                       ? 'bg-gradient-to-r from-amber-500 to-yellow-400 text-black hover:from-amber-400 hover:to-yellow-300 active:scale-95'
                       : 'bg-zinc-800 text-zinc-500 cursor-not-allowed border border-zinc-700'
@@ -388,6 +440,14 @@ export default function RoomPage({ params }: { params: Promise<{ code: string }>
         isOpen={isRulesModalOpen}
         onClose={() => setRulesModalOpen(false)}
         defaultGameType={gameState.gameType}
+      />
+
+      {/* Universal Exit Confirmation Modal for Back Gesture & Leaving Table */}
+      <ExitConfirmModal
+        isOpen={showExitModal}
+        onClose={() => setShowExitModal(false)}
+        onConfirm={handleConfirmExit}
+        isPlaying={gameState?.status === 'PLAYING'}
       />
 
       {/* Invite Friends Modal */}

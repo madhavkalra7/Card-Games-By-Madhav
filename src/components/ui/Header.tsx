@@ -8,6 +8,7 @@ import { sounds } from '@/lib/sound';
 import { ExitConfirmModal } from '../modal/ExitConfirmModal';
 import { InviteFriendsModal } from '../modal/InviteFriendsModal';
 import { useFriendsStore } from '@/store/friendsStore';
+import { useAuthStore } from '@/store/authStore';
 import { BookOpen, Check, Copy, LogOut, Volume2, VolumeX, UserPlus } from 'lucide-react';
 
 interface HeaderProps {
@@ -15,6 +16,7 @@ interface HeaderProps {
 }
 
 export const Header: React.FC<HeaderProps> = ({ roomCode }) => {
+  const { user } = useAuthStore();
   const { setRulesModalOpen, showToast, leaveRoom, gameState } = useGameStore();
   const { setInviteModalOpen } = useFriendsStore();
   const router = useRouter();
@@ -62,6 +64,23 @@ export const Header: React.FC<HeaderProps> = ({ roomCode }) => {
 
         {/* Action Controls */}
         <div className="flex items-center gap-1 sm:gap-2.5 shrink-0">
+          {/* Casino Currency Coins Pill */}
+          {user && (
+            <div
+              className="flex items-center gap-1.5 bg-zinc-900/90 border border-red-500/40 px-2 sm:px-3 py-1 sm:py-1.5 rounded-xl transition-all shadow-sm"
+              title={`Casino Coins: ${(user.coins ?? 1000).toLocaleString()} Chips`}
+            >
+              <img
+                src="/icons/casino-chip.png"
+                alt="Casino Coins"
+                className="w-3.5 h-3.5 sm:w-4 sm:h-4 object-contain filter drop-shadow animate-pulse"
+              />
+              <span className="font-mono text-xs sm:text-sm font-bold text-red-200">
+                {(user.coins ?? 1000).toLocaleString()}
+              </span>
+            </div>
+          )}
+
           {/* Room Code Badge (if in room) */}
           {roomCode && (
             <button

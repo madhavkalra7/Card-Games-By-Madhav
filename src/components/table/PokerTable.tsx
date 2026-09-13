@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { GameStateClientView, PlayerClientView } from '@/lib/types';
 import { PlayerSeat } from './PlayerSeat';
@@ -16,7 +16,7 @@ import { useGameStore } from '@/store/gameStore';
 import { VoiceControls } from '../voice/VoiceControls';
 import { useViewportOrientation } from '@/hooks/useViewportOrientation';
 import { useFriendsStore } from '@/store/friendsStore';
-import { BookOpen, Check, Copy, LogOut, Volume2, VolumeX, UserPlus } from 'lucide-react';
+import { BookOpen, Check, Copy, LogOut, Volume2, VolumeX, UserPlus, ShieldAlert, Eye } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface PokerTableProps {
@@ -56,6 +56,25 @@ export const PokerTable: React.FC<PokerTableProps> = ({
   const [isMuted, setIsMuted] = useState(sounds.getMuted());
   const [showExitModal, setShowExitModal] = useState(false);
 
+  // Auto-abort countdown timer tracking (120 seconds countdown)
+  const [abortSeconds, setAbortSeconds] = useState<number | null>(null);
+
+  useEffect(() => {
+    if (!state.autoAbortTimer) {
+      setAbortSeconds(null);
+      return;
+    }
+    const updateRemaining = () => {
+      const remaining = Math.max(0, Math.ceil((state.autoAbortTimer!.deadline - Date.now()) / 1000));
+      setAbortSeconds(remaining);
+    };
+    updateRemaining();
+    const interval = setInterval(updateRemaining, 1000);
+    return () => clearInterval(interval);
+  }, [state.autoAbortTimer]);
+
+  const formatAbortTime = (sec: number) => `${Math.floor(sec / 60)}:${(sec % 60).toString().padStart(2, '0')}`;
+
   const me = players.find(p => p.id === myPlayerId);
   const isMyTurn = currentTurnPlayerId === myPlayerId;
   const canDraw = isMyTurn && !myFloatingCard && ((me?.hiddenCount ?? 0) > 0 || (me?.rightDeckCount ?? 0) > 0);
@@ -82,6 +101,33 @@ export const PokerTable: React.FC<PokerTableProps> = ({
 
   // Seat positioning tailored dynamically for Portrait and Landscape orientations
   const getSeatPositionClass = (idx: number, count: number): string => {
+    // Spectator view layout: Symmetrically arrange all seated players across top, left, and right flanks
+    if (state.isSpectator) {
+      if (count === 2) {
+        return idx === 0
+          ? (isLandscape ? 'top-1/2 -translate-y-1/2 left-1.5 sm:left-6 md:left-12' : 'top-[35%] -translate-y-1/2 left-1.5 xs:left-3 sm:left-6')
+          : (isLandscape ? 'top-1/2 -translate-y-1/2 right-1.5 sm:right-6 md:right-12' : 'top-[35%] -translate-y-1/2 right-1.5 xs:right-3 sm:right-6');
+      }
+      if (count === 3) {
+        if (idx === 0) return isLandscape ? 'top-1/2 -translate-y-1/2 left-1.5 sm:left-4 md:left-8' : 'top-[35%] -translate-y-1/2 left-1.5 sm:left-4';
+        if (idx === 1) return isLandscape ? 'top-1 sm:top-2 left-1/2 -translate-x-1/2' : 'top-[max(3rem,calc(env(safe-area-inset-top)+2.5rem))] sm:top-14 left-1/2 -translate-x-1/2';
+        if (idx === 2) return isLandscape ? 'top-1/2 -translate-y-1/2 right-1.5 sm:right-4 md:right-8' : 'top-[35%] -translate-y-1/2 right-1.5 sm:right-4';
+      }
+      if (count === 4) {
+        if (idx === 0) return 'top-1/2 -translate-y-1/2 left-1.5 sm:left-4';
+        if (idx === 1) return 'top-[max(3rem,calc(env(safe-area-inset-top)+2.5rem))] sm:top-14 left-[28%] -translate-x-1/2';
+        if (idx === 2) return 'top-[max(3rem,calc(env(safe-area-inset-top)+2.5rem))] sm:top-14 right-[28%] translate-x-1/2';
+        if (idx === 3) return 'top-1/2 -translate-y-1/2 right-1.5 sm:right-4';
+      }
+      if (count >= 5) {
+        if (idx === 0) return 'top-[68%] -translate-y-1/2 left-1.5 sm:left-4';
+        if (idx === 1) return 'top-[22%] -translate-y-1/2 left-1.5 sm:left-4';
+        if (idx === 2) return 'top-[max(3rem,calc(env(safe-area-inset-top)+2.5rem))] sm:top-14 left-1/2 -translate-x-1/2';
+        if (idx === 3) return 'top-[22%] -translate-y-1/2 right-1.5 sm:right-4';
+        if (idx === 4) return 'top-[68%] -translate-y-1/2 right-1.5 sm:right-4';
+      }
+    }
+
     // Current player (Self) is always at bottom center
     if (idx === 0) {
       return isLandscape
@@ -200,7 +246,31 @@ export const PokerTable: React.FC<PokerTableProps> = ({
               <UserPlus className="w-2.5 h-2.5 xs:w-3 xs:h-3" />
               <span className="hidden sm:inline sm:ml-1">Invite</span>
             </button>
+
+            {/* Spectator Mode Pill */}
+            {state.isSpectator && (
+              <div className="flex items-center gap-1.5 px-2 xs:px-2.5 py-0.5 sm:py-1 rounded-full bg-purple-900/80 border border-purple-400/60 text-purple-200 text-[9px] xs:text-[10px] sm:text-xs font-black shadow-lg animate-pulse">
+                <Eye className="w-2.5 h-2.5 xs:w-3 xs:h-3 text-purple-300" />
+                <span>Spectating</span>
+              </div>
+            )}
           </div>
+
+          {/* Floating Disconnect Auto-Abort Warning Banner */}
+          {state.autoAbortTimer && abortSeconds !== null && (
+            <div
+              className={cn(
+                "absolute left-1/2 -translate-x-1/2 z-40 max-w-[94vw] px-2.5 xs:px-3.5 py-1 sm:py-1.5 rounded-2xl bg-amber-950/95 border-2 border-amber-500/90 shadow-2xl backdrop-blur-md flex items-center gap-2 text-amber-200 animate-pulse text-[10.5px] xs:text-xs sm:text-sm font-bold pointer-events-auto touch-manipulation select-none",
+                isLandscape ? "top-[15%] sm:top-[16%]" : "top-[18%] xs:top-[19%] sm:top-[20%]"
+              )}
+            >
+              <ShieldAlert className="w-3.5 h-3.5 xs:w-4 xs:h-4 text-amber-400 shrink-0" />
+              <span>
+                ⚠️ <span className="text-white font-extrabold">{state.autoAbortTimer.disconnectedPlayerName}</span> disconnected! Auto-abort in{' '}
+                <span className="text-amber-300 font-mono font-black">{formatAbortTime(abortSeconds)}</span>
+              </span>
+            </div>
+          )}
 
           {/* Minimal Floating HUD (Top Right: Voice Controls, Soundboard, Rules, Audio, Exit) */}
           <div className="absolute top-[max(0.25rem,env(safe-area-inset-top))] right-[max(0.25rem,env(safe-area-inset-right))] sm:top-2.5 sm:right-3 z-30 flex items-center gap-1 sm:gap-1.5 pointer-events-auto">
@@ -300,6 +370,38 @@ export const PokerTable: React.FC<PokerTableProps> = ({
             );
           })}
 
+          {/* Spectator Bottom Status Card */}
+          {state.isSpectator && (
+            <div className="absolute bottom-[max(0.4rem,env(safe-area-inset-bottom))] left-1/2 -translate-x-1/2 z-30 w-full max-w-md px-3 pointer-events-auto">
+              <div
+                className={cn(
+                  "w-full rounded-2xl sm:rounded-3xl bg-black/90 border border-purple-500/50 shadow-2xl backdrop-blur-md flex flex-col items-center text-center animate-in fade-in zoom-in-95 duration-300 touch-manipulation select-none",
+                  isLandscape ? "p-2 sm:p-2.5 max-w-sm mx-auto" : "p-2.5 xs:p-3.5 sm:p-4"
+                )}
+              >
+                <div className="flex items-center gap-1.5 sm:gap-2 text-purple-300 font-black text-xs sm:text-sm uppercase tracking-wider">
+                  <Eye className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-purple-400 animate-pulse" />
+                  <span>Spectator Mode Active</span>
+                </div>
+                <p
+                  className={cn(
+                    "text-zinc-300 font-medium leading-tight",
+                    isLandscape ? "text-[9.5px] sm:text-[10.5px] mt-0.5" : "text-[11px] xs:text-xs sm:text-sm mt-1"
+                  )}
+                >
+                  Watching Dukki Bazaar live. You will automatically take a seat when the next round starts!
+                </p>
+                <div
+                  className={cn(
+                    "text-amber-400 font-semibold flex items-center gap-1.5 bg-amber-500/10 border border-amber-500/25 px-2.5 sm:px-3 py-0.5 rounded-full",
+                    isLandscape ? "mt-1 text-[8.5px] sm:text-[9.5px]" : "mt-1.5 text-[9.5px] xs:text-[10.5px]"
+                  )}
+                >
+                  <span>🎙️ Voice chat and Desi soundboard are fully active!</span>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       </div>
 

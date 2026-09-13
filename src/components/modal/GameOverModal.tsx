@@ -147,16 +147,16 @@ export const GameOverModal: React.FC<GameOverModalProps> = ({
   const firstWinner = standings.find((s) => s.rank === 1) || standings[0];
 
   return (
-    <div className="fixed inset-0 z-[120] flex items-center justify-center p-2 sm:p-4 bg-black/85 backdrop-blur-md animate-in fade-in zoom-in duration-300 overflow-y-auto select-none">
-      <div className="relative w-full max-w-lg max-h-[92vh] overflow-y-auto bg-gradient-to-b from-zinc-950 via-[#18110b] to-[#0d0a06] border-2 border-gold rounded-2xl sm:rounded-3xl p-4 sm:p-7 shadow-[0_0_50px_rgba(212,175,55,0.35)] flex flex-col items-center text-center">
+    <div className="fixed inset-0 z-[120] flex items-center justify-center p-2.5 xs:p-3 sm:p-4 pt-[max(0.75rem,env(safe-area-inset-top))] pb-[max(0.75rem,env(safe-area-inset-bottom))] pl-[max(0.5rem,env(safe-area-inset-left))] pr-[max(0.5rem,env(safe-area-inset-right))] bg-black/85 backdrop-blur-md animate-in fade-in zoom-in duration-300 overflow-y-auto select-none touch-manipulation">
+      <div className="relative w-full max-w-lg max-h-[90dvh] my-auto overflow-y-auto bg-gradient-to-b from-zinc-950 via-[#18110b] to-[#0d0a06] border-2 border-gold rounded-2xl sm:rounded-3xl p-3.5 xs:p-4 sm:p-7 shadow-[0_0_50px_rgba(212,175,55,0.35)] flex flex-col items-center text-center">
         {/* Glow Header Accent */}
         <div className="absolute top-0 left-1/2 -translate-x-1/2 w-48 h-12 bg-gold/25 blur-2xl pointer-events-none rounded-full" />
 
         {/* Trophy Icon */}
         <div className="relative mb-2 sm:mb-3">
-          <div className="w-14 h-14 sm:w-18 sm:h-18 rounded-full bg-gradient-to-tr from-amber-600 via-yellow-400 to-amber-200 p-0.5 shadow-gold-glow flex items-center justify-center">
+          <div className="w-12 h-12 xs:w-14 xs:h-14 sm:w-18 sm:h-18 rounded-full bg-gradient-to-tr from-amber-600 via-yellow-400 to-amber-200 p-0.5 shadow-gold-glow flex items-center justify-center">
             <div className="w-full h-full rounded-full bg-black/80 flex items-center justify-center">
-              <Trophy className="w-7 h-7 sm:w-9 sm:h-9 text-amber-400 animate-pulse" />
+              <Trophy className="w-6 h-6 xs:w-7 xs:h-7 sm:w-9 sm:h-9 text-amber-400 animate-pulse" />
             </div>
           </div>
           <Sparkles
@@ -166,32 +166,32 @@ export const GameOverModal: React.FC<GameOverModalProps> = ({
         </div>
 
         {/* Title */}
-        <h2 className="text-xl sm:text-3xl font-black text-white uppercase tracking-wider font-serif">
+        <h2 className="text-lg xs:text-xl sm:text-3xl font-black text-white uppercase tracking-wider font-serif">
           Match Leaderboard
         </h2>
-        <p className="text-[11px] sm:text-xs text-zinc-400 mt-0.5">
+        <p className="text-[10px] xs:text-[11px] sm:text-xs text-zinc-400 mt-0.5">
           Tournament Complete • All Ranks Decided
         </p>
 
         {/* Winner Highlight Capsule */}
         {firstWinner && (
-          <div className="mt-2.5 sm:mt-3 flex items-center gap-2 px-3 sm:px-4 py-1 sm:py-1.5 rounded-full bg-gold/15 border border-gold/40 shadow-sm">
+          <div className="mt-2.5 sm:mt-3 flex flex-wrap items-center justify-center gap-1.5 xs:gap-2 px-3 sm:px-4 py-1.5 rounded-2xl sm:rounded-full bg-gold/15 border border-gold/40 shadow-sm max-w-full">
             <div
-              className="w-5 h-5 sm:w-6 sm:h-6 rounded-full flex items-center justify-center text-[10px] sm:text-xs font-bold text-white shadow"
+              className="w-5 h-5 sm:w-6 sm:h-6 rounded-full flex items-center justify-center text-[10px] sm:text-xs font-bold text-white shadow shrink-0"
               style={{ backgroundColor: firstWinner.avatarColor || '#3b82f6' }}
             >
               {firstWinner.name.charAt(0).toUpperCase()}
             </div>
-            <span className="font-extrabold text-gold text-sm sm:text-base">
+            <span className="font-extrabold text-gold text-xs xs:text-sm sm:text-base truncate max-w-[120px] xs:max-w-[180px]">
               🏆 {firstWinner.name}
             </span>
-            <span className="text-[10px] sm:text-xs text-amber-300 font-bold bg-amber-400/20 px-2 py-0.5 rounded-full border border-amber-400/40">
+            <span className="text-[9.5px] xs:text-[10px] sm:text-xs text-amber-300 font-bold bg-amber-400/20 px-2 py-0.5 rounded-full border border-amber-400/40 whitespace-nowrap">
               +{firstWinner.scoreEarned || 2000} PTS
             </span>
             {firstWinner.coinsEarned && (
-              <span className="flex items-center gap-1 text-[10px] sm:text-xs text-red-300 font-bold bg-red-500/20 px-2 py-0.5 rounded-full border border-red-500/40 shadow-sm">
-                <img src="/icons/casino-chip.png" alt="Casino Coins" className="w-3.5 h-3.5 object-contain filter drop-shadow" />
-                <span>+{firstWinner.coinsEarned}</span>
+              <span className="flex items-center gap-1 text-[9.5px] xs:text-[10px] sm:text-xs text-red-300 font-bold bg-red-500/20 px-2 py-0.5 rounded-full border border-red-500/40 shadow-sm whitespace-nowrap">
+                <img src="/icons/casino-chip.png" alt="Casino Coins" className="w-3.5 h-3.5 object-contain filter drop-shadow shrink-0" />
+                <span>+{firstWinner.coinsEarned.toLocaleString()}</span>
               </span>
             )}
           </div>
@@ -340,15 +340,15 @@ export const GameOverModal: React.FC<GameOverModalProps> = ({
                     )}
 
                     {p.coinsEarned !== undefined && (
-                      <span className="flex items-center gap-1 px-1.5 xs:px-2 py-0.5 rounded-full font-black text-[9px] xs:text-[10px] sm:text-[11px] bg-red-500/20 border border-red-500/50 text-red-300 font-mono shrink-0 shadow-sm">
-                        <img src="/icons/casino-chip.png" alt="Casino Coins" className="w-3 h-3 xs:w-3.5 xs:h-3.5 object-contain filter drop-shadow" />
+                      <span className="flex items-center gap-1 px-1.5 xs:px-2 py-0.5 rounded-full font-black text-[8.5px] xs:text-[9.5px] sm:text-[11px] bg-red-500/20 border border-red-500/50 text-red-300 font-mono shrink-0 shadow-sm">
+                        <img src="/icons/casino-chip.png" alt="Casino Coins" className="w-3 h-3 xs:w-3.5 xs:h-3.5 object-contain filter drop-shadow shrink-0" />
                         <span>+{p.coinsEarned.toLocaleString()}</span>
                       </span>
                     )}
 
                     {p.scoreEarned !== undefined && (
-                      <span className="px-1.5 xs:px-2 py-0.5 rounded-full font-black text-[9px] xs:text-[10px] sm:text-[11px] bg-amber-400/20 border border-amber-400/50 text-amber-300 font-mono shrink-0">
-                        +{p.scoreEarned.toLocaleString()} PTS
+                      <span className="px-1.5 xs:px-2 py-0.5 rounded-full font-black text-[8.5px] xs:text-[9.5px] sm:text-[11px] bg-amber-400/20 border border-amber-400/50 text-amber-300 font-mono shrink-0 whitespace-nowrap">
+                        +{p.scoreEarned.toLocaleString()}<span className="hidden xs:inline"> PTS</span>
                       </span>
                     )}
                     <span

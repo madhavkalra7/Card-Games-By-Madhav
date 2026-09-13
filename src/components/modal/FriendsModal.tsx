@@ -341,8 +341,15 @@ export const FriendsModal: React.FC<FriendsModalProps> = ({ currentRoomCode }) =
                               {player.totalGamesWon} {player.totalGamesWon === 1 ? 'Win' : 'Wins'}
                             </span>
                           </div>
-                          <div className="text-[9px] sm:text-[10px] text-zinc-400 mt-0.5 font-mono whitespace-nowrap">
-                            {player.totalScore.toLocaleString()} PTS<span className="hidden sm:inline"> • {player.winRate}% WR</span>
+                          <div className="flex items-center gap-1 text-[9px] sm:text-[10px] text-zinc-400 mt-0.5 font-mono whitespace-nowrap">
+                            <span>{player.totalScore.toLocaleString()} PTS</span>
+                            {player.coins !== undefined && (
+                              <span className="flex items-center gap-0.5 text-red-300 font-bold">
+                                • <img src="/icons/casino-chip.png" alt="Chips" className="w-2.5 h-2.5 sm:w-3 sm:h-3 object-contain inline-block filter drop-shadow" />
+                                {player.coins.toLocaleString()}
+                              </span>
+                            )}
+                            <span className="hidden sm:inline"> • {player.winRate}% WR</span>
                           </div>
                         </div>
 

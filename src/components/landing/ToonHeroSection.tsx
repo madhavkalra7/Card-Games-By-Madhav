@@ -318,16 +318,18 @@ export const ToonHeroSection: React.FC<ToonHeroSectionProps> = ({
               <button
                 type="button"
                 onClick={() => setProfileModalOpen(true)}
-                className="flex items-center gap-1.5 h-8 sm:h-9 px-2 xs:px-2.5 sm:px-3 rounded-full bg-gradient-to-r from-red-950/70 via-black/80 to-zinc-950/80 hover:from-red-900/80 hover:to-zinc-900/90 border border-red-500/50 hover:border-red-400 backdrop-blur-md transition-all shadow-[0_0_15px_rgba(225,29,72,0.25)] active:scale-95 cursor-pointer shrink-0"
-                title={`Casino Coins: ${(user.coins ?? 1000).toLocaleString()} Chips`}
+                className="flex items-center gap-1 xs:gap-1.5 h-8 sm:h-9 px-1.5 xs:px-2.5 sm:px-3 rounded-full bg-gradient-to-r from-red-950/70 via-black/80 to-zinc-950/80 hover:from-red-900/80 hover:to-zinc-900/90 border border-red-500/50 hover:border-red-400 backdrop-blur-md transition-all shadow-[0_0_15px_rgba(225,29,72,0.25)] active:scale-95 cursor-pointer shrink-0 group"
+                title={`Casino Coins: ${(user.coins ?? 1000).toLocaleString()} Chips (Tap to open vault)`}
               >
                 <img
                   src="/icons/casino-chip.png"
                   alt="Casino Coins"
-                  className="w-4 h-4 sm:w-5 sm:h-5 object-contain filter drop-shadow animate-pulse"
+                  className="w-3.5 h-3.5 xs:w-4 xs:h-4 sm:w-5 sm:h-5 object-contain filter drop-shadow animate-pulse group-hover:scale-110 transition-transform shrink-0"
                 />
-                <span className="font-mono font-black text-[11px] xs:text-xs sm:text-sm text-red-200 tracking-tight">
-                  {(user.coins ?? 1000).toLocaleString()}
+                <span className="font-mono font-black text-[10px] xs:text-xs sm:text-sm text-red-200 tracking-tight whitespace-nowrap">
+                  {(user.coins ?? 1000) >= 100000
+                    ? `${Math.round((user.coins ?? 1000) / 1000)}k`
+                    : (user.coins ?? 1000).toLocaleString()}
                 </span>
               </button>
             )}

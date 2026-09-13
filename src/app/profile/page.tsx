@@ -174,9 +174,9 @@ export default function ProfilePage() {
             </div>
 
             {/* Casino Currency Vault Banner */}
-            <div className="my-5 p-4 rounded-2xl bg-gradient-to-r from-red-950/70 via-zinc-950 to-amber-950/50 border-2 border-red-500/60 shadow-[0_0_30px_rgba(225,29,72,0.25)] flex items-center justify-between gap-3">
-              <div className="flex items-center gap-3.5 min-w-0">
-                <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-2xl bg-red-950/80 border border-red-400/60 p-1 flex items-center justify-center shrink-0 shadow-lg">
+            <div className="my-4 sm:my-5 p-3.5 xs:p-4 sm:p-5 rounded-2xl bg-gradient-to-r from-red-950/70 via-zinc-950 to-amber-950/50 border-2 border-red-500/60 shadow-[0_0_30px_rgba(225,29,72,0.25)] flex flex-col xs:flex-row items-start xs:items-center justify-between gap-3">
+              <div className="flex items-center gap-3 xs:gap-3.5 sm:gap-4 min-w-0 flex-1">
+                <div className="w-12 h-12 xs:w-14 xs:h-14 sm:w-16 sm:h-16 rounded-2xl bg-red-950/80 border border-red-400/60 p-1 flex items-center justify-center shrink-0 shadow-lg">
                   <img
                     src="/icons/casino-chip.png"
                     alt="Red Casino Chip"
@@ -184,26 +184,26 @@ export default function ProfilePage() {
                   />
                 </div>
                 <div className="flex flex-col text-left min-w-0">
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs font-black uppercase tracking-widest text-red-400">
+                  <div className="flex flex-wrap items-center gap-1.5 xs:gap-2">
+                    <span className="text-[11px] sm:text-xs font-black uppercase tracking-widest text-red-400 whitespace-nowrap">
                       Casino Coins
                     </span>
-                    <span className="text-[10px] font-bold text-amber-300/80 bg-amber-400/10 border border-amber-400/30 px-2 py-0.2 rounded-full">
+                    <span className="text-[9px] sm:text-[10px] font-bold text-amber-300/80 bg-amber-400/10 border border-amber-400/30 px-2 py-0.2 rounded-full whitespace-nowrap">
                       Official Currency
                     </span>
                   </div>
-                  <span className="text-2xl sm:text-3xl font-black text-white font-mono tracking-tight">
+                  <span className="text-xl xs:text-2xl sm:text-3xl font-black text-white font-mono tracking-tight mt-0.5">
                     {(user.coins ?? 1000).toLocaleString()}{' '}
-                    <span className="text-sm sm:text-base text-red-300 font-sans font-bold">Chips</span>
+                    <span className="text-xs sm:text-sm text-red-300 font-sans font-bold">Chips</span>
                   </span>
-                  <span className="text-xs text-zinc-400 truncate">
-                    Earned from matches & leaderboard positions
+                  <span className="text-[10px] sm:text-xs text-zinc-400 truncate">
+                    Earned from matches &amp; leaderboard positions
                   </span>
                 </div>
               </div>
 
-              <div className="shrink-0 flex flex-col items-end">
-                <span className="text-[10px] font-bold uppercase tracking-wider text-zinc-400 bg-black/60 border border-white/10 px-3 py-1.5 rounded-xl">
+              <div className="shrink-0 self-end xs:self-center">
+                <span className="text-[9px] sm:text-[10px] font-bold uppercase tracking-wider text-zinc-400 bg-black/60 border border-white/10 px-3 py-1.5 rounded-xl whitespace-nowrap">
                   Store Coming Soon
                 </span>
               </div>

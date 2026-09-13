@@ -52,11 +52,11 @@ export const ProfileModal: React.FC = () => {
   return (
     <div
       onClick={() => setProfileModalOpen(false)}
-      className="fixed inset-0 z-[120] flex items-center justify-center p-2 sm:p-4 bg-black/85 backdrop-blur-md animate-fadeIn select-none overflow-y-auto"
+      className="fixed inset-0 z-[120] flex items-center justify-center p-2.5 xs:p-3 sm:p-4 pt-[max(0.75rem,env(safe-area-inset-top))] pb-[max(0.75rem,env(safe-area-inset-bottom))] pl-[max(0.5rem,env(safe-area-inset-left))] pr-[max(0.5rem,env(safe-area-inset-right))] bg-black/85 backdrop-blur-md animate-fadeIn select-none overflow-y-auto touch-manipulation"
     >
       <div
         onClick={(e) => e.stopPropagation()}
-        className="relative w-full max-w-xl max-h-[94vh] overflow-y-auto bg-gradient-to-b from-zinc-950 via-[#18110b] to-[#0c0805] border-2 border-gold/50 rounded-2xl sm:rounded-3xl shadow-[0_0_60px_rgba(212,175,55,0.35)] p-4 sm:p-7"
+        className="relative w-full max-w-xl max-h-[92dvh] sm:max-h-[94dvh] my-auto overflow-y-auto bg-gradient-to-b from-zinc-950 via-[#18110b] to-[#0c0805] border-2 border-gold/50 rounded-2xl sm:rounded-3xl shadow-[0_0_60px_rgba(212,175,55,0.35)] p-3.5 xs:p-4 sm:p-7"
       >
         
         {/* Glow Ambient Top Accent */}
@@ -146,9 +146,9 @@ export const ProfileModal: React.FC = () => {
         </div>
 
         {/* Casino Currency Vault Banner */}
-        <div className="my-4 p-3.5 sm:p-4 rounded-2xl bg-gradient-to-r from-red-950/70 via-zinc-950 to-amber-950/50 border-2 border-red-500/60 shadow-[0_0_30px_rgba(225,29,72,0.3)] flex items-center justify-between gap-3">
-          <div className="flex items-center gap-3 min-w-0">
-            <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-2xl bg-red-950/80 border border-red-400/60 p-1 flex items-center justify-center shrink-0 shadow-lg">
+        <div className="my-3 sm:my-4 p-3 xs:p-3.5 sm:p-4 rounded-2xl bg-gradient-to-r from-red-950/70 via-zinc-950 to-amber-950/50 border-2 border-red-500/60 shadow-[0_0_30px_rgba(225,29,72,0.3)] flex flex-col xs:flex-row items-start xs:items-center justify-between gap-2.5 sm:gap-3">
+          <div className="flex items-center gap-2.5 xs:gap-3 sm:gap-3.5 min-w-0 flex-1">
+            <div className="w-11 h-11 xs:w-12 xs:h-12 sm:w-14 sm:h-14 rounded-2xl bg-red-950/80 border border-red-400/60 p-1 flex items-center justify-center shrink-0 shadow-lg">
               <img
                 src="/icons/casino-chip.png"
                 alt="Red Casino Chip"
@@ -156,26 +156,26 @@ export const ProfileModal: React.FC = () => {
               />
             </div>
             <div className="flex flex-col text-left min-w-0">
-              <div className="flex items-center gap-2">
-                <span className="text-[10px] sm:text-xs font-black uppercase tracking-widest text-red-400">
+              <div className="flex flex-wrap items-center gap-1.5 xs:gap-2">
+                <span className="text-[10px] sm:text-xs font-black uppercase tracking-widest text-red-400 whitespace-nowrap">
                   Casino Coins
                 </span>
-                <span className="text-[9px] font-bold text-amber-300/80 bg-amber-400/10 border border-amber-400/30 px-2 py-0.2 rounded-full">
+                <span className="text-[8.5px] xs:text-[9px] font-bold text-amber-300/90 bg-amber-400/10 border border-amber-400/30 px-1.5 xs:px-2 py-0.2 rounded-full whitespace-nowrap">
                   Official Currency
                 </span>
               </div>
-              <span className="text-xl sm:text-2xl font-black text-white font-mono tracking-tight">
+              <span className="text-xl xs:text-2xl sm:text-3xl font-black text-white font-mono tracking-tight">
                 {(user.coins ?? 1000).toLocaleString()}{' '}
                 <span className="text-xs sm:text-sm text-red-300 font-sans font-bold">Chips</span>
               </span>
-              <span className="text-[10px] text-zinc-400 truncate">
-                Earned from tournament matches & leaderboard finishes
+              <span className="text-[9.5px] xs:text-[10px] sm:text-xs text-zinc-400 truncate">
+                Earned from tournament matches &amp; leaderboard finishes
               </span>
             </div>
           </div>
 
-          <div className="shrink-0 flex flex-col items-end">
-            <span className="text-[9px] sm:text-[10px] font-bold uppercase tracking-wider text-zinc-400 bg-black/60 border border-white/10 px-2.5 py-1 rounded-xl">
+          <div className="shrink-0 self-end xs:self-center">
+            <span className="text-[8.5px] xs:text-[9px] sm:text-[10px] font-bold uppercase tracking-wider text-zinc-400 bg-black/60 border border-white/10 px-2.5 py-1 rounded-xl whitespace-nowrap">
               Store Coming Soon
             </span>
           </div>

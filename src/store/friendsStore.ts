@@ -13,6 +13,7 @@ export interface LeaderboardPlayer {
   totalGamesWon: number;
   totalGamesPlayed: number;
   winRate: number;
+  coins?: number;
 }
 
 export interface FriendUser {
@@ -26,6 +27,7 @@ export interface FriendUser {
   totalGamesWon: number;
   totalGamesPlayed: number;
   winRate: number;
+  coins?: number;
   isOnline?: boolean;
 }
 

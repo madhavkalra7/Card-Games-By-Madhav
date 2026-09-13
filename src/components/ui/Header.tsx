@@ -67,16 +67,18 @@ export const Header: React.FC<HeaderProps> = ({ roomCode }) => {
           {/* Casino Currency Coins Pill */}
           {user && (
             <div
-              className="flex items-center gap-1.5 bg-zinc-900/90 border border-red-500/40 px-2 sm:px-3 py-1 sm:py-1.5 rounded-xl transition-all shadow-sm"
+              className="flex items-center gap-1 xs:gap-1.5 bg-zinc-900/90 border border-red-500/40 px-1.5 xs:px-2.5 sm:px-3 py-0.5 xs:py-1 sm:py-1.5 rounded-xl transition-all shadow-sm shrink-0"
               title={`Casino Coins: ${(user.coins ?? 1000).toLocaleString()} Chips`}
             >
               <img
                 src="/icons/casino-chip.png"
                 alt="Casino Coins"
-                className="w-3.5 h-3.5 sm:w-4 sm:h-4 object-contain filter drop-shadow animate-pulse"
+                className="w-3 h-3 xs:w-3.5 xs:h-3.5 sm:w-4 sm:h-4 object-contain filter drop-shadow animate-pulse shrink-0"
               />
-              <span className="font-mono text-xs sm:text-sm font-bold text-red-200">
-                {(user.coins ?? 1000).toLocaleString()}
+              <span className="font-mono text-[10px] xs:text-xs sm:text-sm font-bold text-red-200 whitespace-nowrap">
+                {(user.coins ?? 1000) >= 100000
+                  ? `${Math.round((user.coins ?? 1000) / 1000)}k`
+                  : (user.coins ?? 1000).toLocaleString()}
               </span>
             </div>
           )}

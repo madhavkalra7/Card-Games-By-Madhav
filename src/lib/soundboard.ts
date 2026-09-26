@@ -14,7 +14,7 @@ export interface SoundboardClip {
 
 export const DESI_SOUNDBOARD_CLIPS: SoundboardClip[] = [
   // ==========================================
-  // TOP SPECIAL: Penalty Dialogue
+  // TOP SPECIAL: Penalty & Featured Dialogues
   // ==========================================
   {
     id: 'chakko-naaz',
@@ -24,6 +24,15 @@ export const DESI_SOUNDBOARD_CLIPS: SoundboardClip[] = [
     category: 'viral',
     audioUrl: '/chakko.ogg',
     fallbackSynth: 'horn',
+  },
+  {
+    id: 'bootiful-aanya',
+    label: 'Bootiful (Aanya)',
+    subtitle: 'Bootiful (Aanya) • Special Dialogue ✨',
+    emoji: '✨',
+    category: 'viral',
+    audioUrl: '/bootiful-aanya.mp3',
+    fallbackSynth: 'bell',
   },
 
   // ==========================================
@@ -590,6 +599,15 @@ export function playSoundboardAudio(url?: string, fallbackSynth?: string) {
         }
       };
       audio.onerror = () => {
+        if (url.includes('bootiful-aanya')) {
+          const fallback = new Audio('/Bootiful%20(Aanya).mp3');
+          fallback.volume = 0.95;
+          currentPlayingAudio = fallback;
+          fallback.play().catch(() => {
+            if (fallbackSynth) playSynthSound(fallbackSynth);
+          });
+          return;
+        }
         if (currentPlayingAudio === audio) {
           currentPlayingAudio = null;
         }

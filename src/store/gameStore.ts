@@ -55,6 +55,9 @@ interface GameStore {
   challengeBluff: () => Promise<{ success: boolean; error?: string }>;
   passBluffTurn: () => Promise<{ success: boolean; error?: string }>;
 
+  // Bhabho (Getaway) Actions
+  playBhabhoCard: (cardId: string) => Promise<{ success: boolean; error?: string }>;
+
   // Card Flight Animations
   removeCardFlight: (id: string) => void;
 
@@ -520,6 +523,26 @@ export const useGameStore = create<GameStore>((set, get) => ({
           get().showToast(err, 'error');
           resolve({ success: false, error: err });
         } else {
+          resolve({ success: true });
+        }
+      });
+    });
+  },
+
+  // ==========================================
+  // Bhabho (Getaway) Actions
+  // ==========================================
+  playBhabhoCard: (cardId: string) => {
+    return new Promise((resolve) => {
+      const socket = getSocket();
+      const { roomCode } = get();
+      socket.emit('bhabho:playCard', { roomCode, cardId }, (res: any) => {
+        if (!res || !res.success) {
+          const err = res?.error || 'Could not play card';
+          get().showToast(err, 'error');
+          resolve({ success: false, error: err });
+        } else {
+          sounds.playCardSlide();
           resolve({ success: true });
         }
       });

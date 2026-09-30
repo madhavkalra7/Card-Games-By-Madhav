@@ -1,10 +1,11 @@
 import { Server as SocketIOServer, Socket } from 'socket.io';
 import { DukkiBazaarRoom } from '../game/engine';
 import { BluffMasterRoom } from '../game/bluffEngine';
+import { BhabhoRoom } from '../game/bhabhoEngine';
 import { GameType, Rank } from '../game/types';
 import { RoomModel, GameHistoryModel, updatePlayerStats } from '../db';
 
-const activeRooms = new Map<string, DukkiBazaarRoom | BluffMasterRoom>();
+const activeRooms = new Map<string, DukkiBazaarRoom | BluffMasterRoom | BhabhoRoom>();
 const disconnectTimers = new Map<string, NodeJS.Timeout>();
 
 interface OnlineUser {
@@ -45,7 +46,7 @@ interface RoomAutoAbort {
 const roomAutoAbortTimers = new Map<string, RoomAutoAbort>();
 
 export function setupSocketHandlers(io: SocketIOServer) {
-  function broadcastRoomState(room: DukkiBazaarRoom | BluffMasterRoom) {
+  function broadcastRoomState(room: DukkiBazaarRoom | BluffMasterRoom | BhabhoRoom) {
     for (const player of room.players) {
       if (player.isConnected) {
         const clientView = room.getClientView(player.id);
@@ -58,8 +59,8 @@ export function setupSocketHandlers(io: SocketIOServer) {
     }
   }
 
-  function createRoomInstance(code: string, gameType: GameType = 'DUKKI_BAZAAR'): DukkiBazaarRoom | BluffMasterRoom {
-    const handleGameOver = async (finishedRoom: DukkiBazaarRoom | BluffMasterRoom) => {
+  function createRoomInstance(code: string, gameType: GameType = 'DUKKI_BAZAAR'): DukkiBazaarRoom | BluffMasterRoom | BhabhoRoom {
+    const handleGameOver = async (finishedRoom: DukkiBazaarRoom | BluffMasterRoom | BhabhoRoom) => {
       try {
         for (const r of finishedRoom.rankings) {
           if (r.scoreEarned || r.coinsEarned) {
@@ -83,6 +84,17 @@ export function setupSocketHandlers(io: SocketIOServer) {
         console.warn('Game over score persistence warning:', err.message);
       }
     };
+
+    if (gameType === 'BHABHO') {
+      const room = new BhabhoRoom(
+        code,
+        () => {
+          broadcastRoomState(room);
+        },
+        handleGameOver
+      );
+      return room;
+    }
 
     if (gameType === 'BLUFF_MASTER') {
       const room = new BluffMasterRoom(
@@ -116,7 +128,7 @@ export function setupSocketHandlers(io: SocketIOServer) {
           code = generateRoomCode();
         }
 
-        const gameType: GameType = data.gameType === 'BLUFF_MASTER' ? 'BLUFF_MASTER' : 'DUKKI_BAZAAR';
+        const gameType: GameType = data.gameType === 'BHABHO' ? 'BHABHO' : (data.gameType === 'BLUFF_MASTER' ? 'BLUFF_MASTER' : 'DUKKI_BAZAAR');
         const room = createRoomInstance(code, gameType);
 
         const player = room.addPlayer({
@@ -406,6 +418,22 @@ export function setupSocketHandlers(io: SocketIOServer) {
       }
 
       const res = room.passTurn(socket.id);
+      if (res.success) {
+        broadcastRoomState(room);
+      }
+      callback?.(res);
+    });
+
+    // ==========================================
+    // Bhabho (Getaway / Thulla) Specific Socket Handlers
+    // ==========================================
+    socket.on('bhabho:playCard', (data: { roomCode: string; cardId: string }, callback) => {
+      const room = activeRooms.get(data.roomCode?.toUpperCase());
+      if (!room || !(room instanceof BhabhoRoom)) {
+        return callback?.({ success: false, error: 'Bhabho room not found' });
+      }
+
+      const res = room.playCard(socket.id, data.cardId);
       if (res.success) {
         broadcastRoomState(room);
       }

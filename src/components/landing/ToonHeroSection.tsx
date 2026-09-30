@@ -27,11 +27,11 @@ const IMAGES = [
     bg: '#6BBF7A',
     panel: '#85CC92',
     gameTitle: 'BHABHO',
-    gameBadge: 'Coming Soon',
+    gameBadge: 'Available Now',
     tagline: 'Classic Indian Get-Away Card Game',
     description: 'Iconic traditional Indian get-away card game. Discard matching cards, avoid getting stuck with the highest card, and escape before becoming the Bhabho!',
-    actionText: 'VIEW BHABHO',
-    isAvailable: false,
+    actionText: 'PLAY BHABHO',
+    isAvailable: true,
   },
   {
     src: 'https://fifth-gentle-45902158.figma.site/_components/v2/4de492f6d9cf8244ad5293233e5c6f52407d42fc/3.4df853b4.png',
@@ -559,7 +559,7 @@ export const ToonHeroSection: React.FC<ToonHeroSectionProps> = ({
             {/* Quick Room Action Buttons */}
             <div className="flex items-center gap-2">
               <button
-                onClick={() => onCreateRoom(activeIndex === 3 ? 'BLUFF_MASTER' : 'DUKKI_BAZAAR')}
+                onClick={() => onCreateRoom(activeIndex === 3 ? 'BLUFF_MASTER' : activeIndex === 1 ? 'BHABHO' : 'DUKKI_BAZAAR')}
                 className={cn(
                   "flex items-center gap-1 rounded-xl bg-white text-zinc-900 font-black uppercase tracking-wider shadow-lg hover:bg-zinc-100 active:scale-95 transition-all",
                   isShortHeight ? "px-2.5 py-1.5 text-[10px]" : "px-3.5 sm:px-4 py-2 sm:py-2.5 text-xs"

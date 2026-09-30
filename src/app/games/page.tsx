@@ -59,10 +59,10 @@ const GAMES: GameItem[] = [
     title: 'BHABHO',
     subtitle: 'Classic Indian Get-Away Card Game',
     tagline: 'Discard matching cards and escape before becoming the Bhabho!',
-    players: '3 - 8 Players',
+    players: '2 - 5 Players',
     deck: '52 Cards',
-    status: 'locked',
-    badge: 'Coming Soon',
+    status: 'available',
+    badge: 'Available Now',
     color: '#6BBF7A',
     panelColor: '#85CC92',
     image: 'https://fifth-gentle-45902158.figma.site/_components/v2/4de492f6d9cf8244ad5293233e5c6f52407d42fc/2.b977faab.png',
@@ -307,7 +307,7 @@ export default function GamesPage() {
                     <>
                       <button
                         onClick={() => {
-                          setSelectedGameType(game.id === 'bluff-master' ? 'BLUFF_MASTER' : 'DUKKI_BAZAAR');
+                          setSelectedGameType(game.id === 'bluff-master' ? 'BLUFF_MASTER' : game.id === 'bhabho' ? 'BHABHO' : 'DUKKI_BAZAAR');
                           setIsCreateOpen(true);
                         }}
                         className="flex-1 min-w-[130px] flex items-center justify-center gap-2 py-2.5 sm:py-3 px-4 rounded-xl font-black text-xs uppercase tracking-wider transition-all shadow-lg active:scale-95"
@@ -330,7 +330,7 @@ export default function GamesPage() {
 
                       <button
                         onClick={() => {
-                          setSelectedGameType(game.id === 'bluff-master' ? 'BLUFF_MASTER' : 'DUKKI_BAZAAR');
+                          setSelectedGameType(game.id === 'bluff-master' ? 'BLUFF_MASTER' : game.id === 'bhabho' ? 'BHABHO' : 'DUKKI_BAZAAR');
                           setRulesModalOpen(true);
                         }}
                         className="p-2.5 sm:p-3 rounded-xl bg-white/10 border border-white/20 hover:bg-white/20 text-white transition-all active:scale-95"

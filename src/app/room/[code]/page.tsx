@@ -6,6 +6,7 @@ import { useGameStore } from '@/store/gameStore';
 import { Header } from '@/components/ui/Header';
 import { PokerTable } from '@/components/table/PokerTable';
 import { BluffTable } from '@/components/bluff/BluffTable';
+import { BhabhoTable } from '@/components/bhabho/BhabhoTable';
 import { PenaltyModal } from '@/components/modal/PenaltyModal';
 import { GameOverModal } from '@/components/modal/GameOverModal';
 import { RulesModal } from '@/components/modal/RulesModal';
@@ -39,6 +40,7 @@ export default function RoomPage({ params }: { params: Promise<{ code: string }>
     playBluffCards,
     challengeBluff,
     passBluffTurn,
+    playBhabhoCard,
     requestPenalty,
     kickPlayer,
     playAgain,
@@ -241,7 +243,7 @@ export default function RoomPage({ params }: { params: Promise<{ code: string }>
                     Waiting Lobby
                   </span>
                   <span className="text-xs font-bold text-amber-400">
-                    {gameState.gameType === 'BLUFF_MASTER' ? 'Bluff Master' : 'Dukki Bazaar'}
+                    {gameState.gameType === 'BLUFF_MASTER' ? 'Bluff Master' : gameState.gameType === 'BHABHO' ? 'Bhabho (Getaway)' : 'Dukki Bazaar'}
                   </span>
                 </div>
                 <h1 className="text-2xl sm:text-3xl font-black text-white font-serif mt-1">
@@ -408,6 +410,11 @@ export default function RoomPage({ params }: { params: Promise<{ code: string }>
               onPlayCards={playBluffCards}
               onChallenge={challengeBluff}
               onPass={passBluffTurn}
+            />
+          ) : gameState.gameType === 'BHABHO' ? (
+            <BhabhoTable
+              state={gameState}
+              onPlayCard={playBhabhoCard}
             />
           ) : (
             <PokerTable

@@ -107,12 +107,12 @@ export const CreateRoomModal: React.FC<CreateRoomModalProps> = ({
             <label className="block text-[11px] sm:text-xs font-bold text-zinc-300 uppercase tracking-wider mb-1.5 sm:mb-2">
               Select Game
             </label>
-            <div className="grid grid-cols-2 gap-2 sm:gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
               <button
                 type="button"
                 onClick={() => setGameType('DUKKI_BAZAAR')}
                 className={cn(
-                  'p-2.5 sm:p-3 rounded-xl border text-left transition-all flex flex-col relative',
+                  'p-2.5 rounded-xl border text-left transition-all flex flex-col relative',
                   gameType === 'DUKKI_BAZAAR'
                     ? 'bg-amber-500/15 border-gold ring-1 ring-gold shadow-gold-glow'
                     : 'bg-zinc-900 border-zinc-800 text-zinc-400 hover:border-zinc-700'
@@ -121,16 +121,16 @@ export const CreateRoomModal: React.FC<CreateRoomModalProps> = ({
                 <div className="flex items-center justify-between">
                   <span
                     className={cn(
-                      'text-xs sm:text-sm font-black uppercase flex items-center gap-1',
+                      'text-xs font-black uppercase flex items-center gap-1',
                       gameType === 'DUKKI_BAZAAR' ? 'text-gold' : 'text-white'
                     )}
                   >
-                    <Flame className="w-3.5 h-3.5 text-amber-400" />
+                    <Flame className="w-3.5 h-3.5 text-amber-400 shrink-0" />
                     Dukki Bazaar
                   </span>
                 </div>
                 <span className="text-[10px] text-zinc-400 mt-1">
-                  2-5 Players • 4 Rails & Bazaar Open
+                  2-5 Players • Bazaar Open
                 </span>
               </button>
 
@@ -138,7 +138,7 @@ export const CreateRoomModal: React.FC<CreateRoomModalProps> = ({
                 type="button"
                 onClick={() => setGameType('BLUFF_MASTER')}
                 className={cn(
-                  'p-2.5 sm:p-3 rounded-xl border text-left transition-all flex flex-col relative',
+                  'p-2.5 rounded-xl border text-left transition-all flex flex-col relative',
                   gameType === 'BLUFF_MASTER'
                     ? 'bg-blue-500/15 border-blue-400 ring-1 ring-blue-400 shadow-lg'
                     : 'bg-zinc-900 border-zinc-800 text-zinc-400 hover:border-zinc-700'
@@ -147,16 +147,42 @@ export const CreateRoomModal: React.FC<CreateRoomModalProps> = ({
                 <div className="flex items-center justify-between">
                   <span
                     className={cn(
-                      'text-xs sm:text-sm font-black uppercase flex items-center gap-1',
+                      'text-xs font-black uppercase flex items-center gap-1',
                       gameType === 'BLUFF_MASTER' ? 'text-blue-400' : 'text-white'
                     )}
                   >
-                    <ShieldAlert className="w-3.5 h-3.5 text-blue-400" />
+                    <ShieldAlert className="w-3.5 h-3.5 text-blue-400 shrink-0" />
                     Bluff Master
                   </span>
                 </div>
                 <span className="text-[10px] text-zinc-400 mt-1">
-                  2-5 Players • Deception & Showdown
+                  2-5 Players • Deception
+                </span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setGameType('BHABHO')}
+                className={cn(
+                  'p-2.5 rounded-xl border text-left transition-all flex flex-col relative',
+                  gameType === 'BHABHO'
+                    ? 'bg-emerald-500/15 border-emerald-400 ring-1 ring-emerald-400 shadow-lg'
+                    : 'bg-zinc-900 border-zinc-800 text-zinc-400 hover:border-zinc-700'
+                )}
+              >
+                <div className="flex items-center justify-between">
+                  <span
+                    className={cn(
+                      'text-xs font-black uppercase flex items-center gap-1',
+                      gameType === 'BHABHO' ? 'text-emerald-400' : 'text-white'
+                    )}
+                  >
+                    <span className="text-emerald-400 text-sm">♠</span>
+                    Bhabho
+                  </span>
+                </div>
+                <span className="text-[10px] text-zinc-400 mt-1">
+                  2-5 Players • Thulla & Escape
                 </span>
               </button>
             </div>

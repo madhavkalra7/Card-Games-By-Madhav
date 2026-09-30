@@ -60,12 +60,12 @@ export const RulesModal: React.FC<RulesModalProps> = ({ isOpen, onClose, default
         </div>
 
         {/* Game Tabs */}
-        <div className="flex items-center gap-2 mb-4 shrink-0 border-b border-white/10 pb-2">
+        <div className="flex items-center gap-2 mb-4 shrink-0 border-b border-white/10 pb-2 overflow-x-auto">
           <button
             type="button"
             onClick={() => setSelectedTab('DUKKI_BAZAAR')}
             className={cn(
-              'px-3.5 py-1.5 rounded-xl font-black text-xs uppercase tracking-wider transition-all flex items-center gap-1.5 cursor-pointer',
+              'px-3.5 py-1.5 rounded-xl font-black text-xs uppercase tracking-wider transition-all flex items-center gap-1.5 cursor-pointer shrink-0',
               selectedTab === 'DUKKI_BAZAAR'
                 ? 'bg-amber-500/25 text-gold border border-gold/50 shadow-gold-glow'
                 : 'bg-zinc-900 text-zinc-400 hover:text-white'
@@ -79,7 +79,7 @@ export const RulesModal: React.FC<RulesModalProps> = ({ isOpen, onClose, default
             type="button"
             onClick={() => setSelectedTab('BLUFF_MASTER')}
             className={cn(
-              'px-3.5 py-1.5 rounded-xl font-black text-xs uppercase tracking-wider transition-all flex items-center gap-1.5 cursor-pointer',
+              'px-3.5 py-1.5 rounded-xl font-black text-xs uppercase tracking-wider transition-all flex items-center gap-1.5 cursor-pointer shrink-0',
               selectedTab === 'BLUFF_MASTER'
                 ? 'bg-blue-500/25 text-blue-400 border border-blue-400/50 shadow-lg'
                 : 'bg-zinc-900 text-zinc-400 hover:text-white'
@@ -88,11 +88,115 @@ export const RulesModal: React.FC<RulesModalProps> = ({ isOpen, onClose, default
             <ShieldAlert className="w-3.5 h-3.5 text-blue-400" />
             <span>Bluff Master</span>
           </button>
+
+          <button
+            type="button"
+            onClick={() => setSelectedTab('BHABHO')}
+            className={cn(
+              'px-3.5 py-1.5 rounded-xl font-black text-xs uppercase tracking-wider transition-all flex items-center gap-1.5 cursor-pointer shrink-0',
+              selectedTab === 'BHABHO'
+                ? 'bg-emerald-500/25 text-emerald-400 border border-emerald-400/50 shadow-lg'
+                : 'bg-zinc-900 text-zinc-400 hover:text-white'
+            )}
+          >
+            <span className="text-emerald-400 text-sm">♠</span>
+            <span>Bhabho</span>
+          </button>
         </div>
 
         {/* Scrollable Rules Content */}
         <div className="overflow-y-auto pr-2 space-y-4 text-xs sm:text-sm text-zinc-300">
-          {selectedTab === 'BLUFF_MASTER' ? (
+          {selectedTab === 'BHABHO' ? (
+            /* ================= BHABHO (GETAWAY) RULES ================= */
+            <>
+              {/* Overview */}
+              <div className="bg-emerald-950/30 p-4 rounded-2xl border border-emerald-500/40 space-y-2">
+                <h3 className="font-extrabold text-emerald-400 flex items-center gap-2">
+                  <Sparkles className="w-4 h-4" />
+                  What is Bhabho (Getaway / Thulla)?
+                </h3>
+                <p className="text-zinc-200 leading-relaxed">
+                  Bhabho is a legendary traditional Indian card-shedding game. The objective is <strong>NOT</strong> to collect points, but to <strong>shed all your cards and escape</strong>!
+                </p>
+                <p className="text-zinc-400">
+                  The match continues until only <strong>one player</strong> remains holding cards. That last remaining player is the <strong className="text-red-400">BHABHO</strong> (the sole loser of the game)!
+                </p>
+              </div>
+
+              {/* 1. The Opening Rule: Ace of Spades */}
+              <div className="bg-zinc-900/60 p-4 rounded-2xl border border-zinc-800 space-y-2">
+                <h3 className="font-extrabold text-amber-400 flex items-center gap-2">
+                  <span>♠</span>
+                  1. The Opening Rule: Ace of Spades (हुकुम का इक्का)
+                </h3>
+                <p className="text-zinc-300 leading-relaxed">
+                  All 52 cards of the deck are dealt equally among the players.
+                </p>
+                <p className="text-zinc-400">
+                  The player who holds the <strong className="text-white">Ace of Spades (♠ A)</strong> <strong className="text-amber-400">MUST</strong> start the very first trick by playing the Ace of Spades face-up into the center.
+                </p>
+              </div>
+
+              {/* 2. Following Suit & Rank Hierarchy */}
+              <div className="bg-zinc-900/60 p-4 rounded-2xl border border-zinc-800 space-y-2">
+                <h3 className="font-extrabold text-zinc-200 flex items-center gap-2">
+                  <CheckCircle className="w-4 h-4 text-emerald-400" />
+                  2. Strict Rule: Must Follow Suit
+                </h3>
+                <p className="text-zinc-300 leading-relaxed">
+                  Play proceeds clockwise. Every player whose turn it is <strong className="text-emerald-400">MUST</strong> play a card of the <strong>Lead Suit</strong> if they possess one in their hand.
+                </p>
+                <div className="p-2.5 rounded-xl bg-black/40 border border-white/10 font-mono text-[11px] text-amber-300 flex items-center justify-between">
+                  <span>Card Rank Hierarchy:</span>
+                  <span className="font-bold text-white">A (Highest) &gt; K &gt; Q &gt; J &gt; 10 &gt; ... &gt; 2 (Lowest)</span>
+                </div>
+              </div>
+
+              {/* 3. Giving a THULLA */}
+              <div className="bg-red-950/30 p-4 rounded-2xl border border-red-500/40 space-y-2">
+                <h3 className="font-extrabold text-red-400 flex items-center gap-2">
+                  <Flame className="w-4 h-4" />
+                  3. Giving a THULLA (Tocho / Off-Suit Penalty)
+                </h3>
+                <p className="text-zinc-300 leading-relaxed">
+                  If a player does <strong>NOT</strong> have even a single card of the lead suit, they can throw <strong>ANY card of any suit</strong> of their choice. This triggers a <strong className="text-red-400">THULLA</strong>!
+                </p>
+                <ul className="list-disc pl-5 space-y-1 text-zinc-400">
+                  <li>A Thulla immediately concludes the trick.</li>
+                  <li>The player who played the <strong className="text-white">HIGHEST card of the original lead suit</strong> must pick up <strong>ALL cards currently on the table</strong> into their hand!</li>
+                  <li>That penalized player leads the next trick.</li>
+                </ul>
+              </div>
+
+              {/* 4. Clean Tricks */}
+              <div className="bg-zinc-900/60 p-4 rounded-2xl border border-zinc-800 space-y-2">
+                <h3 className="font-extrabold text-gold flex items-center gap-2">
+                  <Sparkles className="w-4 h-4" />
+                  4. Clean Trick (Waste Pile Discard)
+                </h3>
+                <p className="text-zinc-300 leading-relaxed">
+                  If all active players follow suit with no Thulla, the trick is clean! The player who threw the highest card of the lead suit wins the trick.
+                </p>
+                <p className="text-zinc-400">
+                  All cards from the trick are swept cleanly to the <strong>Waste Pile</strong> (nobody picks them up), and the trick winner leads the next round.
+                </p>
+              </div>
+
+              {/* 5. Escaping & The Bhabho */}
+              <div className="bg-amber-500/10 p-4 rounded-2xl border border-gold/40 space-y-2">
+                <h3 className="font-extrabold text-gold flex items-center gap-2">
+                  <Trophy className="w-4 h-4" />
+                  5. Escaping & The Bhabho Loser
+                </h3>
+                <p className="text-zinc-300 leading-relaxed">
+                  When you play your last card (and do not receive a Thulla penalty), you have <strong className="text-emerald-400">ESCAPED</strong>! You earn your finishing position (#1 Escaped, #2, etc.).
+                </p>
+                <p className="text-zinc-400">
+                  The last player left alone holding cards is declared the <strong className="text-red-400">BHABHO</strong>!
+                </p>
+              </div>
+            </>
+          ) : selectedTab === 'BLUFF_MASTER' ? (
             /* ================= BLUFF MASTER RULES ================= */
             <>
               {/* Overview */}

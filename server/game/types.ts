@@ -24,7 +24,7 @@ export interface Player {
   rank?: number | null;
 }
 
-export type GameType = 'DUKKI_BAZAAR' | 'BLUFF_MASTER';
+export type GameType = 'DUKKI_BAZAAR' | 'BLUFF_MASTER' | 'BHABHO';
 
 export interface PlayerClientView {
   id: string;
@@ -83,6 +83,46 @@ export interface BluffStateClientView {
   playSeq?: number;
 }
 
+export interface BhabhoTrickCard {
+  card: Card;
+  playerId: string;
+  playerName: string;
+  playerAvatar: string;
+  isThulla: boolean;
+  timestamp: number;
+}
+
+export interface BhabhoLastTrickResult {
+  id: string;
+  type: 'CLEARED' | 'THULLA';
+  cards: Card[];
+  leadSuit: Suit;
+  winnerOrPenalizedPlayerId: string;
+  winnerOrPenalizedPlayerName: string;
+  thullaPlayerId?: string;
+  thullaPlayerName?: string;
+  highestCard?: Card;
+  timestamp: number;
+}
+
+export interface BhabhoStateClientView {
+  leadSuit: Suit | null;
+  currentTrick: BhabhoTrickCard[];
+  currentTrickStarterId: string | null;
+  highestLeadCard: {
+    card: Card;
+    playerId: string;
+    playerName: string;
+  } | null;
+  lastTrickResult: BhabhoLastTrickResult | null;
+  myHand: Card[]; // The player's own private hand
+  wastePileCount: number;
+  escapedPlayerIds: string[]; // List of players who have successfully gotten away
+  latestActionMessage?: string | null;
+  roundNumber: number;
+  canPlayCardIds: string[]; // List of card IDs in player's hand that are legal to play
+}
+
 export interface PenaltyReason {
   type: 'MISSED_CENTER' | 'WRONG_CARD_PLAYED' | 'INVALID_SEQUENCE';
   description: string;
@@ -125,6 +165,7 @@ export interface GameStateClientView {
   turnTimeRemaining: number;
   myFloatingCard: Card | null;
   bluffState?: BluffStateClientView | null; // Only the active player gets their floating card value
+  bhabhoState?: BhabhoStateClientView | null; // Bhabho state for active client
   lastMove: {
     playerId: string;
     action: 'DRAW' | 'CENTER' | 'RIGHT_DECK' | 'TIMEOUT';

@@ -276,13 +276,16 @@ export const GameOverModal: React.FC<GameOverModalProps> = ({
               const isSecond = p.rank === 2;
               const isThird = p.rank === 3;
               const isSelf = p.id === myPlayerId;
+              const isBhabhoLoser = p.rank === standings.length && standings.length >= 2;
 
               return (
                 <div
                   key={p.id}
                   className={cn(
                     'flex items-center justify-between p-1.5 xs:p-2 sm:p-2.5 rounded-lg sm:rounded-xl text-xs sm:text-sm transition-all',
-                    isFirst
+                    isBhabhoLoser
+                      ? 'bg-red-950/45 border-2 border-red-500/70 text-red-200 shadow-[0_0_20px_rgba(239,68,68,0.35)]'
+                      : isFirst
                       ? 'bg-amber-500/15 border border-gold/60 text-gold-light font-bold shadow-gold-glow'
                       : isSecond
                       ? 'bg-slate-300/10 border border-slate-400/40 text-slate-200'
@@ -294,9 +297,21 @@ export const GameOverModal: React.FC<GameOverModalProps> = ({
                 >
                   <div className="flex items-center gap-1.5 xs:gap-2 sm:gap-3 min-w-0">
                     {/* Medal/Rank */}
-                    <span className="w-4 xs:w-5 text-center text-xs sm:text-sm font-black shrink-0">
-                      {isFirst ? '🥇' : isSecond ? '🥈' : isThird ? '🥉' : `#${p.rank}`}
-                    </span>
+                    <div className="text-center font-black shrink-0">
+                      {isBhabhoLoser ? (
+                        <span className="text-[8px] sm:text-[9px] font-black px-1.5 py-0.5 rounded bg-red-600 text-white shadow animate-pulse">
+                          BHABHO
+                        </span>
+                      ) : isFirst ? (
+                        <span className="text-xs sm:text-sm">🥇</span>
+                      ) : isSecond ? (
+                        <span className="text-xs sm:text-sm">🥈</span>
+                      ) : isThird ? (
+                        <span className="text-xs sm:text-sm">🥉</span>
+                      ) : (
+                        <span className="w-4 xs:w-5 text-xs sm:text-sm text-zinc-400">#{p.rank}</span>
+                      )}
+                    </div>
 
                     {/* Avatar */}
                     <div

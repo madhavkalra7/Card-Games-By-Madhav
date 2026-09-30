@@ -13,7 +13,10 @@ export const CardInspectModal: React.FC = () => {
   const selectedCard = useAlbumStore((s) => s.selectedCard);
   const isInspecting = useAlbumStore((s) => s.isInspecting);
   const closeInspect = useAlbumStore((s) => s.closeInspect);
-  const isUnlocked = useAlbumStore((s) => (selectedCard ? s.isUnlocked(selectedCard.id) : false));
+  const inspectForceUnlocked = useAlbumStore((s) => s.inspectForceUnlocked);
+  const isUnlocked = useAlbumStore((s) =>
+    selectedCard ? (inspectForceUnlocked || s.isUnlocked(selectedCard.id)) : false
+  );
 
   // 3D Card Tilt on Mouse Move
   const [rotateX, setRotateX] = useState(0);

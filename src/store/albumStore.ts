@@ -11,12 +11,13 @@ interface AlbumState {
   currentPage: number; // 0: Overview, 1: Spades, 2: Hearts, 3: Diamonds, 4: Clubs, 5: Mythic Vault
   selectedCard: CollectibleCard | null;
   isInspecting: boolean;
+  inspectForceUnlocked?: boolean;
 
   // Actions
   setPage: (page: number) => void;
   nextPage: () => void;
   prevPage: () => void;
-  openInspect: (card: CollectibleCard) => void;
+  openInspect: (card: CollectibleCard, forceUnlocked?: boolean) => void;
   closeInspect: () => void;
   unlockCard: (id: string) => void;
   isUnlocked: (id: string) => boolean;
@@ -75,12 +76,12 @@ export const useAlbumStore = create<AlbumState>((set, get) => ({
     }
   },
 
-  openInspect: (card) => {
-    set({ selectedCard: card, isInspecting: true });
+  openInspect: (card, forceUnlocked = false) => {
+    set({ selectedCard: card, isInspecting: true, inspectForceUnlocked: forceUnlocked });
   },
 
   closeInspect: () => {
-    set({ isInspecting: false, selectedCard: null });
+    set({ isInspecting: false, selectedCard: null, inspectForceUnlocked: false });
   },
 
   unlockCard: (id) => {

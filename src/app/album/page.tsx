@@ -57,10 +57,20 @@ export default function AlbumPage() {
 
         {/* Right Action Tools: Collection Counter & Sound Toggle */}
         <div className="flex items-center gap-1.5 xs:gap-2 sm:gap-2.5 shrink-0">
+          {/* Editions Showcase Link */}
+          <Link
+            href="/editions"
+            className="flex items-center gap-1.5 px-2.5 py-1 sm:px-3 sm:py-1 rounded-full bg-gradient-to-r from-amber-500/10 via-purple-500/10 to-cyan-500/10 hover:from-amber-500/20 hover:to-cyan-500/20 border border-amber-500/30 text-[10px] sm:text-xs font-bold text-amber-900 transition-all shadow-xs cursor-pointer"
+            title="View Silver, Gold & Diamond Editions Showcase"
+          >
+            <Sparkles className="w-3 h-3 text-amber-600 animate-spin-slow" />
+            <span>Editions Showcase</span>
+          </Link>
+
           {/* Collection Status Pill */}
           <div className="flex items-center gap-1.5 px-2.5 py-1 sm:px-3 sm:py-1 rounded-full bg-gradient-to-r from-red-50 to-amber-50 border border-red-200 text-[10px] sm:text-xs font-mono font-bold text-red-900 shadow-xs">
-            <Sparkles className="w-3 h-3 text-red-600" />
-            <span>{unlockedCount} / {totalCount} Collected</span>
+            <BookOpen className="w-3 h-3 text-red-600" />
+            <span>{unlockedCount} / {totalCount}</span>
           </div>
 
           {/* Sound Toggle Button */}

@@ -168,6 +168,19 @@ export const useGameStore = create<GameStore>((set, get) => ({
         set((prev) => ({
           activeThrowables: [...prev.activeThrowables, item],
         }));
+
+        // Safety fallback: guarantee this throwable is cleared after 2.0s
+        // even if animations were cancelled, skipped, or unmounted
+        setTimeout(() => {
+          set((prev) => {
+            if (prev.activeThrowables.some((t) => t.id === item.id)) {
+              return {
+                activeThrowables: prev.activeThrowables.filter((t) => t.id !== item.id),
+              };
+            }
+            return prev;
+          });
+        }, 2000);
       });
 
       // Listen for real-time soundboard meme audio across the room
@@ -618,6 +631,10 @@ export const useGameStore = create<GameStore>((set, get) => ({
       roomCode: '',
       isPenaltyModalOpen: false,
       isRulesModalOpen: false,
+      activeThrowables: [],
+      activeImpacts: {},
+      activeSoundboardDecals: {},
+      activeCardFlights: [],
     });
   },
 

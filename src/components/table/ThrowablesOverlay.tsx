@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useGameStore } from '@/store/gameStore';
 import { ThrownItemEvent, getThrowableConfig } from '@/lib/throwables';
@@ -17,6 +17,20 @@ const ProjectileFlight: React.FC<ProjectileFlightProps> = ({ item, onComplete })
     endX: number;
     endY: number;
   } | null>(null);
+
+  const completedRef = useRef(false);
+  const handleDone = useCallback(() => {
+    if (!completedRef.current) {
+      completedRef.current = true;
+      onComplete();
+    }
+  }, [onComplete]);
+
+  // Guaranteed fallback: complete flight after 1000ms even if animation was interrupted or tab backgrounded
+  useEffect(() => {
+    const safetyTimer = setTimeout(handleDone, 1000);
+    return () => clearTimeout(safetyTimer);
+  }, [handleDone]);
 
   const config = getThrowableConfig(item.itemType);
 
@@ -76,7 +90,7 @@ const ProjectileFlight: React.FC<ProjectileFlightProps> = ({ item, onComplete })
         ease: 'easeInOut',
         times: [0, 0.5, 1],
       }}
-      onAnimationComplete={onComplete}
+      onAnimationComplete={handleDone}
       className="absolute top-0 left-0 -translate-x-1/2 -translate-y-1/2 pointer-events-none select-none z-[110] flex items-center justify-center"
       style={{
         filter: `drop-shadow(0 8px 20px ${config.glowColor})`,
@@ -113,6 +127,9 @@ export const ThrowablesOverlay: React.FC = () => {
     config: ReturnType<typeof getThrowableConfig>;
   } | null>(null);
 
+  const lastHandledIdRef = useRef<string | null>(null);
+  const dismissTimerRef = useRef<NodeJS.Timeout | null>(null);
+
   const handleFlightComplete = (item: ThrownItemEvent) => {
     triggerImpact(item.toPlayerId, item.itemType);
     removeThrowable(item.id);
@@ -121,6 +138,10 @@ export const ThrowablesOverlay: React.FC = () => {
   useEffect(() => {
     if (activeThrowables.length === 0) return;
     const latest = activeThrowables[activeThrowables.length - 1];
+    if (!latest || latest.id === lastHandledIdRef.current) return;
+
+    lastHandledIdRef.current = latest.id;
+
     const fromP = gameState?.players.find((p) => p.id === latest.fromPlayerId);
     const toP = gameState?.players.find((p) => p.id === latest.toPlayerId);
     const config = getThrowableConfig(latest.itemType);
@@ -132,12 +153,27 @@ export const ThrowablesOverlay: React.FC = () => {
       config,
     });
 
-    const timer = setTimeout(() => {
-      setAnnouncement((curr) => (curr?.id === latest.id ? null : curr));
-    }, 2800);
+    // Clear previous dismissal timer if another item is thrown in quick succession
+    if (dismissTimerRef.current) {
+      clearTimeout(dismissTimerRef.current);
+    }
 
-    return () => clearTimeout(timer);
+    // Auto-dismiss the announcement banner after 2.6 seconds.
+    // Kept in a ref so it is NOT cancelled when activeThrowables is emptied!
+    dismissTimerRef.current = setTimeout(() => {
+      setAnnouncement(null);
+      dismissTimerRef.current = null;
+    }, 2600);
   }, [activeThrowables, gameState?.players]);
+
+  // Cleanup on unmount only
+  useEffect(() => {
+    return () => {
+      if (dismissTimerRef.current) {
+        clearTimeout(dismissTimerRef.current);
+      }
+    };
+  }, []);
 
   return (
     <div className="fixed inset-0 pointer-events-none z-[110] overflow-hidden">

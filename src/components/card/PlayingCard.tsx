@@ -43,6 +43,39 @@ export const SuitIcon: React.FC<{ suit: Suit; className?: string }> = ({ suit, c
   }
 };
 
+export function getCardSvgPath(rank: Rank | string, suit: Suit | string): string {
+  if (rank === '🃏' || rank === 'JOKER') return '/cards/red_joker.svg';
+
+  const suitMap: Record<string, string> = {
+    H: 'hearts',
+    D: 'diamonds',
+    C: 'clubs',
+    S: 'spades',
+    HEARTS: 'hearts',
+    DIAMONDS: 'diamonds',
+    CLUBS: 'clubs',
+    SPADES: 'spades',
+    VAULT: 'spades',
+  };
+
+  const rankMap: Record<string, string> = {
+    A: 'ace',
+    ACE: 'ace',
+    'A♠': 'ace',
+    J: 'jack',
+    JACK: 'jack',
+    Q: 'queen',
+    QUEEN: 'queen',
+    K: 'king',
+    KING: 'king',
+  };
+
+  const cleanSuit = suitMap[suit.toUpperCase()] || 'spades';
+  const cleanRank = rankMap[rank.toUpperCase()] || rank.toLowerCase();
+
+  return `/cards/${cleanRank}_of_${cleanSuit}.svg`;
+}
+
 export const PlayingCard: React.FC<PlayingCardProps> = ({
   card,
   faceDown = false,
@@ -55,12 +88,12 @@ export const PlayingCard: React.FC<PlayingCardProps> = ({
   // Dimension scale based on authentic poker card ratio (~2.5 x 3.5 inches -> 1:1.4)
   // Enhanced for mobile devices so cards and rank fonts appear bold, thick, and readable
   const sizeClasses = {
-    xxs: 'w-[36px] h-[50px] text-[9px]',
-    xs: 'w-[44px] h-[62px] xs:w-[48px] xs:h-[67px] sm:w-[46px] sm:h-[65px] md:w-[50px] md:h-[70px] text-[10px] xs:text-[11px] sm:text-xs',
-    sm: 'w-[54px] h-[76px] xs:w-[58px] xs:h-[82px] sm:w-[58px] sm:h-[81px] md:w-[66px] md:h-[92px] text-xs xs:text-[13px] sm:text-sm md:text-base',
-    md: 'w-[64px] h-[90px] xs:w-[70px] xs:h-[98px] sm:w-[74px] sm:h-[104px] md:w-[82px] md:h-[115px] text-xs xs:text-sm sm:text-base md:text-lg',
-    lg: 'w-[78px] h-[108px] sm:w-[92px] sm:h-[128px] md:w-[110px] md:h-[154px] text-sm sm:text-base md:text-xl',
-    xl: 'w-[110px] h-[154px] sm:w-[150px] sm:h-[210px] text-base sm:text-2xl',
+    xxs: 'w-[36px] h-[50px]',
+    xs: 'w-[44px] h-[62px] xs:w-[48px] xs:h-[67px] sm:w-[46px] sm:h-[65px] md:w-[50px] md:h-[70px]',
+    sm: 'w-[54px] h-[76px] xs:w-[58px] xs:h-[82px] sm:w-[58px] sm:h-[81px] md:w-[66px] md:h-[92px]',
+    md: 'w-[64px] h-[90px] xs:w-[70px] xs:h-[98px] sm:w-[74px] sm:h-[104px] md:w-[82px] md:h-[115px]',
+    lg: 'w-[78px] h-[108px] sm:w-[92px] sm:h-[128px] md:w-[110px] md:h-[154px]',
+    xl: 'w-[110px] h-[154px] sm:w-[150px] sm:h-[210px]',
   }[size];
 
   if (faceDown || !card) {
@@ -100,51 +133,28 @@ export const PlayingCard: React.FC<PlayingCardProps> = ({
     );
   }
 
-  const isRed = card.suit === 'H' || card.suit === 'D';
-  const textColor = isRed ? 'text-red-600' : 'text-zinc-950';
+  const svgPath = getCardSvgPath(card.rank, card.suit);
 
   return (
     <div
       onClick={onClick}
       className={cn(
-        'relative bg-[#fefefe] rounded-[9px] sm:rounded-[12px] border-2 border-zinc-400 select-none shadow-md',
-        'flex flex-col justify-between p-1 sm:p-1.5 md:p-2 transition-all duration-200',
+        'relative bg-[#fdfdfd] rounded-[7px] xs:rounded-[9px] sm:rounded-[11px] md:rounded-[13px] select-none shadow-md overflow-hidden',
+        'transition-all duration-200 flex items-center justify-center p-0.5',
+        'border-[1.5px] border-zinc-300 sm:border-zinc-400',
         sizeClasses,
-        interactive && 'hover:-translate-y-2 hover:shadow-card-hover cursor-pointer active:scale-95',
+        interactive && 'hover:-translate-y-2 hover:shadow-card-hover cursor-pointer active:scale-95 touch-manipulation',
         glow && 'ring-2 sm:ring-3 ring-gold shadow-gold-glow animate-pulse-gold',
         className
       )}
     >
-      {/* Top Left Rank & Suit */}
-      <div className="flex flex-col items-center leading-none w-3.5 xs:w-4 sm:w-4.5 md:w-5">
-        <span className={cn('font-black text-[12px] xs:text-[13px] sm:text-sm md:text-base tracking-tight', textColor)}>{card.rank}</span>
-        <SuitIcon suit={card.suit} className="w-3 h-3 xs:w-3.5 xs:h-3.5 sm:w-4 sm:h-4 md:w-4.5 md:h-4.5 mt-0.5" />
-      </div>
-
-      {/* Center Art / Large Suit */}
-      <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-        {['J', 'Q', 'K'].includes(card.rank) ? (
-          <div className="flex flex-col items-center opacity-95">
-            <span className={cn('font-serif font-black text-2xl xs:text-3xl sm:text-4xl md:text-5xl', textColor)}>
-              {card.rank}
-            </span>
-            <SuitIcon suit={card.suit} className="w-5 h-5 xs:w-6 xs:h-6 sm:w-7 sm:h-7 md:w-8 md:h-8 opacity-90" />
-          </div>
-        ) : card.rank === 'A' ? (
-          <SuitIcon suit={card.suit} className="w-7 h-7 xs:w-9 xs:h-9 sm:w-11 sm:h-11 md:w-13 md:h-13 opacity-95" />
-        ) : (
-          <div className="grid grid-cols-2 gap-0.5 xs:gap-1 sm:gap-1.5 items-center justify-items-center opacity-90">
-            <SuitIcon suit={card.suit} className="w-3.5 h-3.5 xs:w-4 xs:h-4 sm:w-4.5 sm:h-4.5 md:w-5 md:h-5" />
-            <SuitIcon suit={card.suit} className="w-3.5 h-3.5 xs:w-4 xs:h-4 sm:w-4.5 sm:h-4.5 md:w-5 md:h-5" />
-          </div>
-        )}
-      </div>
-
-      {/* Bottom Right Inverted Rank & Suit */}
-      <div className="flex flex-col items-center leading-none w-3.5 xs:w-4 sm:w-4.5 md:w-5 self-end rotate-180">
-        <span className={cn('font-black text-[12px] xs:text-[13px] sm:text-sm md:text-base tracking-tight', textColor)}>{card.rank}</span>
-        <SuitIcon suit={card.suit} className="w-3 h-3 xs:w-3.5 xs:h-3.5 sm:w-4 sm:h-4 md:w-4.5 md:h-4.5 mt-0.5" />
-      </div>
+      <img
+        src={svgPath}
+        alt={`${card.rank} of ${card.suit}`}
+        className="w-full h-full object-contain pointer-events-none select-none rounded-[5px] xs:rounded-[7px] sm:rounded-[9px]"
+        loading="eager"
+        decoding="async"
+      />
     </div>
   );
 };

@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAlbumStore } from '@/store/albumStore';
 import { FAMILIES } from '@/lib/collectibles';
+import { getCollectibleSvg } from './CollectibleCardView';
 import { X, Lock, CheckCircle, Sparkles, Gem, Crown, Shield, Zap } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { sounds } from '@/lib/sound';
@@ -32,6 +33,8 @@ export const CardInspectModal: React.FC = () => {
       : selectedCard.suit === 'C'
       ? '♣'
       : '👑';
+
+  const svgUrl = getCollectibleSvg(selectedCard);
 
   const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
     const rect = e.currentTarget.getBoundingClientRect();
@@ -106,83 +109,179 @@ export const CardInspectModal: React.FC = () => {
               {/* Inner Card */}
               <div
                 className={cn(
-                  'relative w-full h-full rounded-lg xs:rounded-xl overflow-hidden flex flex-col justify-between p-2 xs:p-2.5 sm:p-3',
-                  isUnlocked
-                    ? selectedCard.specialEffect === 'diamond_shine'
-                      ? 'bg-gradient-to-b from-sky-950 via-slate-900 to-black text-white'
-                      : selectedCard.specialEffect === 'gold_particles'
-                      ? 'bg-gradient-to-b from-amber-950 via-zinc-950 to-black text-amber-200'
-                      : selectedCard.specialEffect === 'silver_chrome'
-                      ? 'bg-gradient-to-b from-slate-900 via-zinc-950 to-black text-slate-100'
-                      : isRed
-                      ? 'bg-gradient-to-b from-rose-50/60 via-white to-rose-50/30 text-stone-900'
-                      : 'bg-gradient-to-b from-slate-50/60 via-white to-slate-50/30 text-stone-900'
-                    : 'bg-transparent text-stone-400'
+                  'relative w-full h-full rounded-lg xs:rounded-xl overflow-hidden flex flex-col justify-between',
+                  isUnlocked ? 'bg-white' : 'bg-transparent text-stone-400'
                 )}
               >
-                {/* Header */}
-                <div className="flex items-center justify-between">
-                  <div className="flex flex-col items-center leading-none">
-                    <span className="font-black font-mono text-sm sm:text-lg">
-                      {isUnlocked ? selectedCard.rank : '?'}
-                    </span>
-                    <span className={cn('text-xs sm:text-sm', isRed ? 'text-red-600' : 'text-slate-800')}>
-                      {suitSymbol}
-                    </span>
-                  </div>
-                  <span className="text-[8px] xs:text-[9px] font-mono uppercase px-1 py-0.5 rounded bg-amber-100 text-amber-900 font-bold border border-amber-300">
-                    ★{selectedCard.power}
-                  </span>
-                </div>
+                {isUnlocked ? (
+                  <>
+                    {/* Real Card SVG Art as Foundation */}
+                    <div className="absolute inset-0 w-full h-full flex items-center justify-center p-1 bg-[#fdfdfd]">
+                      <img
+                        src={svgUrl}
+                        alt={selectedCard.name}
+                        className={cn(
+                          'w-full h-full object-contain pointer-events-none select-none rounded-[6px] xs:rounded-[8px] sm:rounded-[12px]',
+                          selectedCard.specialEffect === 'silver_chrome' && 'filter contrast-110 brightness-105 saturate-50'
+                        )}
+                        loading="eager"
+                        decoding="async"
+                      />
+                    </div>
 
-                {/* Big Center Graphic */}
-                <div className="flex flex-col items-center justify-center my-auto">
-                  {isUnlocked ? (
-                    selectedCard.specialEffect === 'diamond_shine' ? (
-                      <div className="flex flex-col items-center">
-                        <Gem className="w-12 h-12 xs:w-14 xs:h-14 sm:w-20 sm:h-20 text-cyan-300 drop-shadow-[0_0_20px_rgba(56,189,248,1)] animate-pulse" />
-                        <span className="text-[8.5px] xs:text-[9.5px] sm:text-[10px] font-black uppercase text-cyan-200 tracking-wider xs:tracking-widest mt-1 sm:mt-2">
-                          DIAMOND EDITION
-                        </span>
+                    {/* Tier Effects Layered On Top of the Real Card */}
+
+                    {/* A. DIAMOND PRISMATIC SHINE */}
+                    {selectedCard.specialEffect === 'diamond_shine' && (
+                      <>
+                        <div className="absolute inset-0 bg-gradient-to-br from-cyan-400/30 via-fuchsia-400/20 to-indigo-500/30 pointer-events-none mix-blend-color-dodge animate-pulse" />
+                        <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_35%,rgba(56,189,248,0.5)_0%,transparent_75%)] pointer-events-none" />
+                        <div className="absolute top-3 left-3 text-sm animate-ping">💎</div>
+                        <div className="absolute bottom-8 right-3 text-xs animate-bounce">✨</div>
+                        {/* Center Watermark Stamp */}
+                        <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                          <div className="w-16 h-16 sm:w-24 sm:h-24 rounded-full bg-cyan-400/15 border-2 border-cyan-300/50 flex flex-col items-center justify-center shadow-[0_0_25px_rgba(56,189,248,0.8)] backdrop-blur-[1px]">
+                            <Gem className="w-7 h-7 sm:w-10 sm:h-10 text-cyan-200 fill-cyan-300 animate-spin-slow drop-shadow-[0_0_12px_rgba(56,189,248,1)]" />
+                            <span className="text-[7px] sm:text-[9px] font-black uppercase text-cyan-200 tracking-widest mt-0.5">
+                              DIAMOND
+                            </span>
+                          </div>
+                        </div>
+                      </>
+                    )}
+
+                    {/* B. 24K GOLD PARTICLES */}
+                    {selectedCard.specialEffect === 'gold_particles' && (
+                      <>
+                        <div className="absolute inset-0 bg-gradient-to-br from-amber-400/30 via-yellow-200/25 to-amber-600/35 pointer-events-none mix-blend-color-dodge animate-pulse" />
+                        <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_35%,rgba(245,158,11,0.4)_0%,transparent_75%)] pointer-events-none" />
+                        <div className="absolute top-3 left-3 text-sm animate-bounce">✨</div>
+                        <div className="absolute bottom-8 right-3 text-xs animate-ping">🪙</div>
+                        {/* Center Watermark Stamp */}
+                        <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                          <div className="w-16 h-16 sm:w-24 sm:h-24 rounded-full bg-amber-400/15 border-2 border-amber-300/60 flex flex-col items-center justify-center shadow-[0_0_25px_rgba(245,158,11,0.8)] backdrop-blur-[1px]">
+                            <Crown className="w-7 h-7 sm:w-10 sm:h-10 text-yellow-300 fill-yellow-400 animate-bounce drop-shadow-[0_0_12px_rgba(245,158,11,1)]" />
+                            <span className="text-[7px] sm:text-[9px] font-black uppercase text-amber-300 tracking-widest mt-0.5">
+                              24K GOLD
+                            </span>
+                          </div>
+                        </div>
+                      </>
+                    )}
+
+                    {/* C. LIQUID SILVER CHROME */}
+                    {selectedCard.specialEffect === 'silver_chrome' && (
+                      <>
+                        <div className="absolute inset-0 bg-gradient-to-tr from-slate-400/25 via-white/50 to-slate-300/25 pointer-events-none mix-blend-overlay" />
+                        <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_35%,rgba(255,255,255,0.5)_0%,transparent_75%)] pointer-events-none" />
+                        <div className="absolute top-3 left-3 text-sm animate-pulse">❄️</div>
+                        <div className="absolute bottom-8 right-3 text-xs animate-bounce">✨</div>
+                        {/* Center Watermark Stamp */}
+                        <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                          <div className="w-16 h-16 sm:w-24 sm:h-24 rounded-full bg-white/15 border-2 border-slate-200/60 flex flex-col items-center justify-center shadow-[0_0_20px_rgba(226,232,240,0.8)] backdrop-blur-[1px]">
+                            <Shield className="w-7 h-7 sm:w-10 sm:h-10 text-slate-100 fill-slate-300 drop-shadow-[0_0_10px_rgba(255,255,255,1)]" />
+                            <span className="text-[7px] sm:text-[9px] font-black uppercase text-slate-200 tracking-widest mt-0.5">
+                              PLATINUM
+                            </span>
+                          </div>
+                        </div>
+                      </>
+                    )}
+
+                    {/* D. HOLOGRAPHIC SHIMMER (Aces) */}
+                    {selectedCard.specialEffect === 'holo_shimmer' && (
+                      <div className="absolute inset-0 bg-gradient-to-tr from-pink-500/25 via-indigo-500/25 to-amber-500/25 pointer-events-none mix-blend-color-dodge opacity-85" />
+                    )}
+
+                    {/* 3D Sweeping Light Reflection Glare */}
+                    <div
+                      className="absolute inset-0 pointer-events-none opacity-40 transition-opacity"
+                      style={{
+                        background: `radial-gradient(circle at ${50 + rotateY * 2}% ${50 - rotateX * 2}%, rgba(255,255,255,0.8) 0%, transparent 60%)`,
+                      }}
+                    />
+
+                    {/* Top Header Floating Badges */}
+                    <div className="relative z-10 w-full flex items-center justify-between p-1 leading-none pointer-events-none">
+                      <div className="flex items-center gap-1">
+                        {selectedCard.specialEffect === 'diamond_shine' ? (
+                          <span className="px-2 py-0.5 rounded-full bg-cyan-950/95 border border-cyan-300 text-cyan-200 text-[8px] sm:text-[9px] font-mono font-black shadow-[0_0_12px_rgba(56,189,248,0.9)] flex items-center gap-1">
+                            <Gem className="w-3 h-3 text-cyan-200 fill-cyan-300 animate-spin-slow" />
+                            <span>DIAMOND</span>
+                          </span>
+                        ) : selectedCard.specialEffect === 'gold_particles' ? (
+                          <span className="px-2 py-0.5 rounded-full bg-amber-950/95 border border-amber-300 text-yellow-300 text-[8px] sm:text-[9px] font-mono font-black shadow-[0_0_12px_rgba(245,158,11,0.9)] flex items-center gap-1">
+                            <Crown className="w-3 h-3 text-yellow-300 fill-yellow-400 animate-pulse" />
+                            <span>GOLD</span>
+                          </span>
+                        ) : selectedCard.specialEffect === 'silver_chrome' ? (
+                          <span className="px-2 py-0.5 rounded-full bg-slate-950/95 border border-slate-200 text-slate-100 text-[8px] sm:text-[9px] font-mono font-black shadow-[0_0_12px_rgba(226,232,240,0.8)] flex items-center gap-1">
+                            <Shield className="w-3 h-3 text-slate-200 fill-slate-300" />
+                            <span>SILVER</span>
+                          </span>
+                        ) : selectedCard.specialEffect === 'holo_shimmer' ? (
+                          <span className="px-2 py-0.5 rounded-full bg-black/90 border border-purple-400 text-purple-200 text-[8px] sm:text-[9px] font-mono font-black shadow-sm flex items-center gap-1">
+                            <Sparkles className="w-2.5 h-2.5 text-yellow-300 fill-yellow-300" />
+                            <span>HOLO</span>
+                          </span>
+                        ) : null}
                       </div>
-                    ) : selectedCard.specialEffect === 'gold_particles' ? (
-                      <div className="flex flex-col items-center">
-                        <Crown className="w-12 h-12 xs:w-14 xs:h-14 sm:w-20 sm:h-20 text-yellow-300 drop-shadow-[0_0_20px_rgba(245,158,11,1)] animate-bounce" />
-                        <span className="text-[8.5px] xs:text-[9.5px] sm:text-[10px] font-black uppercase text-amber-300 tracking-wider xs:tracking-widest mt-1 sm:mt-2">
-                          GOLDEN LEGEND
-                        </span>
-                      </div>
-                    ) : selectedCard.specialEffect === 'silver_chrome' ? (
-                      <div className="flex flex-col items-center">
-                        <Shield className="w-12 h-12 xs:w-14 xs:h-14 sm:w-20 sm:h-20 text-slate-200 drop-shadow-[0_0_15px_rgba(255,255,255,0.8)]" />
-                        <span className="text-[8.5px] xs:text-[9.5px] sm:text-[10px] font-black uppercase text-slate-300 tracking-wider xs:tracking-widest mt-1 sm:mt-2">
-                          SILVER MONARCH
-                        </span>
-                      </div>
-                    ) : (
-                      <span className={cn('text-4xl xs:text-5xl sm:text-6xl filter drop-shadow-xs', isRed ? 'text-red-600' : 'text-slate-800')}>
-                        {suitSymbol}
+
+                      <span className="text-[8px] sm:text-[10px] font-mono px-1.5 py-0.5 rounded bg-black/85 text-amber-300 border border-amber-400/50 font-black shadow-sm">
+                        ★{selectedCard.power}
                       </span>
-                    )
-                  ) : (
-                    <div className="flex flex-col items-center">
+                    </div>
+
+                    {/* Spacer */}
+                    <div className="flex-1 pointer-events-none" />
+
+                    {/* Bottom Banner */}
+                    <div
+                      className={cn(
+                        'relative z-10 w-full flex flex-col items-center py-1 px-1.5 backdrop-blur-md rounded-b-[6px] sm:rounded-b-[10px] border-t leading-none pointer-events-none',
+                        selectedCard.specialEffect === 'diamond_shine'
+                          ? 'bg-slate-950/92 border-cyan-400/80 text-cyan-200 shadow-[0_2px_12px_rgba(56,189,248,0.7)]'
+                          : selectedCard.specialEffect === 'gold_particles'
+                          ? 'bg-amber-950/92 border-amber-300/90 text-yellow-300 shadow-[0_2px_12px_rgba(245,158,11,0.7)]'
+                          : selectedCard.specialEffect === 'silver_chrome'
+                          ? 'bg-slate-950/92 border-slate-300/80 text-slate-100 shadow-[0_2px_10px_rgba(226,232,240,0.6)]'
+                          : 'bg-black/85 border-white/20 text-white shadow-sm'
+                      )}
+                    >
+                      <span className="text-[9px] sm:text-xs font-black truncate text-center w-full drop-shadow">
+                        {selectedCard.hindiName}
+                      </span>
+                      <span className="text-[6.5px] sm:text-[8px] font-mono text-amber-300/90 mt-0.5">
+                        #{String(selectedCard.collectorNumber).padStart(2, '0')} / 57
+                      </span>
+                    </div>
+                  </>
+                ) : (
+                  /* Locked Inspect View */
+                  <div className="w-full h-full flex flex-col items-center justify-between p-2">
+                    <div className="w-full flex items-center justify-between">
+                      <span className="text-sm font-mono font-black text-stone-400">
+                        {selectedCard.rank}
+                      </span>
+                      <div className="w-5 h-5 rounded-full bg-stone-300/40 border border-stone-400/50 flex items-center justify-center">
+                        <Lock className="w-3 h-3 text-stone-500" />
+                      </div>
+                    </div>
+
+                    <div className="flex flex-col items-center my-auto opacity-60">
                       <Lock className="w-10 h-10 sm:w-12 sm:h-12 text-stone-400" />
-                      <span className="text-[9px] sm:text-[10px] font-mono tracking-widest text-stone-500 mt-1.5 sm:mt-2 uppercase">
+                      <span className="text-[9px] sm:text-[10px] font-mono tracking-widest text-stone-500 mt-2 uppercase">
                         UNATTAINED
                       </span>
                     </div>
-                  )}
-                </div>
 
-                {/* Footer */}
-                <div className="flex items-center justify-between border-t border-stone-200 pt-1 sm:pt-1.5">
-                  <span className="text-[8px] xs:text-[9px] font-mono text-stone-500">
-                    #{String(selectedCard.collectorNumber).padStart(2, '0')}/57
-                  </span>
-                  <span className="text-[8px] xs:text-[9px] font-bold text-red-800 uppercase">
-                    {selectedCard.rarity}
-                  </span>
-                </div>
+                    <div className="w-full flex items-center justify-center border-t border-stone-300/80 pt-1">
+                      <span className="text-[8px] font-mono text-stone-400">
+                        #{String(selectedCard.collectorNumber).padStart(2, '0')}/57
+                      </span>
+                    </div>
+                  </div>
+                )}
               </div>
             </motion.div>
           </div>

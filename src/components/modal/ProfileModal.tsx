@@ -6,6 +6,7 @@ import { CARTOON_AVATARS, getAvatarById } from '@/lib/avatars';
 import { X, Trophy, Flame, Play, Award, Check, Edit2, LogOut } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { sounds } from '@/lib/sound';
+import { useMStore } from '@/store/mStore';
 
 export const ProfileModal: React.FC = () => {
   const {
@@ -175,9 +176,22 @@ export const ProfileModal: React.FC = () => {
           </div>
 
           <div className="shrink-0 self-end xs:self-center">
-            <span className="text-[8.5px] xs:text-[9px] sm:text-[10px] font-bold uppercase tracking-wider text-zinc-400 bg-black/60 border border-white/10 px-2.5 py-1 rounded-xl whitespace-nowrap">
-              Store Coming Soon
-            </span>
+            <button
+              type="button"
+              onClick={() => {
+                setProfileModalOpen(false);
+                useMStore.getState().setOpen(true);
+              }}
+              className="flex items-center gap-2 px-3.5 sm:px-4 py-2 rounded-xl bg-gradient-to-r from-red-600 via-rose-600 to-amber-500 hover:from-red-500 hover:to-amber-400 text-white font-black text-xs uppercase tracking-wider shadow-[0_0_20px_rgba(225,29,72,0.4)] active:scale-95 transition-all cursor-pointer border border-amber-300/40"
+              title="Open M Store - Daily Cards & M Coins"
+            >
+              <img
+                src="/icons/casino-chip.png"
+                alt="M Store"
+                className="w-4 h-4 object-contain filter drop-shadow"
+              />
+              <span>Open M Store</span>
+            </button>
           </div>
         </div>
 

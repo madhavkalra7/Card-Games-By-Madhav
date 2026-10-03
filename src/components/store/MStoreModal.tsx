@@ -12,13 +12,11 @@ import {
   X,
   Sparkles,
   Crown,
-  Flame,
   Clock,
   CheckCircle2,
   AlertCircle,
   Eye,
   ShoppingBag,
-  ExternalLink,
   ShieldCheck,
   ChevronRight,
   Info,
@@ -81,8 +79,8 @@ export const MStoreModal: React.FC = () => {
     if (res.success) {
       try {
         confetti({
-          particleCount: 75,
-          spread: 80,
+          particleCount: 80,
+          spread: 85,
           origin: { y: 0.6 },
         });
       } catch {}
@@ -95,21 +93,46 @@ export const MStoreModal: React.FC = () => {
   const goldenJoker = dailyCards[0];
   const rotatingCards = dailyCards.slice(1);
 
+  // Helper to render authentic casino chip stacks for each pack
+  const renderChipStack = (count: 1 | 2 | 3 | 4) => {
+    return (
+      <div className="relative h-12 w-14 flex items-center justify-center">
+        {Array.from({ length: count }).map((_, idx) => (
+          <img
+            key={`chip-${idx}`}
+            src="/icons/casino-chip.png"
+            alt="M Coin Chip"
+            className="absolute w-9 h-9 sm:w-10 sm:h-10 object-contain filter drop-shadow-md transition-transform group-hover:scale-105"
+            style={{
+              left: `${idx * 6}px`,
+              top: `${(count - 1 - idx) * 3}px`,
+              zIndex: idx + 1,
+            }}
+          />
+        ))}
+      </div>
+    );
+  };
+
   return (
     <div
       onClick={() => setOpen(false)}
       className="fixed inset-0 z-[160] flex items-center justify-center p-2 sm:p-4 bg-black/90 backdrop-blur-md animate-in fade-in zoom-in-95 duration-200 select-none overflow-y-auto"
     >
-      {/* Modal Dialog Card */}
+      {/* Modal Dialog Card - Matched with Home Screen Ruby & Obsidian Casino Theme */}
       <div
         onClick={(e) => e.stopPropagation()}
         className={cn(
-          'relative w-full max-w-5xl bg-gradient-to-b from-[#120f09] via-zinc-950 to-black border-2 sm:border-4 border-amber-500/70 rounded-2xl sm:rounded-3xl shadow-[0_0_80px_rgba(217,119,6,0.35)] overflow-hidden flex flex-col',
+          'relative w-full max-w-5xl bg-gradient-to-b from-[#18080d] via-[#0d0407] to-[#040102] border-2 sm:border-4 border-red-500/50 rounded-2xl sm:rounded-3xl shadow-[0_0_80px_rgba(225,29,72,0.35)] overflow-hidden flex flex-col',
           isLandscapeMobile ? 'max-h-[96dvh] my-1' : 'max-h-[92dvh]'
         )}
       >
-        {/* Luxury Gold Shimmer Top Bar */}
-        <div className="absolute top-0 left-0 right-0 h-2 bg-gradient-to-r from-amber-600 via-yellow-400 to-amber-600 shadow-md" />
+        {/* Luxury Ruby & Gold Shimmer Top Bar */}
+        <div className="absolute top-0 left-0 right-0 h-2 bg-gradient-to-r from-red-700 via-amber-500 to-red-700 shadow-md" />
+
+        {/* Ambient background glow accents */}
+        <div className="absolute -top-20 -left-20 w-72 h-72 bg-red-600/15 blur-3xl pointer-events-none rounded-full" />
+        <div className="absolute -bottom-20 -right-20 w-72 h-72 bg-amber-600/15 blur-3xl pointer-events-none rounded-full" />
 
         {/* ================= HEADER ================= */}
         <div
@@ -120,9 +143,13 @@ export const MStoreModal: React.FC = () => {
         >
           {/* Brand & Title */}
           <div className="flex items-center gap-2.5 sm:gap-3">
-            <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-2xl bg-gradient-to-tr from-amber-500 via-yellow-400 to-amber-200 p-0.5 shadow-gold-glow flex items-center justify-center shrink-0">
-              <div className="w-full h-full rounded-2xl bg-black/85 flex items-center justify-center">
-                <Crown className="w-5 h-5 sm:w-6 sm:h-6 text-yellow-400 animate-pulse" />
+            <div className="w-11 h-11 sm:w-12 sm:h-12 rounded-2xl bg-gradient-to-tr from-red-700 via-rose-600 to-amber-400 p-0.5 shadow-[0_0_20px_rgba(225,29,72,0.4)] flex items-center justify-center shrink-0">
+              <div className="w-full h-full rounded-2xl bg-black/85 p-1 flex items-center justify-center">
+                <img
+                  src="/icons/casino-chip.png"
+                  alt="M Store Chip"
+                  className="w-full h-full object-contain filter drop-shadow animate-pulse"
+                />
               </div>
             </div>
             <div>
@@ -130,12 +157,12 @@ export const MStoreModal: React.FC = () => {
                 <h1 className="font-black text-base sm:text-xl text-white uppercase tracking-wider font-serif">
                   M Store
                 </h1>
-                <span className="px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider bg-amber-500/20 text-amber-300 border border-amber-500/40">
-                  Emporium
+                <span className="px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider bg-red-500/20 text-red-300 border border-red-500/40">
+                  Official Currency &amp; Cards
                 </span>
               </div>
               <p className="text-[11px] text-zinc-400">
-                Official digital coin packs, 24K Golden Joker & daily rotating cards
+                Official M Coins packs, 24K Golden Joker &amp; daily rotating rare cards
               </p>
             </div>
           </div>
@@ -145,18 +172,20 @@ export const MStoreModal: React.FC = () => {
             {/* Player M Coins Balance Display */}
             <div
               onClick={() => setActiveTab('coins')}
-              className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-gradient-to-r from-amber-500/15 via-yellow-500/10 to-transparent border border-amber-400/50 cursor-pointer hover:border-amber-300 transition-all shadow-sm group"
+              className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-gradient-to-r from-red-950/70 via-black/80 to-zinc-950/80 border border-red-500/50 cursor-pointer hover:border-red-400 transition-all shadow-sm group"
               title="Your M Coins Balance (Click to view Coin Packs)"
             >
-              <div className="w-6 h-6 rounded-full bg-gradient-to-tr from-amber-500 to-yellow-300 flex items-center justify-center text-black font-black text-xs shadow">
-                M
-              </div>
-              <div className="flex flex-col">
-                <span className="text-[8px] font-bold uppercase tracking-wider text-amber-300/80">
+              <img
+                src="/icons/casino-chip.png"
+                alt="Coins"
+                className="w-5 h-5 sm:w-6 sm:h-6 object-contain filter drop-shadow group-hover:scale-110 transition-transform"
+              />
+              <div className="flex flex-col text-left">
+                <span className="text-[8px] font-bold uppercase tracking-wider text-red-300/80">
                   Your Balance
                 </span>
-                <span className="font-mono font-black text-xs sm:text-sm text-yellow-300 group-hover:text-white transition-colors">
-                  {mCoins.toLocaleString()} M Coins
+                <span className="font-mono font-black text-xs sm:text-sm text-white group-hover:text-amber-300 transition-colors">
+                  {mCoins.toLocaleString()} <span className="text-[10px] text-red-300 font-sans font-bold">Chips</span>
                 </span>
               </div>
             </div>
@@ -172,21 +201,22 @@ export const MStoreModal: React.FC = () => {
           </div>
         </div>
 
-        {/* ================= TABS NAVIGATION ================= */}
-        <div className="flex items-center gap-2 px-3.5 sm:px-6 py-2.5 border-b border-white/10 bg-zinc-950/80 shrink-0">
+        {/* ================= TABS NAVIGATION (Matched to Home Screen Palette) ================= */}
+        <div className="flex items-center gap-2 px-3.5 sm:px-6 py-2.5 border-b border-white/10 bg-black/60 shrink-0">
           {/* Tab 1: Buy M Coins */}
           <button
             type="button"
             onClick={() => setActiveTab('coins')}
             className={cn(
-              'flex-1 sm:flex-initial flex items-center justify-center gap-2 px-4 sm:px-6 py-2 rounded-xl font-black text-xs sm:text-sm uppercase tracking-wider transition-all cursor-pointer',
+              'flex-1 sm:flex-initial flex items-center justify-center gap-2 px-4 sm:px-6 py-2 rounded-xl font-black text-xs sm:text-sm uppercase tracking-wider transition-all cursor-pointer border',
               activeTab === 'coins'
-                ? 'bg-gradient-to-r from-amber-500 to-yellow-400 text-black shadow-gold-glow scale-102'
-                : 'bg-zinc-900 text-zinc-400 hover:text-white hover:bg-zinc-850 border border-white/5'
+                ? 'bg-gradient-to-r from-red-600 via-rose-600 to-amber-600 text-white shadow-[0_0_20px_rgba(225,29,72,0.45)] border-amber-300/50 scale-102'
+                : 'bg-zinc-900/90 text-zinc-400 hover:text-white hover:bg-zinc-800 border-white/5'
             )}
           >
-            <span>🪙 Buy M Coins</span>
-            <span className="text-[9px] px-1.5 py-0.2 rounded font-mono font-bold bg-black/25">
+            <img src="/icons/casino-chip.png" alt="M Coin" className="w-4 h-4 object-contain inline-block" />
+            <span>Buy M Coins</span>
+            <span className="text-[9px] px-1.5 py-0.2 rounded font-mono font-bold bg-black/40 text-amber-200">
               INR ₹
             </span>
           </button>
@@ -196,14 +226,14 @@ export const MStoreModal: React.FC = () => {
             type="button"
             onClick={() => setActiveTab('cards')}
             className={cn(
-              'flex-1 sm:flex-initial flex items-center justify-center gap-2 px-4 sm:px-6 py-2 rounded-xl font-black text-xs sm:text-sm uppercase tracking-wider transition-all cursor-pointer',
+              'flex-1 sm:flex-initial flex items-center justify-center gap-2 px-4 sm:px-6 py-2 rounded-xl font-black text-xs sm:text-sm uppercase tracking-wider transition-all cursor-pointer border',
               activeTab === 'cards'
-                ? 'bg-gradient-to-r from-amber-500 to-yellow-400 text-black shadow-gold-glow scale-102'
-                : 'bg-zinc-900 text-zinc-400 hover:text-white hover:bg-zinc-850 border border-white/5'
+                ? 'bg-gradient-to-r from-red-600 via-rose-600 to-amber-600 text-white shadow-[0_0_20px_rgba(225,29,72,0.45)] border-amber-300/50 scale-102'
+                : 'bg-zinc-900/90 text-zinc-400 hover:text-white hover:bg-zinc-800 border-white/5'
             )}
           >
             <span>🃏 Buy Cards</span>
-            <span className="text-[9px] px-1.5 py-0.2 rounded font-mono font-bold bg-amber-500/20 text-amber-300 border border-amber-500/30">
+            <span className="text-[9px] px-1.5 py-0.2 rounded font-mono font-bold bg-red-500/20 text-red-300 border border-red-500/30">
               7 Daily
             </span>
           </button>
@@ -234,48 +264,53 @@ export const MStoreModal: React.FC = () => {
           {activeTab === 'coins' && (
             <div className="space-y-4">
               {/* Showcase Mode Informational Banner */}
-              <div className="p-3 sm:p-4 rounded-2xl bg-amber-500/10 border border-amber-500/30 flex items-start gap-3 text-xs text-amber-200/90 shadow-sm">
-                <Info className="w-4 h-4 text-yellow-400 shrink-0 mt-0.5" />
+              <div className="p-3 sm:p-4 rounded-2xl bg-gradient-to-r from-red-950/60 via-zinc-950 to-black border border-red-500/40 flex items-start gap-3 text-xs text-red-200/90 shadow-sm">
+                <Info className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
                 <div className="space-y-0.5">
                   <p className="font-bold text-white">
                     Showcase Mode Active (Demo Rupee Prices)
                   </p>
                   <p className="text-[11px] text-zinc-300">
-                    Real payment integration (UPI, QR & Cards) is currently in showcase preview mode. Clicking any pack displays the showcase package details without deducting real money.
+                    Real payment gateway integration (UPI, QR &amp; Cards) is currently in showcase preview mode. Clicking any pack previews the package details without deducting real money or adding coins.
                   </p>
                 </div>
               </div>
 
-              {/* Grid of the 4 requested coin packs */}
+              {/* Grid of the 4 requested coin packs with authentic chip stacks */}
               <div className="grid grid-cols-1 xs:grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
                 {M_COIN_PACKS.map((pack) => (
                   <div
                     key={pack.id}
                     onClick={() => setSelectedPackForShowcase(pack)}
                     className={cn(
-                      'relative p-4 sm:p-5 rounded-2xl sm:rounded-3xl border-2 transition-all flex flex-col justify-between gap-4 cursor-pointer group bg-gradient-to-b shadow-lg hover:scale-102 active:scale-98',
+                      'relative p-4 sm:p-5 rounded-2xl sm:rounded-3xl border-2 transition-all flex flex-col justify-between gap-4 cursor-pointer group bg-gradient-to-b hover:scale-102 active:scale-98',
                       pack.gradient,
                       pack.borderGlow
                     )}
                   >
-                    {/* Top Badge */}
+                    {/* Top Badge + Authentic Chip Stack */}
                     <div className="flex items-center justify-between">
                       {pack.badge ? (
-                        <span className="px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider bg-amber-500/30 text-amber-300 border border-amber-400/50">
+                        <span className="px-2.5 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider bg-red-500/25 text-red-300 border border-red-500/40">
                           {pack.badge}
                         </span>
                       ) : <span />}
-                      <span className="text-2xl group-hover:scale-110 transition-transform">
-                        {pack.icon}
-                      </span>
+                      {renderChipStack(pack.chipCount)}
                     </div>
 
                     {/* Middle Info */}
                     <div className="space-y-1">
-                      <h3 className="font-mono font-black text-xl sm:text-2xl text-white">
-                        {pack.coins.toLocaleString()}
-                        <span className="text-xs text-amber-400 font-sans font-bold ml-1">M Coins</span>
-                      </h3>
+                      <div className="flex items-center gap-1.5">
+                        <img
+                          src="/icons/casino-chip.png"
+                          alt="M Coin"
+                          className="w-5 h-5 object-contain filter drop-shadow shrink-0"
+                        />
+                        <h3 className="font-mono font-black text-xl sm:text-2xl text-white">
+                          {pack.coins.toLocaleString()}
+                        </h3>
+                        <span className="text-xs text-red-300 font-sans font-bold">M Coins</span>
+                      </div>
                       <p className="text-[11px] text-zinc-400 leading-snug">
                         {pack.tagline}
                       </p>
@@ -296,7 +331,7 @@ export const MStoreModal: React.FC = () => {
                           e.stopPropagation();
                           setSelectedPackForShowcase(pack);
                         }}
-                        className="px-3.5 py-1.5 rounded-xl font-black text-xs uppercase tracking-wider bg-white/10 hover:bg-white/20 text-white border border-white/20 transition-all flex items-center gap-1 group-hover:border-amber-400 group-hover:text-amber-300"
+                        className="px-3.5 py-1.5 rounded-xl font-black text-xs uppercase tracking-wider bg-red-500/20 hover:bg-red-500/30 text-red-200 border border-red-500/40 transition-all flex items-center gap-1 group-hover:border-amber-400 group-hover:text-amber-300"
                       >
                         <span>Preview</span>
                         <ChevronRight className="w-3.5 h-3.5" />
@@ -307,22 +342,22 @@ export const MStoreModal: React.FC = () => {
               </div>
 
               {/* Perks of M Coins */}
-              <div className="p-4 rounded-2xl bg-zinc-900/60 border border-white/10 space-y-2">
-                <h4 className="text-xs font-black uppercase tracking-wider text-amber-400 flex items-center gap-1.5">
-                  <Sparkles className="w-3.5 h-3.5 text-yellow-400" />
+              <div className="p-4 rounded-2xl bg-gradient-to-r from-red-950/40 via-zinc-950 to-black border border-red-500/30 space-y-2">
+                <h4 className="text-xs font-black uppercase tracking-wider text-red-300 flex items-center gap-1.5">
+                  <Sparkles className="w-3.5 h-3.5 text-amber-400" />
                   <span>Why collect M Coins?</span>
                 </h4>
                 <ul className="grid grid-cols-1 sm:grid-cols-3 gap-2 text-[11px] text-zinc-300">
-                  <li className="flex items-center gap-2 p-2 rounded-xl bg-black/40 border border-white/5">
-                    <span>👑</span>
+                  <li className="flex items-center gap-2 p-2 rounded-xl bg-black/50 border border-white/5">
+                    <img src="/icons/casino-chip.png" alt="Chip" className="w-4 h-4 object-contain shrink-0" />
                     <span>Unlock the permanent <strong>24K Golden Joker</strong> card</span>
                   </li>
-                  <li className="flex items-center gap-2 p-2 rounded-xl bg-black/40 border border-white/5">
-                    <span>🃏</span>
+                  <li className="flex items-center gap-2 p-2 rounded-xl bg-black/50 border border-white/5">
+                    <img src="/icons/casino-chip.png" alt="Chip" className="w-4 h-4 object-contain shrink-0" />
                     <span>Buy rare daily cards from the 7-card rotation shop</span>
                   </li>
-                  <li className="flex items-center gap-2 p-2 rounded-xl bg-black/40 border border-white/5">
-                    <span>🏆</span>
+                  <li className="flex items-center gap-2 p-2 rounded-xl bg-black/50 border border-white/5">
+                    <img src="/icons/casino-chip.png" alt="Chip" className="w-4 h-4 object-contain shrink-0" />
                     <span>Show off luxury card cosmetics at live multiplayer tables</span>
                   </li>
                 </ul>
@@ -334,9 +369,9 @@ export const MStoreModal: React.FC = () => {
           {activeTab === 'cards' && (
             <div className="space-y-6">
               {/* Daily Reset Countdown Bar */}
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 p-3 sm:p-4 rounded-2xl bg-zinc-900/80 border border-amber-500/30">
-                <div className="flex items-center gap-2">
-                  <div className="w-8 h-8 rounded-xl bg-amber-500/20 border border-amber-400/40 flex items-center justify-center text-amber-400">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 p-3 sm:p-4 rounded-2xl bg-gradient-to-r from-red-950/60 via-zinc-950 to-black border border-red-500/40">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-8 h-8 rounded-xl bg-red-500/20 border border-red-400/40 flex items-center justify-center text-red-400">
                     <Clock className="w-4 h-4" />
                   </div>
                   <div>
@@ -349,7 +384,7 @@ export const MStoreModal: React.FC = () => {
                   </div>
                 </div>
 
-                <div className="flex items-center gap-2 bg-black/60 px-3 py-1.5 rounded-xl border border-white/10 shrink-0">
+                <div className="flex items-center gap-2 bg-black/70 px-3 py-1.5 rounded-xl border border-red-500/30 shrink-0">
                   <span className="text-[10px] uppercase font-bold text-zinc-400">Resets in:</span>
                   <span className="font-mono font-black text-xs sm:text-sm text-amber-300">
                     {timeLeft}
@@ -358,9 +393,9 @@ export const MStoreModal: React.FC = () => {
               </div>
 
               {/* 1. FEATURED FIXED CARD: 24K GOLDEN JOKER (10,000 M COINS) */}
-              <div className="relative p-4 sm:p-6 rounded-3xl bg-gradient-to-r from-yellow-950/60 via-amber-900/30 to-black border-2 sm:border-3 border-yellow-400/80 shadow-[0_0_50px_rgba(245,158,11,0.35)] overflow-hidden">
+              <div className="relative p-4 sm:p-6 rounded-3xl bg-gradient-to-r from-[#240a12] via-[#15070b] to-[#070204] border-2 sm:border-3 border-amber-400/80 shadow-[0_0_50px_rgba(245,158,11,0.3)] overflow-hidden">
                 {/* Glow accent */}
-                <div className="absolute top-0 right-0 w-64 h-64 bg-yellow-500/20 blur-3xl pointer-events-none rounded-full" />
+                <div className="absolute top-0 right-0 w-64 h-64 bg-red-600/15 blur-3xl pointer-events-none rounded-full" />
 
                 <div className="relative flex flex-col md:flex-row items-center justify-between gap-6">
                   {/* Left: Card Visual */}
@@ -371,12 +406,12 @@ export const MStoreModal: React.FC = () => {
                         size="lg"
                         showIndexBadge={true}
                         glow={true}
-                        className="shadow-[0_0_35px_rgba(245,158,11,0.6)] ring-4 ring-yellow-400 border-2 border-yellow-200"
+                        className="shadow-[0_0_35px_rgba(245,158,11,0.5)] ring-4 ring-amber-400 border-2 border-amber-200"
                       />
 
                       {/* Floating Crown Stamp */}
-                      <div className="absolute -top-3 -right-3 w-8 h-8 rounded-full bg-gradient-to-tr from-yellow-400 to-amber-500 flex items-center justify-center shadow-gold-glow animate-bounce">
-                        <Crown className="w-4 h-4 text-black" />
+                      <div className="absolute -top-3 -right-3 w-8 h-8 rounded-full bg-gradient-to-tr from-amber-400 to-red-600 flex items-center justify-center shadow-lg animate-bounce">
+                        <Crown className="w-4 h-4 text-white" />
                       </div>
                     </div>
                   </div>
@@ -384,10 +419,10 @@ export const MStoreModal: React.FC = () => {
                   {/* Center: Info & Lore */}
                   <div className="flex-1 space-y-2 text-center md:text-left">
                     <div className="flex flex-wrap items-center justify-center md:justify-start gap-2">
-                      <span className="px-2.5 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider bg-yellow-400 text-black shadow-gold-glow">
+                      <span className="px-2.5 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider bg-red-600 text-white shadow-sm">
                         Fixed Permanent Card
                       </span>
-                      <span className="px-2.5 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider bg-yellow-500/20 text-yellow-300 border border-yellow-400/40">
+                      <span className="px-2.5 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider bg-amber-500/20 text-amber-300 border border-amber-400/40">
                         Mythic 24K Gold
                       </span>
                     </div>
@@ -411,9 +446,14 @@ export const MStoreModal: React.FC = () => {
                   <div className="flex flex-col items-center md:items-end gap-2.5 shrink-0 w-full md:w-auto">
                     <div className="flex flex-col items-center md:items-end">
                       <span className="text-[10px] font-bold uppercase text-zinc-400">Fixed Store Price</span>
-                      <div className="font-mono font-black text-2xl sm:text-3xl text-yellow-300 flex items-center gap-1.5 filter drop-shadow">
+                      <div className="font-mono font-black text-2xl sm:text-3xl text-white flex items-center gap-1.5 filter drop-shadow">
+                        <img
+                          src="/icons/casino-chip.png"
+                          alt="M Coin"
+                          className="w-7 h-7 object-contain filter drop-shadow shrink-0"
+                        />
                         <span>10,000</span>
-                        <span className="text-xs font-sans font-bold text-amber-400">M Coins</span>
+                        <span className="text-xs font-sans font-bold text-red-300">M Coins</span>
                       </div>
                     </div>
 
@@ -427,10 +467,10 @@ export const MStoreModal: React.FC = () => {
                         type="button"
                         onClick={() => handleBuyCardAction(goldenJoker)}
                         className={cn(
-                          'w-full md:w-auto px-6 py-3 rounded-2xl font-black text-xs sm:text-sm uppercase tracking-wider shadow-gold-glow flex items-center justify-center gap-2 active:scale-95 transition-all cursor-pointer',
+                          'w-full md:w-auto px-6 py-3 rounded-2xl font-black text-xs sm:text-sm uppercase tracking-wider shadow-[0_0_25px_rgba(225,29,72,0.4)] flex items-center justify-center gap-2 active:scale-95 transition-all cursor-pointer border',
                           mCoins >= goldenJoker.priceCoins
-                            ? 'bg-gradient-to-r from-yellow-400 via-amber-500 to-yellow-300 hover:from-yellow-300 hover:to-amber-400 text-black'
-                            : 'bg-zinc-800 text-zinc-400 border border-zinc-700'
+                            ? 'bg-gradient-to-r from-red-600 via-rose-600 to-amber-500 hover:from-red-500 hover:to-amber-400 text-white border-amber-300/40'
+                            : 'bg-zinc-900 text-zinc-400 border-zinc-750'
                         )}
                       >
                         <ShoppingBag className="w-4 h-4" />
@@ -455,8 +495,8 @@ export const MStoreModal: React.FC = () => {
               {/* 2. THE 6 ROTATING DAILY CARDS */}
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
-                  <h3 className="text-xs font-black uppercase tracking-wider text-amber-400 flex items-center gap-1.5">
-                    <Sparkles className="w-3.5 h-3.5 text-yellow-400" />
+                  <h3 className="text-xs font-black uppercase tracking-wider text-red-400 flex items-center gap-1.5">
+                    <Sparkles className="w-3.5 h-3.5 text-amber-400" />
                     <span>6 Rotating Cards For Today</span>
                   </h3>
                   <span className="text-[10px] text-zinc-500 font-mono">
@@ -473,7 +513,7 @@ export const MStoreModal: React.FC = () => {
                       <div
                         key={item.id}
                         className={cn(
-                          'relative p-4 rounded-2xl sm:rounded-3xl border transition-all flex flex-col justify-between gap-3 bg-gradient-to-b shadow-md group hover:border-amber-400/80',
+                          'relative p-4 rounded-2xl sm:rounded-3xl border transition-all flex flex-col justify-between gap-3 bg-gradient-to-b shadow-md group hover:border-red-400/80',
                           item.gradient,
                           owned ? 'border-emerald-500/50' : 'border-white/10'
                         )}
@@ -494,7 +534,7 @@ export const MStoreModal: React.FC = () => {
                           <button
                             type="button"
                             onClick={() => setInspectingCard(item)}
-                            className="p-1 rounded-lg text-zinc-400 hover:text-white hover:bg-white/10 transition-colors"
+                            className="p-1 rounded-lg text-zinc-400 hover:text-white hover:bg-white/10 transition-colors cursor-pointer"
                             title="Inspect 3D Card"
                           >
                             <Eye className="w-3.5 h-3.5" />
@@ -525,9 +565,14 @@ export const MStoreModal: React.FC = () => {
                         <div className="pt-2 border-t border-white/10 flex items-center justify-between gap-2">
                           <div className="flex flex-col">
                             <span className="text-[8px] uppercase font-bold text-zinc-500">Price</span>
-                            <span className="font-mono font-black text-sm text-amber-300">
-                              {item.priceCoins.toLocaleString()} M
-                            </span>
+                            <div className="flex items-center gap-1 font-mono font-black text-sm text-white">
+                              <img
+                                src="/icons/casino-chip.png"
+                                alt="M Coin"
+                                className="w-3.5 h-3.5 object-contain filter drop-shadow shrink-0"
+                              />
+                              <span>{item.priceCoins.toLocaleString()}</span>
+                            </div>
                           </div>
 
                           {owned ? (
@@ -540,10 +585,10 @@ export const MStoreModal: React.FC = () => {
                               type="button"
                               onClick={() => handleBuyCardAction(item)}
                               className={cn(
-                                'px-3.5 py-1.5 rounded-xl font-black text-xs uppercase tracking-wider transition-all flex items-center gap-1 active:scale-95 cursor-pointer',
+                                'px-3.5 py-1.5 rounded-xl font-black text-xs uppercase tracking-wider transition-all flex items-center gap-1 active:scale-95 cursor-pointer border',
                                 canAfford
-                                  ? 'bg-gradient-to-r from-amber-500 to-yellow-400 text-black shadow-gold-glow hover:from-amber-400 hover:to-yellow-300'
-                                  : 'bg-zinc-800 text-zinc-500 border border-zinc-700 hover:bg-zinc-750'
+                                  ? 'bg-gradient-to-r from-red-600 via-rose-600 to-amber-500 hover:from-red-500 hover:to-amber-400 text-white shadow-md border-amber-300/30'
+                                  : 'bg-zinc-850 text-zinc-500 border-zinc-700 hover:bg-zinc-800'
                               )}
                             >
                               <span>Buy</span>
@@ -562,21 +607,21 @@ export const MStoreModal: React.FC = () => {
         {/* ================= MODAL FOOTER ================= */}
         <div
           className={cn(
-            'border-t border-white/10 flex items-center justify-between bg-black/60 shrink-0',
+            'border-t border-white/10 flex items-center justify-between bg-black/70 shrink-0',
             isLandscapeMobile ? 'p-2.5 px-4' : 'p-3 sm:p-5'
           )}
         >
           <div className="flex items-center gap-2 text-zinc-400 text-xs">
-            <ShieldCheck className="w-4 h-4 text-emerald-400" />
+            <ShieldCheck className="w-4 h-4 text-emerald-400 shrink-0" />
             <span className="text-[11px] hidden xs:inline">
-              Card Games By Madhav Official Virtual Store • Fair play & pure entertainment
+              Card Games By Madhav Official Virtual Store • Fair play &amp; entertainment
             </span>
           </div>
 
           <button
             type="button"
             onClick={() => setOpen(false)}
-            className="px-4 py-2 rounded-xl text-xs font-bold uppercase tracking-wider text-zinc-400 hover:text-white transition-colors"
+            className="px-4 py-2 rounded-xl text-xs font-bold uppercase tracking-wider text-zinc-400 hover:text-white transition-colors cursor-pointer"
           >
             Close Store
           </button>
@@ -591,27 +636,32 @@ export const MStoreModal: React.FC = () => {
         >
           <div
             onClick={(e) => e.stopPropagation()}
-            className="relative w-full max-w-sm p-5 sm:p-6 rounded-3xl bg-zinc-950 border-2 border-amber-500/80 text-center space-y-4 shadow-2xl overflow-hidden"
+            className="relative w-full max-w-sm p-5 sm:p-6 rounded-3xl bg-[#140609] border-2 border-red-500/80 text-center space-y-4 shadow-2xl overflow-hidden"
           >
             {/* Top Glow */}
-            <div className="absolute top-0 left-1/2 -translate-x-1/2 w-32 h-10 bg-amber-500/30 blur-xl pointer-events-none rounded-full" />
+            <div className="absolute top-0 left-1/2 -translate-x-1/2 w-32 h-10 bg-red-500/30 blur-xl pointer-events-none rounded-full" />
 
-            <div className="text-4xl sm:text-5xl animate-bounce pt-2">
-              {selectedPackForShowcase.icon}
+            <div className="flex justify-center pt-2">
+              <img
+                src="/icons/casino-chip.png"
+                alt="Casino Chip"
+                className="w-16 h-16 object-contain filter drop-shadow-lg animate-bounce"
+              />
             </div>
 
             <div className="space-y-1">
-              <span className="px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider bg-amber-500/20 text-amber-300 border border-amber-500/40">
+              <span className="px-2.5 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider bg-red-500/25 text-red-300 border border-red-500/40">
                 {selectedPackForShowcase.badge || 'Showcase Pack'}
               </span>
-              <h3 className="text-xl sm:text-2xl font-black text-white font-mono">
-                {selectedPackForShowcase.coins.toLocaleString()} M Coins
+              <h3 className="text-xl sm:text-2xl font-black text-white font-mono flex items-center justify-center gap-1.5">
+                <span>{selectedPackForShowcase.coins.toLocaleString()}</span>
+                <span className="text-xs text-red-300 font-sans font-bold">M Coins</span>
               </h3>
               <p className="text-xs text-zinc-400">{selectedPackForShowcase.title}</p>
             </div>
 
             {/* Price Tag */}
-            <div className="p-3 rounded-2xl bg-zinc-900/90 border border-white/10 space-y-1">
+            <div className="p-3 rounded-2xl bg-black/60 border border-white/10 space-y-1">
               <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider block">
                 Demo Price Tag
               </span>
@@ -621,7 +671,7 @@ export const MStoreModal: React.FC = () => {
             </div>
 
             {/* Explicit Notice that coins are not added */}
-            <div className="p-3 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-200 text-[11px] leading-relaxed">
+            <div className="p-3 rounded-xl bg-red-500/10 border border-red-500/30 text-red-200 text-[11px] leading-relaxed">
               <strong>Showcase Mode Active:</strong> As requested, payments are currently simulated in showcase mode. No real money or coins are deducted or added upon clicking.
             </div>
 
@@ -629,7 +679,7 @@ export const MStoreModal: React.FC = () => {
               <button
                 type="button"
                 onClick={() => setSelectedPackForShowcase(null)}
-                className="w-full py-2.5 rounded-xl bg-gradient-to-r from-amber-500 to-yellow-400 text-black font-black text-xs uppercase tracking-wider shadow-gold-glow active:scale-95 transition-all"
+                className="w-full py-2.5 rounded-xl bg-gradient-to-r from-red-600 via-rose-600 to-amber-500 text-white font-black text-xs uppercase tracking-wider shadow-[0_0_20px_rgba(225,29,72,0.4)] active:scale-95 transition-all cursor-pointer border border-amber-300/40"
               >
                 Got It, Thanks!
               </button>
@@ -646,12 +696,12 @@ export const MStoreModal: React.FC = () => {
         >
           <div
             onClick={(e) => e.stopPropagation()}
-            className="relative w-full max-w-md p-6 rounded-3xl bg-gradient-to-b from-zinc-900 to-black border-2 border-amber-400/80 text-center space-y-4 shadow-2xl flex flex-col items-center"
+            className="relative w-full max-w-md p-6 rounded-3xl bg-gradient-to-b from-[#18080d] to-black border-2 border-red-500/70 text-center space-y-4 shadow-2xl flex flex-col items-center"
           >
             <button
               type="button"
               onClick={() => setInspectingCard(null)}
-              className="absolute top-4 right-4 p-1.5 rounded-xl text-zinc-400 hover:text-white hover:bg-white/10"
+              className="absolute top-4 right-4 p-1.5 rounded-xl text-zinc-400 hover:text-white hover:bg-white/10 cursor-pointer"
             >
               <X className="w-5 h-5" />
             </button>
@@ -680,7 +730,7 @@ export const MStoreModal: React.FC = () => {
                 size="lg"
                 showIndexBadge={true}
                 glow={true}
-                className="shadow-[0_0_40px_rgba(245,158,11,0.5)] ring-4 ring-amber-400"
+                className="shadow-[0_0_40px_rgba(225,29,72,0.4)] ring-4 ring-red-500/80"
               />
             </div>
 
@@ -693,9 +743,14 @@ export const MStoreModal: React.FC = () => {
             <div className="w-full pt-3 border-t border-white/10 flex items-center justify-between">
               <div className="flex flex-col text-left">
                 <span className="text-[9px] uppercase font-bold text-zinc-500">Price</span>
-                <span className="font-mono font-black text-base text-yellow-300">
-                  {inspectingCard.priceCoins.toLocaleString()} M Coins
-                </span>
+                <div className="flex items-center gap-1 font-mono font-black text-base text-white">
+                  <img
+                    src="/icons/casino-chip.png"
+                    alt="M Coin"
+                    className="w-4 h-4 object-contain filter drop-shadow shrink-0"
+                  />
+                  <span>{inspectingCard.priceCoins.toLocaleString()} M Coins</span>
+                </div>
               </div>
 
               {isCardOwned(inspectingCard.id) ? (
@@ -709,7 +764,7 @@ export const MStoreModal: React.FC = () => {
                     handleBuyCardAction(inspectingCard);
                     setInspectingCard(null);
                   }}
-                  className="px-5 py-2 rounded-xl bg-gradient-to-r from-amber-500 to-yellow-400 text-black font-black text-xs uppercase tracking-wider shadow-gold-glow active:scale-95 transition-all"
+                  className="px-5 py-2 rounded-xl bg-gradient-to-r from-red-600 via-rose-600 to-amber-500 text-white font-black text-xs uppercase tracking-wider shadow-[0_0_20px_rgba(225,29,72,0.4)] active:scale-95 transition-all cursor-pointer border border-amber-300/40"
                 >
                   Buy Card
                 </button>

@@ -7,7 +7,7 @@ export interface CoinPack {
   title: string;
   badge?: string;
   tagline: string;
-  icon: string;
+  chipCount: 1 | 2 | 3 | 4;
   gradient: string;
   borderGlow: string;
 }
@@ -40,9 +40,9 @@ export const M_COIN_PACKS: CoinPack[] = [
     title: 'Pouch of M Coins',
     tagline: 'Ideal for trying out rare daily cards',
     badge: 'STARTER',
-    icon: '🪙',
-    gradient: 'from-amber-600/30 via-zinc-900 to-black',
-    borderGlow: 'border-amber-600/40 hover:border-amber-400',
+    chipCount: 1,
+    gradient: 'from-[#1c0a0f] via-[#100609] to-[#070204]',
+    borderGlow: 'border-red-500/40 hover:border-amber-400 shadow-[0_0_20px_rgba(225,29,72,0.2)]',
   },
   {
     id: 'pack_3000',
@@ -51,9 +51,9 @@ export const M_COIN_PACKS: CoinPack[] = [
     title: 'Stack of M Coins',
     tagline: 'Unlock epic card skins & avatars',
     badge: 'POPULAR',
-    icon: '💰',
-    gradient: 'from-amber-500/30 via-yellow-950/20 to-black',
-    borderGlow: 'border-yellow-500/50 hover:border-yellow-400',
+    chipCount: 2,
+    gradient: 'from-[#220c13] via-[#14070b] to-[#070204]',
+    borderGlow: 'border-red-500/50 hover:border-amber-400 shadow-[0_0_25px_rgba(225,29,72,0.25)]',
   },
   {
     id: 'pack_5000',
@@ -62,9 +62,9 @@ export const M_COIN_PACKS: CoinPack[] = [
     title: 'Vault of M Coins',
     tagline: 'High-roller choice for true enthusiasts',
     badge: 'BEST VALUE',
-    icon: '💎',
-    gradient: 'from-orange-500/30 via-amber-950/20 to-black',
-    borderGlow: 'border-orange-500/50 hover:border-orange-400',
+    chipCount: 3,
+    gradient: 'from-[#280d16] via-[#16070c] to-[#070204]',
+    borderGlow: 'border-rose-500/60 hover:border-amber-300 shadow-[0_0_30px_rgba(225,29,72,0.3)]',
   },
   {
     id: 'pack_10000',
@@ -73,9 +73,9 @@ export const M_COIN_PACKS: CoinPack[] = [
     title: 'Royal M Treasury',
     tagline: 'Exact amount needed for the 24K Golden Joker',
     badge: 'HIGH ROLLER',
-    icon: '👑',
-    gradient: 'from-yellow-400/35 via-amber-600/20 to-black',
-    borderGlow: 'border-yellow-400/70 hover:border-yellow-300',
+    chipCount: 4,
+    gradient: 'from-[#2e0e1a] via-[#1a080e] to-[#080205]',
+    borderGlow: 'border-amber-500/70 hover:border-yellow-300 shadow-[0_0_35px_rgba(245,158,11,0.35)]',
   },
 ];
 
@@ -95,7 +95,7 @@ export const GOLDEN_JOKER_CARD: DailyStoreCard = {
   lore: 'The supreme crown jewel of Card Games By Madhav. Handcrafted with shimmering 24-karat gold filigree and an animated celestial aura.',
   isGoldenJoker: true,
   glowColor: '#F59E0B',
-  gradient: 'from-yellow-500/40 via-amber-500/20 to-black',
+  gradient: 'from-[#240a12] via-[#16060c] to-[#060204]',
 };
 
 // Curated pool of rotating collectible cards
@@ -108,7 +108,7 @@ const ROTATION_CARD_POOL: Omit<DailyStoreCard, 'id'>[] = [
     badge: 'ROYAL HIGH',
     lore: 'The legendary death-card of Indian bazaar kings, blessed with starlight obsidian foil.',
     glowColor: '#A855F7',
-    gradient: 'from-purple-900/40 via-zinc-900 to-black',
+    gradient: 'from-purple-950/40 via-zinc-950 to-black',
   },
   {
     card: { id: 'c_king_hearts', suit: 'H', rank: 'K' },
@@ -118,7 +118,7 @@ const ROTATION_CARD_POOL: Omit<DailyStoreCard, 'id'>[] = [
     badge: 'ROYAL BLOOD',
     lore: 'The suicide king reborn in retro-cyberpunk neon crimson glow.',
     glowColor: '#EF4444',
-    gradient: 'from-rose-900/40 via-zinc-900 to-black',
+    gradient: 'from-rose-950/40 via-zinc-950 to-black',
   },
   {
     card: { id: 'c_queen_diamonds', suit: 'D', rank: 'Q' },
@@ -128,7 +128,7 @@ const ROTATION_CARD_POOL: Omit<DailyStoreCard, 'id'>[] = [
     badge: 'MAHARANI',
     lore: 'Inspired by the historic Koh-i-Noor gemstone, gleaming with cyan-diamond prisms.',
     glowColor: '#06B6D4',
-    gradient: 'from-cyan-900/40 via-zinc-900 to-black',
+    gradient: 'from-cyan-950/40 via-zinc-950 to-black',
   },
   {
     card: { id: 'c_jack_clubs', suit: 'C', rank: 'J' },
@@ -138,7 +138,7 @@ const ROTATION_CARD_POOL: Omit<DailyStoreCard, 'id'>[] = [
     badge: 'NIGHTFALL',
     lore: 'Master of stealth in Bluff Master tables, cloaked in emerald twilight.',
     glowColor: '#10B981',
-    gradient: 'from-emerald-900/40 via-zinc-900 to-black',
+    gradient: 'from-emerald-950/40 via-zinc-950 to-black',
   },
   {
     card: { id: 'c_ten_spades', suit: 'S', rank: '10' },
@@ -148,7 +148,7 @@ const ROTATION_CARD_POOL: Omit<DailyStoreCard, 'id'>[] = [
     badge: 'DRAGON SCALE',
     lore: 'Carved with ancient scales that ward off bad deals at the table.',
     glowColor: '#3B82F6',
-    gradient: 'from-blue-900/40 via-zinc-900 to-black',
+    gradient: 'from-blue-950/40 via-zinc-950 to-black',
   },
   {
     card: { id: 'c_seven_hearts', suit: 'H', rank: '7' },
@@ -158,7 +158,7 @@ const ROTATION_CARD_POOL: Omit<DailyStoreCard, 'id'>[] = [
     badge: 'LUCKY 7',
     lore: 'The revered Indian lucky number 7, known to win crucial showdowns.',
     glowColor: '#F43F5E',
-    gradient: 'from-pink-900/40 via-zinc-900 to-black',
+    gradient: 'from-pink-950/40 via-zinc-950 to-black',
   },
   {
     card: { id: 'c_two_spades', suit: 'S', rank: '2' },
@@ -168,7 +168,7 @@ const ROTATION_CARD_POOL: Omit<DailyStoreCard, 'id'>[] = [
     badge: 'DUKKI SPECIAL',
     lore: 'The cornerstone card of Dukki Bazaar. Possessing this grants timeless table swagger.',
     glowColor: '#F59E0B',
-    gradient: 'from-amber-900/40 via-zinc-900 to-black',
+    gradient: 'from-amber-950/40 via-zinc-950 to-black',
   },
   {
     card: { id: 'c_ace_diamonds', suit: 'D', rank: 'A' },
@@ -178,7 +178,7 @@ const ROTATION_CARD_POOL: Omit<DailyStoreCard, 'id'>[] = [
     badge: 'SOLAR FLARE',
     lore: 'Radiates the scorching intensity of Rajasthan deserts during peak bazaar trading.',
     glowColor: '#F97316',
-    gradient: 'from-orange-900/40 via-zinc-900 to-black',
+    gradient: 'from-orange-950/40 via-zinc-950 to-black',
   },
   {
     card: { id: 'c_king_spades', suit: 'S', rank: 'K' },
@@ -188,7 +188,7 @@ const ROTATION_CARD_POOL: Omit<DailyStoreCard, 'id'>[] = [
     badge: 'IMPERIAL',
     lore: 'The highest spade in Bhabho, feared by opponents who get caught with it last.',
     glowColor: '#8B5CF6',
-    gradient: 'from-violet-900/40 via-zinc-900 to-black',
+    gradient: 'from-violet-950/40 via-zinc-950 to-black',
   },
   {
     card: { id: 'c_queen_hearts', suit: 'H', rank: 'Q' },
@@ -198,7 +198,7 @@ const ROTATION_CARD_POOL: Omit<DailyStoreCard, 'id'>[] = [
     badge: 'VELVET',
     lore: 'Silky smooth crimson aesthetics that mesmerize everyone at the showdown.',
     glowColor: '#EC4899',
-    gradient: 'from-rose-950/50 via-zinc-900 to-black',
+    gradient: 'from-rose-950/50 via-zinc-950 to-black',
   },
   {
     card: { id: 'c_eight_clubs', suit: 'C', rank: '8' },
@@ -208,7 +208,7 @@ const ROTATION_CARD_POOL: Omit<DailyStoreCard, 'id'>[] = [
     badge: 'DOCTOR SHED',
     lore: 'Pairs cleanly with 8s to rapidly shed points in high-stakes Doctor matches.',
     glowColor: '#14B8A6',
-    gradient: 'from-teal-900/40 via-zinc-900 to-black',
+    gradient: 'from-teal-950/40 via-zinc-950 to-black',
   },
   {
     card: { id: 'c_three_hearts', suit: 'H', rank: '3' },
@@ -218,7 +218,7 @@ const ROTATION_CARD_POOL: Omit<DailyStoreCard, 'id'>[] = [
     badge: 'TIKKI SPECIAL',
     lore: 'Low sum miracle worker for Doctor game players aiming for under 10 show limit.',
     glowColor: '#E11D48',
-    gradient: 'from-red-950/40 via-zinc-900 to-black',
+    gradient: 'from-red-950/40 via-zinc-950 to-black',
   },
 ];
 

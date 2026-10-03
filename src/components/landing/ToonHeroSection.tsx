@@ -493,17 +493,6 @@ export const ToonHeroSection: React.FC<ToonHeroSectionProps> = ({
               <span className="hidden sm:inline ml-1.5">Album</span>
             </Link>
 
-            {/* M Store Link / Button */}
-            <button
-              type="button"
-              onClick={() => setMStoreOpen(true)}
-              className="flex items-center justify-center w-8 h-8 sm:w-auto sm:h-9 p-0 sm:px-3.5 rounded-full bg-gradient-to-r from-amber-500/25 via-yellow-500/20 to-amber-500/25 hover:from-amber-500/40 hover:to-yellow-500/30 backdrop-blur-md border border-amber-400/60 text-amber-300 text-[11px] sm:text-xs font-black uppercase tracking-wider transition-all shadow-gold-glow active:scale-95 shrink-0 group cursor-pointer"
-              title="Open M Store - Daily Cards & M Coins"
-            >
-              <ShoppingBag className="w-3.5 h-3.5 text-yellow-300 group-hover:scale-110 transition-transform shrink-0" />
-              <span className="hidden sm:inline ml-1.5">M Store</span>
-            </button>
-
             {/* Casino Currency Coins Pill */}
             {user && (
               <button

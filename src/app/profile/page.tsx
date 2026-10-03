@@ -9,6 +9,8 @@ import { ArrowLeft, Trophy, Award, Play, Flame, Check, Edit2, LogOut, UserCheck 
 import { cn } from '@/lib/utils';
 import { sounds } from '@/lib/sound';
 import { AuthModal } from '@/components/modal/AuthModal';
+import { useMStore } from '@/store/mStore';
+import { MStoreModal } from '@/components/store/MStoreModal';
 
 export default function ProfilePage() {
   const router = useRouter();
@@ -203,9 +205,19 @@ export default function ProfilePage() {
               </div>
 
               <div className="shrink-0 self-end xs:self-center">
-                <span className="text-[9px] sm:text-[10px] font-bold uppercase tracking-wider text-zinc-400 bg-black/60 border border-white/10 px-3 py-1.5 rounded-xl whitespace-nowrap">
-                  Store Coming Soon
-                </span>
+                <button
+                  type="button"
+                  onClick={() => useMStore.getState().setOpen(true)}
+                  className="flex items-center gap-2 px-3.5 sm:px-4 py-2 rounded-xl bg-gradient-to-r from-red-600 via-rose-600 to-amber-500 hover:from-red-500 hover:to-amber-400 text-white font-black text-xs uppercase tracking-wider shadow-[0_0_20px_rgba(225,29,72,0.4)] active:scale-95 transition-all cursor-pointer border border-amber-300/40"
+                  title="Open M Store - Daily Cards & M Coins"
+                >
+                  <img
+                    src="/icons/casino-chip.png"
+                    alt="M Store"
+                    className="w-4 h-4 object-contain filter drop-shadow"
+                  />
+                  <span>Open M Store</span>
+                </button>
               </div>
             </div>
 
@@ -319,6 +331,7 @@ export default function ProfilePage() {
       </div>
 
       <AuthModal />
+      <MStoreModal />
     </main>
   );
 }

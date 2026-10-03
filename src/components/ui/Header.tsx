@@ -69,9 +69,11 @@ export const Header: React.FC<HeaderProps> = ({ roomCode }) => {
         <div className="flex items-center gap-1 sm:gap-2.5 shrink-0">
           {/* Casino Currency Coins Pill */}
           {user && (
-            <div
-              className="flex items-center gap-1 xs:gap-1.5 bg-zinc-900/90 border border-red-500/40 px-1.5 xs:px-2.5 sm:px-3 py-0.5 xs:py-1 sm:py-1.5 rounded-xl transition-all shadow-sm shrink-0"
-              title={`Casino Coins: ${(user.coins ?? 1000).toLocaleString()} Chips`}
+            <button
+              type="button"
+              onClick={() => useAuthStore.getState().setProfileModalOpen(true)}
+              className="flex items-center gap-1 xs:gap-1.5 bg-zinc-900/90 hover:bg-zinc-850 border border-red-500/40 hover:border-red-400 px-1.5 xs:px-2.5 sm:px-3 py-0.5 xs:py-1 sm:py-1.5 rounded-xl transition-all shadow-sm shrink-0 cursor-pointer active:scale-95"
+              title={`Casino Coins: ${(user.coins ?? 1000).toLocaleString()} Chips (Click to view profile & M Store)`}
             >
               <img
                 src="/icons/casino-chip.png"
@@ -83,7 +85,7 @@ export const Header: React.FC<HeaderProps> = ({ roomCode }) => {
                   ? `${Math.round((user.coins ?? 1000) / 1000)}k`
                   : (user.coins ?? 1000).toLocaleString()}
               </span>
-            </div>
+            </button>
           )}
 
           {/* Room Code Badge (if in room) */}
@@ -134,17 +136,6 @@ export const Header: React.FC<HeaderProps> = ({ roomCode }) => {
             className="p-1.5 sm:p-2 rounded-xl bg-zinc-900 border border-zinc-700 hover:border-zinc-500 text-zinc-300 hover:text-white transition-all shadow shrink-0"
           >
             {isMuted ? <VolumeX className="w-3.5 h-3.5 text-red-400" /> : <Volume2 className="w-3.5 h-3.5 text-emerald-400" />}
-          </button>
-
-          {/* M Store Button */}
-          <button
-            type="button"
-            onClick={() => setMStoreOpen(true)}
-            className="flex items-center gap-1.5 px-2 xs:px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-xl bg-gradient-to-r from-amber-500/20 via-yellow-500/20 to-amber-500/10 border border-amber-500/50 hover:border-amber-400 text-amber-300 hover:text-white text-xs font-black uppercase tracking-wider transition-all shadow-sm active:scale-95 cursor-pointer shrink-0"
-            title="Open M Store - Daily Cards & M Coins"
-          >
-            <span className="text-sm">🪙</span>
-            <span className="hidden xs:inline">M Store</span>
           </button>
 
           {/* Exit Room button */}

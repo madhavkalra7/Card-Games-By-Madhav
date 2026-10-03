@@ -419,46 +419,37 @@ export const DoctorTable: React.FC<DoctorTableProps> = ({ state }) => {
       <div className="absolute inset-0 bg-radial-vignette opacity-90 pointer-events-none" />
       <div className="absolute inset-2 sm:inset-4 rounded-3xl border-4 border-[#1c2c22] pointer-events-none shadow-[inset_0_0_100px_rgba(0,0,0,0.8)]" />
 
-      {/* TOP BAR: Room Code, Round Indicator, Limits & Controls */}
+      {/* TOP BAR: Room Code, Round, Timer & All Controls - Fully Responsive */}
       <div className={cn(
-        'relative z-30 flex items-center justify-between border-b border-white/10 bg-black/60 backdrop-blur-md',
-        isLandscapeMobile ? 'px-2 sm:px-4 py-1' : 'px-3 sm:px-6 py-2 sm:py-3'
+        'relative z-30 flex items-center justify-between border-b border-white/10 bg-black/75 backdrop-blur-md',
+        isLandscapeMobile ? 'px-2 py-1' : 'px-2.5 sm:px-4 py-1.5 sm:py-2'
       )}>
         
-        {/* Left: Room & Host Info */}
-        <div className="flex items-center gap-1.5 sm:gap-3">
+        {/* Left: Room Code & Round & Timer */}
+        <div className="flex items-center gap-1 xs:gap-1.5 sm:gap-2 shrink-0">
           <button
             type="button"
             onClick={handleCopyCode}
-            className="flex items-center gap-1 px-2 py-1 rounded-xl bg-white/10 hover:bg-white/15 border border-white/20 text-white font-mono font-bold text-[11px] sm:text-xs uppercase transition-all active:scale-95 cursor-pointer"
+            className="flex items-center gap-1 px-1.5 xs:px-2 py-1 rounded-lg sm:rounded-xl bg-white/10 hover:bg-white/15 border border-white/15 text-white font-mono font-bold text-[10px] xs:text-[11px] sm:text-xs uppercase transition-all active:scale-95 cursor-pointer touch-manipulation"
             title="Click to copy Room Code"
           >
             <span>#{roomCode}</span>
-            {copied ? <Check className="w-3 h-3 text-emerald-400" /> : <Copy className="w-3 h-3 text-zinc-400" />}
+            {copied ? <Check className="w-2.5 h-2.5 xs:w-3 xs:h-3 text-emerald-400" /> : <Copy className="w-2.5 h-2.5 xs:w-3 xs:h-3 text-zinc-400" />}
           </button>
 
           {/* Tournament Round Indicator */}
-          <div className="flex items-center gap-1 px-2.5 py-0.5 sm:py-1 rounded-xl bg-gradient-to-r from-amber-500/20 via-yellow-500/15 to-transparent border border-amber-500/40 text-amber-300 text-[10px] sm:text-xs font-black uppercase">
-            <Trophy className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-yellow-400 shrink-0" />
-            <span>
-              R{currentRound}/{totalRounds}
-            </span>
-          </div>
-        </div>
-
-        {/* Center: Hand Show Limit Badge & Turn Status */}
-        <div className="flex items-center gap-1.5 sm:gap-2">
-          <div className="flex items-center gap-1 px-2.5 py-0.5 sm:py-1 rounded-full bg-red-950/60 border border-red-500/50 text-red-300 text-[10px] sm:text-xs font-black shadow-sm">
-            <Flame className="w-3 h-3 text-red-400 animate-pulse" />
-            <span>Show: ≤{config.showLimit} PTS</span>
+          <div className="flex items-center gap-1 px-1.5 xs:px-2 py-1 rounded-lg sm:rounded-xl bg-gradient-to-r from-amber-500/20 to-yellow-500/10 border border-amber-500/30 text-amber-300 text-[10px] xs:text-[11px] sm:text-xs font-black uppercase">
+            <Trophy className="w-2.5 h-2.5 xs:w-3 xs:h-3 text-yellow-400 shrink-0" />
+            <span>R{currentRound}/{totalRounds}</span>
           </div>
 
+          {/* Turn Timer Badge (Only when turn countdown active) */}
           {turnTimeRemaining > 0 && (
             <div
               className={cn(
-                'px-2 py-0.2 sm:py-0.5 rounded-full font-mono text-[10px] sm:text-xs font-black border',
+                'px-1.5 xs:px-2 py-1 rounded-lg sm:rounded-xl font-mono text-[10px] xs:text-[11px] sm:text-xs font-black border transition-all',
                 turnTimeRemaining <= 5
-                  ? 'bg-red-600/30 text-red-300 border-red-500 animate-ping'
+                  ? 'bg-red-600/30 text-red-300 border-red-500 animate-pulse'
                   : 'bg-zinc-800/80 text-zinc-300 border-zinc-700'
               )}
             >
@@ -467,13 +458,13 @@ export const DoctorTable: React.FC<DoctorTableProps> = ({ state }) => {
           )}
         </div>
 
-        {/* Right: Sound, Settings, Chat, Rules, Exit */}
-        <div className="flex items-center gap-1 sm:gap-1.5">
+        {/* Right: All 6 Quick Action Buttons with clear sizing, zero cutoff, touch friendly */}
+        <div className="flex items-center gap-1 xs:gap-1.5 shrink-0">
           {/* Settings button */}
           <button
             type="button"
             onClick={() => setIsSettingsModalOpen(true)}
-            className="p-1 sm:p-1.5 rounded-lg sm:rounded-xl bg-amber-500/15 hover:bg-amber-500/25 border border-amber-500/30 text-amber-300 hover:text-white transition-all active:scale-95 cursor-pointer"
+            className="w-7 h-7 xs:w-7.5 xs:h-7.5 sm:w-8.5 sm:h-8.5 rounded-lg sm:rounded-xl bg-amber-500/15 hover:bg-amber-500/25 border border-amber-500/30 text-amber-300 hover:text-white flex items-center justify-center transition-all active:scale-95 cursor-pointer touch-manipulation"
             title="Doctor Match Settings"
           >
             <Settings className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
@@ -483,8 +474,8 @@ export const DoctorTable: React.FC<DoctorTableProps> = ({ state }) => {
           <button
             type="button"
             onClick={() => setSoundboardOpen(true)}
-            className="p-1 sm:p-1.5 rounded-lg sm:rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 text-white transition-all active:scale-95 cursor-pointer"
-            title="Open Soundboard"
+            className="w-7 h-7 xs:w-7.5 xs:h-7.5 sm:w-8.5 sm:h-8.5 rounded-lg sm:rounded-xl bg-white/10 hover:bg-white/20 border border-white/15 text-white flex items-center justify-center transition-all active:scale-95 cursor-pointer touch-manipulation"
+            title="Desi Meme Soundboard"
           >
             <Sparkles className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-yellow-400" />
           </button>
@@ -493,13 +484,13 @@ export const DoctorTable: React.FC<DoctorTableProps> = ({ state }) => {
           <button
             type="button"
             onClick={() => setTableChatOpen(true)}
-            className="relative p-1 sm:p-1.5 rounded-lg sm:rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 text-white transition-all active:scale-95 cursor-pointer"
+            className="relative w-7 h-7 xs:w-7.5 xs:h-7.5 sm:w-8.5 sm:h-8.5 rounded-lg sm:rounded-xl bg-white/10 hover:bg-white/20 border border-white/15 text-white flex items-center justify-center transition-all active:scale-95 cursor-pointer touch-manipulation"
             title="Table Chat"
           >
             <MessageSquare className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-blue-400" />
             {unreadTableChatCount > 0 && (
               <span className="absolute -top-1 -right-1 w-3.5 h-3.5 rounded-full bg-red-600 text-white font-bold text-[8px] flex items-center justify-center animate-pulse shadow">
-                {unreadTableChatCount}
+                {unreadTableChatCount > 9 ? '9+' : unreadTableChatCount}
               </span>
             )}
           </button>
@@ -508,17 +499,21 @@ export const DoctorTable: React.FC<DoctorTableProps> = ({ state }) => {
           <button
             type="button"
             onClick={handleToggleMute}
-            className="p-1 sm:p-1.5 rounded-lg sm:rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 text-white transition-all active:scale-95 cursor-pointer"
+            className="w-7 h-7 xs:w-7.5 xs:h-7.5 sm:w-8.5 sm:h-8.5 rounded-lg sm:rounded-xl bg-white/10 hover:bg-white/20 border border-white/15 text-white flex items-center justify-center transition-all active:scale-95 cursor-pointer touch-manipulation"
             title={isMuted ? 'Unmute' : 'Mute'}
           >
-            {isMuted ? <VolumeX className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-red-400" /> : <Volume2 className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-emerald-400" />}
+            {isMuted ? (
+              <VolumeX className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-red-400" />
+            ) : (
+              <Volume2 className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-emerald-400" />
+            )}
           </button>
 
           {/* Rules Button */}
           <button
             type="button"
             onClick={() => setRulesModalOpen(true)}
-            className="p-1 sm:p-1.5 rounded-lg sm:rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 text-white transition-all active:scale-95 cursor-pointer"
+            className="w-7 h-7 xs:w-7.5 xs:h-7.5 sm:w-8.5 sm:h-8.5 rounded-lg sm:rounded-xl bg-white/10 hover:bg-white/20 border border-white/15 text-white flex items-center justify-center transition-all active:scale-95 cursor-pointer touch-manipulation"
             title="Doctor Rules"
           >
             <BookOpen className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-amber-400" />
@@ -528,7 +523,7 @@ export const DoctorTable: React.FC<DoctorTableProps> = ({ state }) => {
           <button
             type="button"
             onClick={() => setShowExitModal(true)}
-            className="p-1 sm:p-1.5 rounded-lg sm:rounded-xl bg-red-500/20 hover:bg-red-500/30 border border-red-500/30 text-red-300 transition-all active:scale-95 cursor-pointer"
+            className="w-7 h-7 xs:w-7.5 xs:h-7.5 sm:w-8.5 sm:h-8.5 rounded-lg sm:rounded-xl bg-red-500/20 hover:bg-red-500/30 border border-red-500/30 text-red-300 flex items-center justify-center transition-all active:scale-95 cursor-pointer touch-manipulation"
             title="Leave Match"
           >
             <LogOut className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
@@ -683,22 +678,38 @@ export const DoctorTable: React.FC<DoctorTableProps> = ({ state }) => {
             isLandscapeMobile ? 'py-0.5' : 'py-1'
           )}>
             
-            {/* Hand Sum Meter */}
-            <div
-              className={cn(
-                'flex items-center gap-1.5 px-2.5 sm:px-3.5 py-1 rounded-xl sm:rounded-2xl border transition-all shadow-md',
-                myHandSum <= config.showLimit
-                  ? 'bg-emerald-950/85 border-emerald-400 text-emerald-200 ring-2 ring-emerald-400/50 animate-pulse'
-                  : 'bg-black/75 border-white/15 text-white'
-              )}
-            >
-              <div className="flex flex-col">
-                <span className="text-[8px] sm:text-[9px] font-bold uppercase tracking-wider text-zinc-400">
-                  Your Sum
-                </span>
-                <span className="font-mono font-black text-xs sm:text-sm leading-none">
-                  {myHandSum} PTS {myHandSum <= config.showLimit && '🔥'}
-                </span>
+            {/* Hand Sum Meter & Show Target */}
+            <div className="flex items-center gap-1 xs:gap-1.5 shrink-0">
+              <div
+                className={cn(
+                  'flex items-center gap-1.5 px-2 xs:px-2.5 sm:px-3.5 py-1 rounded-xl sm:rounded-2xl border transition-all shadow-md',
+                  myHandSum <= config.showLimit
+                    ? 'bg-emerald-950/85 border-emerald-400 text-emerald-200 ring-2 ring-emerald-400/50 animate-pulse'
+                    : 'bg-black/75 border-white/15 text-white'
+                )}
+              >
+                <div className="flex flex-col">
+                  <span className="text-[7.5px] xs:text-[8.5px] font-bold uppercase tracking-wider text-zinc-400">
+                    Your Sum
+                  </span>
+                  <span className="font-mono font-black text-xs xs:text-sm leading-none">
+                    {myHandSum} PTS {myHandSum <= config.showLimit && '🔥'}
+                  </span>
+                </div>
+              </div>
+
+              {/* Show Limit Target Pill */}
+              <div
+                className={cn(
+                  'flex items-center gap-1 px-1.5 xs:px-2 py-1 rounded-xl border text-[9px] xs:text-[10px] font-black transition-all shadow-sm',
+                  myHandSum <= config.showLimit
+                    ? 'bg-amber-500/25 border-amber-400 text-amber-300 ring-1 ring-amber-400/40'
+                    : 'bg-black/60 border-white/10 text-zinc-400'
+                )}
+                title={`You can call SHOW when your hand sum is ${config.showLimit} or less`}
+              >
+                <Flame className={cn("w-3 h-3 shrink-0", myHandSum <= config.showLimit ? "text-amber-400 animate-pulse" : "text-zinc-500")} />
+                <span>Show: ≤{config.showLimit}</span>
               </div>
             </div>
 
@@ -754,11 +765,11 @@ export const DoctorTable: React.FC<DoctorTableProps> = ({ state }) => {
             </div>
 
             {/* Turn Phase Helper Text */}
-            <div className="flex flex-col items-end text-right">
-              <span className="text-[8px] sm:text-[9px] font-bold uppercase text-zinc-400">
+            <div className="flex flex-col items-end text-right shrink-0">
+              <span className="text-[7.5px] xs:text-[8.5px] sm:text-[9px] font-bold uppercase text-zinc-400">
                 Phase
               </span>
-              <span className="text-[10px] sm:text-xs font-mono font-bold text-amber-300">
+              <span className="text-[9.5px] xs:text-[10.5px] sm:text-xs font-mono font-bold text-amber-300">
                 {isMyTurn ? (turnPhase === 'DRAW' ? '1. Draw' : '2. Discard') : 'Waiting'}
               </span>
             </div>

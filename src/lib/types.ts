@@ -6,7 +6,10 @@ export interface Card {
   suit: Suit;
   rank: Rank;
   isJoker?: boolean;
+  isGolden?: boolean;
+  isGoldenJoker?: boolean;
 }
+
 
 export type GameType = 'DUKKI_BAZAAR' | 'BLUFF_MASTER' | 'BHABHO' | 'DOCTOR';
 

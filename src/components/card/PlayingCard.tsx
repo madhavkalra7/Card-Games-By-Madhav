@@ -44,11 +44,16 @@ export const SuitIcon: React.FC<{ suit: Suit; className?: string }> = ({ suit, c
   }
 };
 
-export function getCardSvgPath(rank: Rank | string, suit: Suit | string): string {
+export function getCardSvgPath(rank: Rank | string, suit: Suit | string, isGolden?: boolean): string {
+  if (isGolden || rank === 'JKR_GOLD' || rank === 'GOLDEN_JOKER' || suit === 'GOLD') {
+    return '/cards/golden_joker.png';
+  }
+
   if (rank === '🃏' || rank === 'JOKER' || rank === 'JKR' || suit === 'JKR') {
     if (rank === 'JKR-BLK' || suit === 'BLK' || suit === 'BLACK') return '/cards/black_joker.svg';
     return '/cards/red_joker.svg';
   }
+
 
   const suitMap: Record<string, string> = {
     H: 'hearts',
@@ -134,6 +139,70 @@ export const PlayingCard: React.FC<PlayingCardProps> = ({
             </svg>
           </div>
         </div>
+      </div>
+    );
+  }
+
+  const isGolden = Boolean(
+    card.isGolden ||
+    card.isGoldenJoker ||
+    card.id === 'store_golden_joker' ||
+    (card.rank as string) === 'JKR_GOLD' ||
+    (card.suit as string) === 'GOLD' ||
+    (card as any)?.golden
+  );
+
+  if (isGolden) {
+    return (
+      <div
+        onClick={onClick}
+        className={cn(
+          'relative rounded-[7px] xs:rounded-[9px] sm:rounded-[11px] md:rounded-[13px] select-none shadow-md overflow-hidden',
+          'transition-all duration-200 flex items-center justify-center p-0.5',
+          'border-[1.5px] sm:border-2 border-amber-400/90 bg-[#160c04]/40 shadow-[0_0_20px_rgba(245,158,11,0.35)]',
+          sizeClasses,
+          interactive && 'hover:-translate-y-2 hover:shadow-[0_0_30px_rgba(245,158,11,0.65)] cursor-pointer active:scale-95 touch-manipulation',
+          glow && 'ring-2 sm:ring-3 ring-amber-400 shadow-[0_0_30px_rgba(245,158,11,0.8)] animate-pulse',
+          className
+        )}
+      >
+        <img
+          src="/cards/golden_joker.png"
+          alt="24K Solid Gold Joker"
+          className="w-full h-full object-contain pointer-events-none select-none rounded-[5px] xs:rounded-[7px] sm:rounded-[9px]"
+          loading="eager"
+          decoding="async"
+        />
+
+        {/* Subtle metallic gold shimmer overlay */}
+        <div className="absolute inset-0 bg-gradient-to-tr from-transparent via-amber-200/20 to-transparent pointer-events-none opacity-40 mix-blend-overlay rounded-[5px] xs:rounded-[7px] sm:rounded-[9px]" />
+
+        {/* Corner 24K Gold Crown badge */}
+        {showIndexBadge && (
+          <div
+            className={cn(
+              "absolute top-0.5 left-0.5 flex flex-col items-center justify-center leading-none z-10 pointer-events-none rounded px-1 py-0.5 shadow-md",
+              "bg-black/90 backdrop-blur-[2px] border border-amber-400/80 text-amber-300"
+            )}
+          >
+            <span
+              className={cn(
+                "font-black font-mono leading-none tracking-tight text-amber-300",
+                size === 'xxs' ? "text-[9px]" : size === 'xs' ? "text-[10px]" : "text-xs"
+              )}
+            >
+              👑
+            </span>
+            <span
+              className={cn(
+                "leading-none mt-0.5 font-black text-amber-400 font-mono",
+                size === 'xxs' ? "text-[7px]" : size === 'xs' ? "text-[8px]" : "text-[9px]"
+              )}
+            >
+              24K
+            </span>
+          </div>
+        )}
       </div>
     );
   }

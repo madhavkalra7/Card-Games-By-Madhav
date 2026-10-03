@@ -27,7 +27,7 @@ export interface DailyStoreCard {
   gradient: string;
 }
 
-// 1. Demo M Coin Packs as explicitly requested:
+// M Coin Packs:
 // 1000 m coins -> 99 rs
 // 3000 m coins -> 249 rs
 // 5000 m coins -> 399 rs
@@ -38,7 +38,7 @@ export const M_COIN_PACKS: CoinPack[] = [
     coins: 1000,
     priceRupees: 99,
     title: 'Pouch of M Coins',
-    tagline: 'Ideal for trying out rare daily cards',
+    tagline: '1,000 Casino Chips',
     badge: 'STARTER',
     chipCount: 1,
     gradient: 'from-[#1c0a0f] via-[#100609] to-[#070204]',
@@ -49,7 +49,7 @@ export const M_COIN_PACKS: CoinPack[] = [
     coins: 3000,
     priceRupees: 249,
     title: 'Stack of M Coins',
-    tagline: 'Unlock epic card skins & avatars',
+    tagline: '3,000 Casino Chips',
     badge: 'POPULAR',
     chipCount: 2,
     gradient: 'from-[#220c13] via-[#14070b] to-[#070204]',
@@ -60,7 +60,7 @@ export const M_COIN_PACKS: CoinPack[] = [
     coins: 5000,
     priceRupees: 399,
     title: 'Vault of M Coins',
-    tagline: 'High-roller choice for true enthusiasts',
+    tagline: '5,000 Casino Chips',
     badge: 'BEST VALUE',
     chipCount: 3,
     gradient: 'from-[#280d16] via-[#16070c] to-[#070204]',
@@ -71,7 +71,7 @@ export const M_COIN_PACKS: CoinPack[] = [
     coins: 10000,
     priceRupees: 799,
     title: 'Royal M Treasury',
-    tagline: 'Exact amount needed for the 24K Golden Joker',
+    tagline: '10,000 Casino Chips',
     badge: 'HIGH ROLLER',
     chipCount: 4,
     gradient: 'from-[#2e0e1a] via-[#1a080e] to-[#080205]',
@@ -79,7 +79,7 @@ export const M_COIN_PACKS: CoinPack[] = [
   },
 ];
 
-// Fixed 24K Golden Joker Card (10,000 M Coins)
+// Fixed 24K Solid Gold Joker Card (10,000 M Coins)
 export const GOLDEN_JOKER_CARD: DailyStoreCard = {
   id: 'card_golden_joker_fixed',
   card: {
@@ -87,16 +87,19 @@ export const GOLDEN_JOKER_CARD: DailyStoreCard = {
     suit: 'H',
     rank: 'JKR' as unknown as Rank,
     isJoker: true,
+    isGolden: true,
+    isGoldenJoker: true,
   },
   name: '24K Golden Joker',
   rarity: 'MYTHIC_GOLD',
   priceCoins: 10000,
-  badge: '24K PERMANENT CROWN',
-  lore: 'The supreme crown jewel of Card Games By Madhav. Handcrafted with shimmering 24-karat gold filigree and an animated celestial aura.',
+  badge: '24K SOLID GOLD',
+  lore: 'Pure 24K solid gold bullion master card. The ultimate permanent symbol of casino royalty.',
   isGoldenJoker: true,
   glowColor: '#F59E0B',
-  gradient: 'from-[#240a12] via-[#16060c] to-[#060204]',
+  gradient: 'from-[#261504] via-[#160d02] to-[#070301]',
 };
+
 
 // Curated pool of rotating collectible cards
 const ROTATION_CARD_POOL: Omit<DailyStoreCard, 'id'>[] = [

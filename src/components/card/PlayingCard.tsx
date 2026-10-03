@@ -176,33 +176,6 @@ export const PlayingCard: React.FC<PlayingCardProps> = ({
 
         {/* Subtle metallic gold shimmer overlay */}
         <div className="absolute inset-0 bg-gradient-to-tr from-transparent via-amber-200/20 to-transparent pointer-events-none opacity-40 mix-blend-overlay rounded-[5px] xs:rounded-[7px] sm:rounded-[9px]" />
-
-        {/* Corner 24K Gold Crown badge */}
-        {showIndexBadge && (
-          <div
-            className={cn(
-              "absolute top-0.5 left-0.5 flex flex-col items-center justify-center leading-none z-10 pointer-events-none rounded px-1 py-0.5 shadow-md",
-              "bg-black/90 backdrop-blur-[2px] border border-amber-400/80 text-amber-300"
-            )}
-          >
-            <span
-              className={cn(
-                "font-black font-mono leading-none tracking-tight text-amber-300",
-                size === 'xxs' ? "text-[9px]" : size === 'xs' ? "text-[10px]" : "text-xs"
-              )}
-            >
-              👑
-            </span>
-            <span
-              className={cn(
-                "leading-none mt-0.5 font-black text-amber-400 font-mono",
-                size === 'xxs' ? "text-[7px]" : size === 'xs' ? "text-[8px]" : "text-[9px]"
-              )}
-            >
-              24K
-            </span>
-          </div>
-        )}
       </div>
     );
   }
@@ -256,7 +229,7 @@ export const PlayingCard: React.FC<PlayingCardProps> = ({
               size === 'xxs' ? "text-[8px]" : size === 'xs' ? "text-[9px]" : "text-[10px] xs:text-xs"
             )}
           >
-            {card.isJoker || (card.rank as string) === 'JKR' ? '50' : suitSymbol}
+            {card.isJoker || (card.rank as string) === 'JKR' ? '★' : suitSymbol}
           </span>
         </div>
       )}

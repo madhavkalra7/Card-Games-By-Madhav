@@ -373,10 +373,6 @@ export const MStoreModal: React.FC = () => {
                     <p className="text-xs sm:text-sm text-zinc-300 max-w-lg leading-relaxed">
                       {goldenJoker.lore}
                     </p>
-
-                    <div className="text-xs text-amber-400 font-mono font-bold">
-                      Doctor Value: 50 PTS
-                    </div>
                   </div>
 
                   {/* Right: Buy Controls */}

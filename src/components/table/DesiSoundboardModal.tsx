@@ -7,7 +7,7 @@ import { DESI_SOUNDBOARD_CLIPS, SoundboardClip, playSoundboardAudio } from '@/li
 import { useGameStore } from '@/store/gameStore';
 import { cn } from '@/lib/utils';
 
-type TabType = 'all' | 'bollywood' | 'viral' | 'beats' | 'custom';
+type TabType = 'all' | 'new' | 'bollywood' | 'viral' | 'beats' | 'custom';
 
 export const DesiSoundboardModal: React.FC = () => {
   const isOpen = useGameStore((s) => s.isSoundboardOpen);
@@ -93,12 +93,15 @@ export const DesiSoundboardModal: React.FC = () => {
 
   if (!isOpen) return null;
 
+  const newCount = DESI_SOUNDBOARD_CLIPS.filter((c) => c.isNew).length;
   const bollywoodCount = DESI_SOUNDBOARD_CLIPS.filter((c) => c.category === 'bollywood').length;
   const viralCount = DESI_SOUNDBOARD_CLIPS.filter((c) => c.category === 'viral').length;
   const beatsCount = DESI_SOUNDBOARD_CLIPS.filter((c) => c.category === 'beats').length;
 
   const filteredClips = DESI_SOUNDBOARD_CLIPS.filter((c) => {
-    const matchesTab = activeTab === 'all' || c.category === activeTab;
+    const matchesTab =
+      activeTab === 'all' ||
+      (activeTab === 'new' ? Boolean(c.isNew) : c.category === activeTab);
     if (!matchesTab) return false;
     if (!searchQuery.trim()) return true;
     const q = searchQuery.toLowerCase();
@@ -175,6 +178,19 @@ export const DesiSoundboardModal: React.FC = () => {
             >
               <Volume2 className="w-2.5 h-2.5 sm:w-3 sm:h-3" />
               <span>All ({DESI_SOUNDBOARD_CLIPS.length})</span>
+            </button>
+
+            <button
+              onClick={() => setActiveTab('new')}
+              className={cn(
+                'flex items-center gap-1 px-2 sm:px-2.5 py-1 rounded-lg text-[9px] xs:text-[10px] sm:text-xs font-bold whitespace-nowrap transition-all cursor-pointer',
+                activeTab === 'new'
+                  ? 'bg-gradient-to-r from-red-600 via-rose-600 to-red-600 text-white shadow-md shadow-red-600/40 border border-red-400/50'
+                  : 'text-red-400 hover:text-red-200 hover:bg-red-950/40 border border-red-500/30'
+              )}
+            >
+              <span className="w-1.5 h-1.5 rounded-full bg-red-400 animate-ping" />
+              <span>🏷️ New ({newCount})</span>
             </button>
 
             <button
@@ -269,18 +285,29 @@ export const DesiSoundboardModal: React.FC = () => {
                       onClick={() => handlePlayClip(clip)}
                       disabled={isDisabled}
                       className={cn(
-                        'group relative flex items-center gap-2 sm:gap-2.5 p-2 sm:p-2.5 rounded-xl border text-left transition-all cursor-pointer select-none',
+                        'group relative flex items-center gap-2 sm:gap-2.5 p-2 sm:p-2.5 rounded-xl border text-left transition-all cursor-pointer select-none overflow-hidden',
                         isPlaying
                           ? 'bg-amber-500/25 border-amber-400 ring-2 ring-amber-400/50 shadow-lg shadow-amber-500/30'
                           : isDisabled
                           ? 'bg-zinc-900/40 border-zinc-800/60 opacity-60 cursor-not-allowed'
+                          : clip.isNew
+                          ? 'bg-zinc-900/90 hover:bg-zinc-800/95 border-red-500/40 hover:border-red-400/70 shadow-sm'
                           : 'bg-zinc-900/80 hover:bg-zinc-800/90 border-white/10 hover:border-amber-500/40 shadow-sm'
                       )}
                     >
+                      {/* Red Ribbon Tag for New Sounds */}
+                      {clip.isNew && (
+                        <div className="absolute top-0 right-0 w-11 h-11 overflow-hidden pointer-events-none z-20">
+                          <div className="absolute transform rotate-45 bg-gradient-to-r from-red-700 via-red-600 to-rose-600 text-white font-black text-[7px] sm:text-[7.5px] py-0.5 -right-[23px] top-[7px] w-[74px] text-center shadow-[0_2px_4px_rgba(0,0,0,0.5)] tracking-wider uppercase border-b border-red-300/60">
+                            New
+                          </div>
+                        </div>
+                      )}
+
                       {/* Emoji Icon Badge */}
                       <div
                         className={cn(
-                          'w-8 h-8 sm:w-10 sm:h-10 rounded-lg flex items-center justify-center text-base sm:text-xl shrink-0 transition-transform',
+                          'w-8 h-8 sm:w-10 sm:h-10 rounded-lg flex items-center justify-center text-base sm:text-xl shrink-0 transition-transform relative',
                           isPlaying ? 'scale-110 rotate-6' : 'group-hover:scale-105',
                           clip.category === 'bollywood'
                             ? 'bg-amber-500/15 border border-amber-500/30'
@@ -293,9 +320,16 @@ export const DesiSoundboardModal: React.FC = () => {
                       </div>
 
                       {/* Clip Info */}
-                      <div className="flex-1 min-w-0 pr-1">
-                        <div className="font-extrabold text-[11px] xs:text-xs sm:text-sm text-zinc-100 group-hover:text-amber-300 transition-colors truncate">
-                          {clip.label}
+                      <div className="flex-1 min-w-0 pr-4 sm:pr-5">
+                        <div className="flex items-center gap-1.5 min-w-0">
+                          <span className="font-extrabold text-[11px] xs:text-xs sm:text-sm text-zinc-100 group-hover:text-amber-300 transition-colors truncate">
+                            {clip.label}
+                          </span>
+                          {clip.isNew && (
+                            <span className="px-1.5 py-0.2 rounded-full bg-gradient-to-r from-red-600 to-rose-600 text-white text-[7.5px] font-black uppercase tracking-wider shadow-sm border border-red-400/50 shrink-0">
+                              New
+                            </span>
+                          )}
                         </div>
                         <div className="text-[8px] sm:text-[10px] text-zinc-400 truncate">
                           {clip.subtitle}
@@ -303,7 +337,7 @@ export const DesiSoundboardModal: React.FC = () => {
                       </div>
 
                       {/* Play Action Icon */}
-                      <div className="shrink-0 text-zinc-400 group-hover:text-amber-400 transition-colors">
+                      <div className="shrink-0 text-zinc-400 group-hover:text-amber-400 transition-colors relative z-10">
                         {isPlaying ? (
                           <div className="flex items-center gap-0.5">
                             <span className="w-1 h-3 bg-amber-400 rounded-full animate-pulse" />

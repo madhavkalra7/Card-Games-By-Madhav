@@ -220,7 +220,6 @@ export const FriendChatWindow: React.FC = () => {
         <div className="flex items-center justify-center my-1">
           <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-zinc-900/80 border border-amber-500/20 text-[9px] sm:text-[10px] text-zinc-400">
             <Shield className="w-3 h-3 text-gold" />
-            <span>Direct Chat with {activeFriend.name} • Saved in Database</span>
           </div>
         </div>
 

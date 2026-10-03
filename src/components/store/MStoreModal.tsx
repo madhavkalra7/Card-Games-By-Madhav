@@ -344,7 +344,6 @@ export const MStoreModal: React.FC = () => {
                       <PlayingCard
                         card={goldenJoker.card}
                         size="lg"
-                        showIndexBadge={true}
                         glow={true}
                       />
 
@@ -448,7 +447,6 @@ export const MStoreModal: React.FC = () => {
                           <PlayingCard
                             card={item.card}
                             size="xs"
-                            showIndexBadge={true}
                           />
                         </div>
 
@@ -643,7 +641,6 @@ export const MStoreModal: React.FC = () => {
               <PlayingCard
                 card={inspectingCard.card}
                 size={isLandscapeMobile ? 'md' : 'lg'}
-                showIndexBadge={true}
                 glow={true}
               />
             </div>

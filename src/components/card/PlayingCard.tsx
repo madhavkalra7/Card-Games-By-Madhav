@@ -96,14 +96,13 @@ export const PlayingCard: React.FC<PlayingCardProps> = ({
   showIndexBadge = false,
 }) => {
   // Dimension scale based on authentic poker card ratio (~2.5 x 3.5 inches -> 1:1.4)
-  // Zoomed & enhanced for mobile devices so cards and rank fonts are comfortably readable without eye strain
   const sizeClasses = {
-    xxs: 'w-[44px] h-[62px] xs:w-[48px] xs:h-[67px]',
-    xs: 'w-[54px] h-[76px] xs:w-[60px] xs:h-[84px] sm:w-[58px] sm:h-[81px] md:w-[62px] md:h-[87px]',
-    sm: 'w-[66px] h-[92px] xs:w-[72px] xs:h-[101px] sm:w-[72px] sm:h-[101px] md:w-[78px] md:h-[109px]',
-    md: 'w-[76px] h-[106px] xs:w-[84px] xs:h-[118px] sm:w-[86px] sm:h-[120px] md:w-[92px] md:h-[129px]',
-    lg: 'w-[90px] h-[126px] sm:w-[104px] sm:h-[146px] md:w-[120px] md:h-[168px]',
-    xl: 'w-[118px] h-[165px] sm:w-[155px] sm:h-[217px]',
+    xxs: 'w-[36px] h-[50px]',
+    xs: 'w-[44px] h-[62px] xs:w-[48px] xs:h-[67px] sm:w-[46px] sm:h-[65px] md:w-[50px] md:h-[70px]',
+    sm: 'w-[54px] h-[76px] xs:w-[58px] xs:h-[82px] sm:w-[58px] sm:h-[81px] md:w-[66px] md:h-[92px]',
+    md: 'w-[64px] h-[90px] xs:w-[70px] xs:h-[98px] sm:w-[74px] sm:h-[104px] md:w-[82px] md:h-[115px]',
+    lg: 'w-[78px] h-[108px] sm:w-[92px] sm:h-[128px] md:w-[110px] md:h-[154px]',
+    xl: 'w-[110px] h-[154px] sm:w-[150px] sm:h-[210px]',
   }[size];
 
   if (faceDown || !card) {
@@ -205,34 +204,6 @@ export const PlayingCard: React.FC<PlayingCardProps> = ({
         decoding="async"
       />
 
-      {/* High-visibility corner rank & suit indicator overlay to eliminate eye strain */}
-      {showIndexBadge && (
-        <div
-          className={cn(
-            "absolute top-0.5 left-0.5 flex flex-col items-center justify-center leading-none z-10 pointer-events-none rounded px-0.5 py-0.5 shadow-sm",
-            "bg-white/95 backdrop-blur-[2px] border border-black/15"
-          )}
-        >
-          <span
-            className={cn(
-              "font-black font-mono leading-none tracking-tight",
-              isRed ? "text-red-600" : "text-zinc-950",
-              size === 'xxs' ? "text-[10px]" : size === 'xs' ? "text-[11px] xs:text-xs" : "text-xs xs:text-sm"
-            )}
-          >
-            {card.isJoker || (card.rank as string) === 'JKR' ? '🃏' : card.rank}
-          </span>
-          <span
-            className={cn(
-              "leading-none mt-0.5",
-              isRed ? "text-red-600" : "text-zinc-950",
-              size === 'xxs' ? "text-[8px]" : size === 'xs' ? "text-[9px]" : "text-[10px] xs:text-xs"
-            )}
-          >
-            {card.isJoker || (card.rank as string) === 'JKR' ? '★' : suitSymbol}
-          </span>
-        </div>
-      )}
     </div>
   );
 };

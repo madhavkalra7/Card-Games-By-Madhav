@@ -40,38 +40,37 @@ export const BhabhoFanHand: React.FC<BhabhoFanHandProps> = ({
   const total = cards.length;
   const isLandscapeMobile = isLandscape && (viewportHeight <= 520 || isMobile);
 
-  // Adaptive geometry for zoomed hand fan on mobile devices
+  // Adaptive geometry for hand fan
   const { fanStyles, containerWidth } = useMemo(() => {
     if (total === 0) return { fanStyles: [], containerWidth: 280 };
 
     const mid = (total - 1) / 2;
 
     const maxSpan = isLandscapeMobile
-      ? Math.min(38, Math.max(14, total * 1.6))
+      ? Math.min(36, Math.max(12, total * 1.5))
       : isMobile
-      ? Math.min(48, Math.max(16, total * 2.1))
-      : Math.min(58, Math.max(20, total * 2.4));
+      ? Math.min(46, Math.max(14, total * 2.0))
+      : Math.min(56, Math.max(20, total * 2.4));
     const angleStep = total > 1 ? maxSpan / (total - 1) : 0;
 
-    let cardSpacing = 28;
+    let cardSpacing = 24;
     if (isLandscapeMobile) {
-      const availWidth = Math.max(300, (viewportWidth || 600) - 80);
-      cardSpacing = total > 1 ? Math.max(14, Math.min(26, (availWidth - 60) / (total - 1))) : 0;
+      const availWidth = Math.max(260, (viewportWidth || 600) - 120);
+      cardSpacing = total > 1 ? Math.max(7, Math.min(18, (availWidth - 60) / (total - 1))) : 0;
     } else if (isMobile) {
-      const availWidth = Math.max(280, (viewportWidth || 360) - 24);
-      cardSpacing = total > 1 ? Math.max(16, Math.min(32, (availWidth - 70) / (total - 1))) : 0;
+      const availWidth = Math.max(240, (viewportWidth || 360) - 32);
+      cardSpacing = total > 1 ? Math.max(8, Math.min(22, (availWidth - 50) / (total - 1))) : 0;
     } else {
-      const availWidth = Math.min(950, Math.max(520, (viewportWidth || 1200) * 0.7));
-      cardSpacing = total > 1 ? Math.max(22, Math.min(42, (availWidth - 84) / (total - 1))) : 0;
+      const availWidth = Math.min(850, Math.max(480, (viewportWidth || 1200) * 0.65));
+      cardSpacing = total > 1 ? Math.max(14, Math.min(34, (availWidth - 70) / (total - 1))) : 0;
     }
 
-    // Zoomed card width for easy visibility without eye strain
     const cardWidth = isLandscapeMobile
-      ? (total > 14 ? 50 : 58)
+      ? (total > 14 ? 36 : 42)
       : isMobile
-      ? (total > 12 ? 66 : 74)
-      : 80;
-    const computedWidth = Math.max(280, (total - 1) * cardSpacing + cardWidth + 24);
+      ? (total > 12 ? 44 : 52)
+      : 66;
+    const computedWidth = Math.max(240, (total - 1) * cardSpacing + cardWidth + 24);
 
     const styles = cards.map((card, i) => {
       const offset = i - mid;
@@ -166,7 +165,7 @@ export const BhabhoFanHand: React.FC<BhabhoFanHandProps> = ({
       <div
         className={cn(
           "relative flex justify-center items-end transition-all",
-          isLandscapeMobile ? "h-[80px] xs:h-[88px]" : "h-[104px] xs:h-[114px] sm:h-[125px] md:h-[138px]"
+          isLandscapeMobile ? "h-[62px] xs:h-[70px]" : "h-[85px] xs:h-[95px] sm:h-[110px] md:h-[125px]"
         )}
         style={{ width: `${containerWidth}px`, maxWidth: '100vw' }}
       >
@@ -201,7 +200,7 @@ export const BhabhoFanHand: React.FC<BhabhoFanHandProps> = ({
               )}
               style={{
                 transform: `translateX(${translateX}px) rotate(${angle}deg) translateY(${
-                  isSelected ? (isLandscapeMobile ? -18 : isMobile ? -28 : -36) : 0
+                  isSelected ? (isLandscapeMobile ? -14 : isMobile ? -24 : -34) : 0
                 }px) scale(${isSelected ? 1.08 : 1})`,
                 zIndex: isSelected ? 99 : zIndex,
               }}
@@ -217,12 +216,11 @@ export const BhabhoFanHand: React.FC<BhabhoFanHandProps> = ({
                   card={card}
                   size={
                     isLandscapeMobile
-                      ? (total > 14 ? 'xs' : 'sm')
+                      ? (total > 14 ? 'xxs' : 'xs')
                       : isMobile
-                      ? (total > 15 ? 'sm' : 'md')
-                      : 'md'
+                      ? (total > 15 ? 'xs' : 'sm')
+                      : 'sm'
                   }
-                  showIndexBadge={true}
                   interactive={isPlayable}
                 />
               </div>

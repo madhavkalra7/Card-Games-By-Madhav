@@ -64,7 +64,7 @@ export const DoctorTable: React.FC<DoctorTableProps> = ({ state }) => {
 
   const { setInviteModalOpen } = useFriendsStore();
   const router = useRouter();
-  const { isLandscape, isMobile, viewportHeight } = useViewportOrientation();
+  const { isLandscape, isMobile, viewportWidth, viewportHeight } = useViewportOrientation();
   const isLandscapeMobile = isLandscape && (viewportHeight <= 520 || isMobile);
 
   // Modals & local controls
@@ -133,6 +133,63 @@ export const DoctorTable: React.FC<DoctorTableProps> = ({ state }) => {
       return a.suit.localeCompare(b.suit);
     });
   }, [myHand]);
+
+  const totalCards = sortedHand.length;
+
+  // Adaptive fan geometry for Doctor hand cards
+  const { doctorFanStyles, fanContainerWidth } = useMemo(() => {
+    if (totalCards === 0) return { doctorFanStyles: [], fanContainerWidth: 260 };
+
+    const mid = (totalCards - 1) / 2;
+
+    const maxSpan = isLandscapeMobile
+      ? Math.min(36, Math.max(12, totalCards * 1.5))
+      : isMobile
+      ? Math.min(46, Math.max(14, totalCards * 2.0))
+      : Math.min(56, Math.max(20, totalCards * 2.4));
+    const angleStep = totalCards > 1 ? maxSpan / (totalCards - 1) : 0;
+
+    let cardSpacing = 24;
+    if (isLandscapeMobile) {
+      const availWidth = Math.max(260, (viewportWidth || 600) - 120);
+      cardSpacing = totalCards > 1 ? Math.max(8, Math.min(20, (availWidth - 60) / (totalCards - 1))) : 0;
+    } else if (isMobile) {
+      const availWidth = Math.max(240, (viewportWidth || 360) - 32);
+      cardSpacing = totalCards > 1 ? Math.max(10, Math.min(24, (availWidth - 50) / (totalCards - 1))) : 0;
+    } else {
+      const availWidth = Math.min(850, Math.max(480, (viewportWidth || 1200) * 0.65));
+      cardSpacing = totalCards > 1 ? Math.max(16, Math.min(34, (availWidth - 70) / (totalCards - 1))) : 0;
+    }
+
+    const cardWidth = isLandscapeMobile
+      ? (totalCards > 10 ? 36 : 42)
+      : isMobile
+      ? (totalCards > 10 ? 44 : 52)
+      : 66;
+    const computedWidth = Math.max(240, (totalCards - 1) * cardSpacing + cardWidth + 24);
+
+    const styles = sortedHand.map((card, i) => {
+      const offset = i - mid;
+      const angle = offset * angleStep;
+      const translateX = offset * cardSpacing;
+
+      return {
+        card,
+        angle,
+        translateX,
+        zIndex: i + 1,
+      };
+    });
+
+    return { doctorFanStyles: styles, fanContainerWidth: computedWidth };
+  }, [sortedHand, totalCards, isMobile, isLandscapeMobile, viewportWidth]);
+
+  const doctorCardSize = isLandscapeMobile
+    ? (totalCards > 10 ? 'xxs' : 'xs')
+    : isMobile
+    ? (totalCards > 10 ? 'xs' : 'sm')
+    : 'sm';
+  const selectLift = isLandscapeMobile ? 14 : isMobile ? 22 : 30;
 
   // Toggle card selection with smart pairing constraint:
   // Must be single card OR cards of the EXACT SAME RANK
@@ -578,7 +635,6 @@ export const DoctorTable: React.FC<DoctorTableProps> = ({ state }) => {
                       <PlayingCard
                         card={card}
                         size={isLandscapeMobile ? 'xs' : 'sm'}
-                        showIndexBadge={true}
                         className={cn(
                           'shadow-2xl transition-all',
                           isMyTurn && turnPhase === 'DRAW' && 'ring-2 ring-emerald-400 cursor-pointer'
@@ -708,51 +764,71 @@ export const DoctorTable: React.FC<DoctorTableProps> = ({ state }) => {
             </div>
           </div>
 
-          {/* PLAYING CARDS RACK (Horizontal Fan with Touch Scrolling) */}
-          <div className="relative w-full max-w-5xl overflow-x-auto pb-1 px-1 sm:px-2 flex items-center justify-start xs:justify-center -space-x-2 xs:-space-x-1 sm:space-x-1 touch-pan-x no-scrollbar">
-            {sortedHand.map((card, idx) => {
-              const isSelected = selectedCardIds.includes(card.id);
-              const cardVal = getDoctorCardValue(card);
-              const isJoker = isDoctorJoker(card);
+          {/* PLAYING CARDS FAN HAND */}
+          <div
+            className={cn(
+              "relative w-full max-w-full overflow-x-auto overflow-y-hidden no-scrollbar scrollbar-none flex items-end justify-start sm:justify-center px-4 pb-1",
+              isLandscapeMobile ? "pt-2 min-h-[74px]" : "pt-4 min-h-[92px] xs:min-h-[105px] sm:min-h-[125px]"
+            )}
+          >
+            <div
+              className="relative flex items-end justify-center mx-auto shrink-0"
+              style={{
+                width: `${fanContainerWidth}px`,
+                height: isLandscapeMobile ? '64px' : isMobile ? '82px' : '102px',
+              }}
+            >
+              {doctorFanStyles.map(({ card, angle, translateX, zIndex }) => {
+                const isSelected = selectedCardIds.includes(card.id);
+                const cardVal = getDoctorCardValue(card);
+                const isJoker = isDoctorJoker(card);
 
-              return (
-                <div
-                  key={`hand-card-${card.id}-${idx}`}
-                  onClick={() => handleCardClick(card)}
-                  className={cn(
-                    'relative transition-all duration-200 cursor-pointer transform shrink-0',
-                    isSelected
-                      ? '-translate-y-3.5 sm:-translate-y-5 scale-105 z-20'
-                      : 'hover:-translate-y-1.5 z-10'
-                  )}
-                >
-                  <PlayingCard
-                    card={card}
-                    size={isLandscapeMobile ? (myHand.length > 8 ? 'xxs' : 'xs') : (myHand.length > 8 ? 'xs' : 'sm')}
-                    showIndexBadge={true}
-                    className={cn(
-                      'shadow-xl transition-all',
-                      isSelected && 'ring-3 sm:ring-4 ring-amber-400 shadow-gold-glow',
-                      isJoker && 'ring-2 ring-red-500'
-                    )}
-                  />
-
-                  {/* Card Value Badge */}
+                return (
                   <div
-                    className={cn(
-                      'absolute -top-1.5 left-1/2 -translate-x-1/2 px-1 py-0.1 rounded-full font-mono font-black text-[8px] sm:text-[9px] shadow-sm pointer-events-none',
-                      isJoker
-                        ? 'bg-red-600 text-white'
-                        : isSelected
-                        ? 'bg-amber-400 text-black'
-                        : 'bg-black/85 text-zinc-200 border border-white/10'
-                    )}
+                    key={`hand-card-${card.id}`}
+                    onClick={() => handleCardClick(card)}
+                    className="absolute bottom-0 cursor-pointer transition-transform duration-200 ease-out origin-bottom touch-manipulation"
+                    style={{
+                      transform: `translateX(${translateX}px) translateY(${isSelected ? -selectLift : 0}px) rotate(${angle}deg)`,
+                      transformOrigin: '50% 115%',
+                      zIndex: isSelected ? 80 + zIndex : zIndex,
+                    }}
                   >
-                    {cardVal}
+                    <div
+                      className={cn(
+                        'relative transition-all duration-200',
+                        'hover:-translate-y-2',
+                        isSelected && 'scale-105'
+                      )}
+                    >
+                      <PlayingCard
+                        card={card}
+                        size={doctorCardSize}
+                        className={cn(
+                          'shadow-xl transition-all',
+                          isSelected && 'ring-2.5 sm:ring-3 ring-amber-400 ring-offset-1 ring-offset-black shadow-gold-glow',
+                          isJoker && !isSelected && 'ring-2 ring-red-500'
+                        )}
+                      />
+
+                      {/* Card Value Badge */}
+                      <div
+                        className={cn(
+                          'absolute -top-2 left-1/2 -translate-x-1/2 px-1.5 py-0.2 rounded-full font-mono font-black text-[8px] sm:text-[9px] shadow-sm pointer-events-none z-20',
+                          isJoker
+                            ? 'bg-red-600 text-white'
+                            : isSelected
+                            ? 'bg-amber-400 text-black'
+                            : 'bg-black/90 text-zinc-200 border border-white/20'
+                        )}
+                      >
+                        {cardVal}
+                      </div>
+                    </div>
                   </div>
-                </div>
-              );
-            })}
+                );
+              })}
+            </div>
           </div>
 
         </div>

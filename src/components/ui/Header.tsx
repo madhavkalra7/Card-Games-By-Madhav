@@ -9,7 +9,9 @@ import { ExitConfirmModal } from '../modal/ExitConfirmModal';
 import { InviteFriendsModal } from '../modal/InviteFriendsModal';
 import { useFriendsStore } from '@/store/friendsStore';
 import { useAuthStore } from '@/store/authStore';
-import { BookOpen, Check, Copy, LogOut, Volume2, VolumeX, UserPlus } from 'lucide-react';
+import { BookOpen, Check, Copy, LogOut, Volume2, VolumeX, UserPlus, ShoppingBag } from 'lucide-react';
+import { useMStore } from '@/store/mStore';
+import { MStoreModal } from '../store/MStoreModal';
 
 interface HeaderProps {
   roomCode?: string;
@@ -17,6 +19,7 @@ interface HeaderProps {
 
 export const Header: React.FC<HeaderProps> = ({ roomCode }) => {
   const { user } = useAuthStore();
+  const { setOpen: setMStoreOpen, mCoins } = useMStore();
   const { setRulesModalOpen, showToast, leaveRoom, gameState } = useGameStore();
   const { setInviteModalOpen } = useFriendsStore();
   const router = useRouter();
@@ -133,6 +136,17 @@ export const Header: React.FC<HeaderProps> = ({ roomCode }) => {
             {isMuted ? <VolumeX className="w-3.5 h-3.5 text-red-400" /> : <Volume2 className="w-3.5 h-3.5 text-emerald-400" />}
           </button>
 
+          {/* M Store Button */}
+          <button
+            type="button"
+            onClick={() => setMStoreOpen(true)}
+            className="flex items-center gap-1.5 px-2 xs:px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-xl bg-gradient-to-r from-amber-500/20 via-yellow-500/20 to-amber-500/10 border border-amber-500/50 hover:border-amber-400 text-amber-300 hover:text-white text-xs font-black uppercase tracking-wider transition-all shadow-sm active:scale-95 cursor-pointer shrink-0"
+            title="Open M Store - Daily Cards & M Coins"
+          >
+            <span className="text-sm">🪙</span>
+            <span className="hidden xs:inline">M Store</span>
+          </button>
+
           {/* Exit Room button */}
           {roomCode && (
             <button
@@ -145,6 +159,9 @@ export const Header: React.FC<HeaderProps> = ({ roomCode }) => {
           )}
         </div>
       </header>
+
+      {/* M Store Modal */}
+      <MStoreModal />
 
       {/* Exit Confirmation Modal */}
       <ExitConfirmModal

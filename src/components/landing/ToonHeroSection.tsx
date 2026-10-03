@@ -2,12 +2,13 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
-import { ArrowLeft, ArrowRight, Gamepad2, Plus, Users, Music, User, Trophy, BookOpen } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Gamepad2, Plus, Users, Music, User, Trophy, BookOpen, ShoppingBag } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { funkyMusic } from '@/lib/funkyMusic';
 import { sounds } from '@/lib/sound';
 import { useAuthStore } from '@/store/authStore';
 import { useFriendsStore } from '@/store/friendsStore';
+import { useMStore } from '@/store/mStore';
 import { getAvatarById } from '@/lib/avatars';
 import { GameType } from '@/lib/types';
 
@@ -67,6 +68,7 @@ export const ToonHeroSection: React.FC<ToonHeroSectionProps> = ({
   const [isAnimating, setIsAnimating] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
   const [isShortHeight, setIsShortHeight] = useState(false);
+  const setMStoreOpen = useMStore((s) => s.setOpen);
   const [isMusicPlaying, setIsMusicPlaying] = useState<boolean>(() => {
     if (typeof window !== 'undefined') {
       return localStorage.getItem('cg_landing_music') !== 'false';
@@ -490,6 +492,17 @@ export const ToonHeroSection: React.FC<ToonHeroSectionProps> = ({
               <BookOpen className="w-3.5 h-3.5 text-amber-300 group-hover:scale-115 transition-transform shrink-0" />
               <span className="hidden sm:inline ml-1.5">Album</span>
             </Link>
+
+            {/* M Store Link / Button */}
+            <button
+              type="button"
+              onClick={() => setMStoreOpen(true)}
+              className="flex items-center justify-center w-8 h-8 sm:w-auto sm:h-9 p-0 sm:px-3.5 rounded-full bg-gradient-to-r from-amber-500/25 via-yellow-500/20 to-amber-500/25 hover:from-amber-500/40 hover:to-yellow-500/30 backdrop-blur-md border border-amber-400/60 text-amber-300 text-[11px] sm:text-xs font-black uppercase tracking-wider transition-all shadow-gold-glow active:scale-95 shrink-0 group cursor-pointer"
+              title="Open M Store - Daily Cards & M Coins"
+            >
+              <ShoppingBag className="w-3.5 h-3.5 text-yellow-300 group-hover:scale-110 transition-transform shrink-0" />
+              <span className="hidden sm:inline ml-1.5">M Store</span>
+            </button>
 
             {/* Casino Currency Coins Pill */}
             {user && (

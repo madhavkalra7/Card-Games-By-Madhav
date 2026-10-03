@@ -17,6 +17,7 @@ import { InviteFriendsModal } from '@/components/modal/InviteFriendsModal';
 import { DesiSoundboardModal } from '@/components/table/DesiSoundboardModal';
 import { TableChatModal } from '@/components/table/TableChatModal';
 import { TableChatBubbleOverlay } from '@/components/table/TableChatBubbleOverlay';
+import { MStoreModal } from '@/components/store/MStoreModal';
 import { Toast } from '@/components/ui/Toast';
 import { VoiceControls } from '@/components/voice/VoiceControls';
 import { voiceManager } from '@/lib/voice/voiceManager';
@@ -530,6 +531,9 @@ export default function RoomPage({ params }: { params: Promise<{ code: string }>
       {/* In-Game / Lobby Table Chat Modal & Floating Speech Bubble */}
       <TableChatBubbleOverlay />
       <TableChatModal />
+
+      {/* M Store Modal */}
+      <MStoreModal />
 
       {isLobby && (
         <div className="w-full text-center py-2 text-[10px] text-zinc-600">

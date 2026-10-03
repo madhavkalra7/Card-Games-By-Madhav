@@ -7,6 +7,7 @@ import { JoinRoomModal } from '@/components/modal/JoinRoomModal';
 import { AuthModal } from '@/components/modal/AuthModal';
 import { ProfileModal } from '@/components/modal/ProfileModal';
 import { ResumeMatchModal } from '@/components/modal/ResumeMatchModal';
+import { MStoreModal } from '@/components/store/MStoreModal';
 import { GameType } from '@/lib/types';
 
 export default function LandingPage() {
@@ -41,6 +42,9 @@ export default function LandingPage() {
       {/* Authentication & Profile Modals */}
       <AuthModal />
       <ProfileModal />
+
+      {/* M Store Modal */}
+      <MStoreModal />
     </main>
   );
 }

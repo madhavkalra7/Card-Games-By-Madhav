@@ -7,6 +7,7 @@ import { cn } from '@/lib/utils';
 import { Crown, WifiOff, Mic, MicOff, Trophy } from 'lucide-react';
 import { useVoiceStore } from '@/store/voiceStore';
 import { useGameStore } from '@/store/gameStore';
+import { useViewportOrientation } from '@/hooks/useViewportOrientation';
 import { ThrowablePicker } from '../table/ThrowablePicker';
 
 interface BhabhoPlayerSeatProps {
@@ -39,6 +40,9 @@ export const BhabhoPlayerSeat: React.FC<BhabhoPlayerSeatProps> = ({
   const throwItem = useGameStore((s) => s.throwItem);
   const currentImpact = activeImpacts[player.id];
 
+  const { isLandscape, isMobile, viewportHeight } = useViewportOrientation();
+  const isLandscapeMobile = isLandscape && (viewportHeight <= 520 || isMobile);
+
   // Voice chat integration
   const speakingPeers = useVoiceStore((s) => s.speakingPeers);
   const peerStates = useVoiceStore((s) => s.peerStates);
@@ -61,6 +65,8 @@ export const BhabhoPlayerSeat: React.FC<BhabhoPlayerSeatProps> = ({
     positionClass.includes('top-4') ||
     positionClass.includes('top-5') ||
     positionClass.includes('top-6') ||
+    positionClass.includes('top-7') ||
+    positionClass.includes('top-8') ||
     positionClass.includes('top-12') ||
     positionClass.includes('top-13') ||
     positionClass.includes('top-14') ||
@@ -82,7 +88,8 @@ export const BhabhoPlayerSeat: React.FC<BhabhoPlayerSeatProps> = ({
       } : {}}
       transition={{ duration: 0.5, ease: 'easeOut' }}
       className={cn(
-        'absolute flex flex-col items-center select-none transition-all duration-300 z-20 scale-85 xs:scale-90 sm:scale-100',
+        'absolute flex flex-col items-center select-none transition-all duration-300 z-20',
+        isLandscapeMobile ? 'scale-70 xs:scale-75 sm:scale-85 md:scale-95' : 'scale-85 xs:scale-90 sm:scale-100',
         positionClass,
         isEscaped && 'opacity-70'
       )}

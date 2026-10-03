@@ -104,6 +104,7 @@ export interface BhabhoStateClientView {
   latestActionMessage?: string | null;
   roundNumber: number;
   canPlayCardIds: string[]; // List of card IDs in player's hand that are legal to play
+  isResolvingTrick?: boolean; // 2-second pause when trick finishes so players see the last played card
 }
 
 export interface PenaltyLog {

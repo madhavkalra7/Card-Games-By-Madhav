@@ -55,6 +55,9 @@ export class BhabhoRoom {
   public isFirstTrickOfGame: boolean = true;
   public lastTrickResult: BhabhoLastTrickResult | null = null;
   public latestActionMessage: string | null = null;
+  public isResolvingTrick: boolean = false;
+  public trickDelayMs: number = 2000;
+  private trickResolutionTimer: NodeJS.Timeout | null = null;
 
   public winner: BhabhoPlayer | null = null;
   public turnTimeRemaining: number = 0;
@@ -238,6 +241,11 @@ export class BhabhoRoom {
     this.lastTrickResult = null;
     this.rankings = [];
     this.winner = null;
+    this.isResolvingTrick = false;
+    if (this.trickResolutionTimer) {
+      clearTimeout(this.trickResolutionTimer);
+      this.trickResolutionTimer = null;
+    }
 
     // Distribute full 52 cards deck among all players
     const deck = shuffleDeck(createDeck());
@@ -314,6 +322,10 @@ export class BhabhoRoom {
       return { success: false, error: 'Game is not currently active.' };
     }
 
+    if (this.isResolvingTrick) {
+      return { success: false, error: 'Trick is currently resolving, please wait.' };
+    }
+
     const activePlayer = this.getActivePlayer();
     if (!activePlayer || activePlayer.id !== playerId) {
       return { success: false, error: "Not your turn to play." };
@@ -356,6 +368,9 @@ export class BhabhoRoom {
       timestamp: Date.now(),
     });
 
+    // Check if the current player emptied their hand with this play
+    this.checkPlayerEscape(activePlayer);
+
     if (isThulla) {
       // ==========================================
       // THULLA TRIGGERED!
@@ -374,18 +389,7 @@ export class BhabhoRoom {
       }
 
       const penalizedPlayer = this.players.find(p => p.id === highestTrickCard.playerId)!;
-
-      // Transfer all trick cards into penalized player's hand
       const allTrickCards = this.currentTrick.map(t => t.card);
-      penalizedPlayer.cards.push(...allTrickCards);
-      penalizedPlayer.cards = sortBhabhoCards(penalizedPlayer.cards);
-
-      // In case penalized player had just emptied their hand in this trick, they are back in the game!
-      if (penalizedPlayer.isFinished) {
-        penalizedPlayer.isFinished = false;
-        penalizedPlayer.rank = null;
-        this.escapedPlayerIds = this.escapedPlayerIds.filter(id => id !== penalizedPlayer.id);
-      }
 
       this.lastTrickResult = {
         id: `${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
@@ -400,45 +404,62 @@ export class BhabhoRoom {
         timestamp: Date.now(),
       };
 
-      this.latestActionMessage = `💥 THULLA! ${activePlayer.name} threw an off-suit card! ${penalizedPlayer.name} held highest ${this.leadSuit} (${highestTrickCard.card.rank}) and collected ${allTrickCards.length} cards!`;
+      this.latestActionMessage = `💥 THULLA! ${activePlayer.name} threw ${card.rank}${card.suit}! ${penalizedPlayer.name} held highest ${this.leadSuit} (${highestTrickCard.card.rank}) and collects ${allTrickCards.length} cards!`;
 
-      // Check if the player who gave the thulla just emptied their hand
-      this.checkPlayerEscape(activePlayer);
-
-      // Reset trick
-      this.currentTrick = [];
-      this.leadSuit = null;
-      this.roundNumber++;
-
-      // Check if game over
-      if (this.checkGameOver()) {
-        return { success: true };
+      // Pause turn timer during the 2-second resolution window
+      if (this.turnTimer) {
+        clearInterval(this.turnTimer);
+        this.turnTimer = null;
       }
+      this.isResolvingTrick = true;
 
-      // Penalized player leads the next trick!
-      const nextTurnIndex = this.players.findIndex(p => p.id === penalizedPlayer.id);
-      this.currentTurnIndex = nextTurnIndex >= 0 ? nextTurnIndex : 0;
-      this.currentTrickStarterId = penalizedPlayer.id;
-
-      this.startTurnTimer();
+      // Broadcast state change IMMEDIATELY so all players see the final card placed on the table
       this.onStateChange();
+
+      // 2-second break before clearing the cycle
+      this.trickResolutionTimer = setTimeout(() => {
+        this.trickResolutionTimer = null;
+        if (this.status !== 'PLAYING') return;
+
+        // Transfer all trick cards into penalized player's hand
+        penalizedPlayer.cards.push(...allTrickCards);
+        penalizedPlayer.cards = sortBhabhoCards(penalizedPlayer.cards);
+
+        // In case penalized player had just emptied their hand in this trick, they are back in the game!
+        if (penalizedPlayer.isFinished) {
+          penalizedPlayer.isFinished = false;
+          penalizedPlayer.rank = null;
+          this.escapedPlayerIds = this.escapedPlayerIds.filter(id => id !== penalizedPlayer.id);
+        }
+
+        // Reset trick
+        this.currentTrick = [];
+        this.leadSuit = null;
+        this.roundNumber++;
+        this.isResolvingTrick = false;
+
+        // Check if game over
+        if (this.checkGameOver()) {
+          return;
+        }
+
+        // Penalized player leads the next trick!
+        const nextTurnIndex = this.players.findIndex(p => p.id === penalizedPlayer.id);
+        this.currentTurnIndex = nextTurnIndex >= 0 ? nextTurnIndex : 0;
+        this.currentTrickStarterId = penalizedPlayer.id;
+
+        this.startTurnTimer();
+        this.onStateChange();
+      }, this.trickDelayMs);
+
       return { success: true };
     }
 
     // ==========================================
     // CLEAN PLAY (FOLLOWED SUIT)
     // ==========================================
-    // Check if the current player emptied their hand with this play
-    this.checkPlayerEscape(activePlayer);
-
     // Has the trick completed?
     // A trick completes when every active player who was in the game for this trick has played
-    const activePlayers = this.getActivePlayers();
-
-    // Check if all remaining players with cards (or who participated) have played in this trick
-    // A trick is complete if:
-    // 1) Every player who currently has cards has played in this trick, OR
-    // 2) The number of cards in currentTrick equals the number of participants at the start of trick
     const trickComplete = this.isTrickComplete();
 
     if (trickComplete) {
@@ -452,14 +473,12 @@ export class BhabhoRoom {
       }
 
       const winnerPlayer = this.players.find(p => p.id === highestTrickCard.playerId)!;
-
-      // Cards are swept to the waste pile (no penalty)
-      this.wastePileCount += this.currentTrick.length;
+      const allTrickCards = this.currentTrick.map(t => t.card);
 
       this.lastTrickResult = {
         id: `${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
         type: 'CLEARED',
-        cards: this.currentTrick.map(t => t.card),
+        cards: allTrickCards,
         leadSuit: this.leadSuit!,
         winnerOrPenalizedPlayerId: winnerPlayer.id,
         winnerOrPenalizedPlayerName: winnerPlayer.name,
@@ -467,31 +486,53 @@ export class BhabhoRoom {
         timestamp: Date.now(),
       };
 
-      this.latestActionMessage = `✨ Clean Trick! ${winnerPlayer.name} won with highest ${this.leadSuit} (${highestTrickCard.card.rank}). Discarded ${this.currentTrick.length} cards.`;
+      this.latestActionMessage = `✨ Clean Trick! ${winnerPlayer.name} won with highest ${this.leadSuit} (${highestTrickCard.card.rank}). Clearing ${this.currentTrick.length} cards...`;
 
-      this.currentTrick = [];
-      this.leadSuit = null;
-      this.roundNumber++;
-
-      // Check if game over
-      if (this.checkGameOver()) {
-        return { success: true };
+      // Pause turn timer during the 2-second resolution window
+      if (this.turnTimer) {
+        clearInterval(this.turnTimer);
+        this.turnTimer = null;
       }
+      this.isResolvingTrick = true;
 
-      // Who leads the next trick?
-      if (!winnerPlayer.isFinished && winnerPlayer.cards.length > 0) {
-        // Trick winner leads!
-        const nextIndex = this.players.findIndex(p => p.id === winnerPlayer.id);
-        this.currentTurnIndex = nextIndex >= 0 ? nextIndex : 0;
-      } else {
-        // Winner emptied hand and escaped! Lead passes clockwise to next active player
-        const winnerIndex = this.players.findIndex(p => p.id === winnerPlayer.id);
-        this.currentTurnIndex = this.getNextActivePlayerIndex(winnerIndex);
-      }
-
-      this.currentTrickStarterId = this.players[this.currentTurnIndex]?.id || null;
-      this.startTurnTimer();
+      // Broadcast state change IMMEDIATELY so all players see the final card placed on the table
       this.onStateChange();
+
+      // 2-second break before clearing the cycle
+      this.trickResolutionTimer = setTimeout(() => {
+        this.trickResolutionTimer = null;
+        if (this.status !== 'PLAYING') return;
+
+        // Cards are swept to the waste pile (no penalty)
+        this.wastePileCount += allTrickCards.length;
+
+        // Reset trick
+        this.currentTrick = [];
+        this.leadSuit = null;
+        this.roundNumber++;
+        this.isResolvingTrick = false;
+
+        // Check if game over
+        if (this.checkGameOver()) {
+          return;
+        }
+
+        // Who leads the next trick?
+        if (!winnerPlayer.isFinished && winnerPlayer.cards.length > 0) {
+          // Trick winner leads!
+          const nextIndex = this.players.findIndex(p => p.id === winnerPlayer.id);
+          this.currentTurnIndex = nextIndex >= 0 ? nextIndex : 0;
+        } else {
+          // Winner emptied hand and escaped! Lead passes clockwise to next active player
+          const winnerIndex = this.players.findIndex(p => p.id === winnerPlayer.id);
+          this.currentTurnIndex = this.getNextActivePlayerIndex(winnerIndex);
+        }
+
+        this.currentTrickStarterId = this.players[this.currentTurnIndex]?.id || null;
+        this.startTurnTimer();
+        this.onStateChange();
+      }, this.trickDelayMs);
+
       return { success: true };
     }
 
@@ -743,7 +784,8 @@ export class BhabhoRoom {
       escapedPlayerIds: this.escapedPlayerIds,
       latestActionMessage: this.latestActionMessage,
       roundNumber: this.roundNumber,
-      canPlayCardIds: isMyTurn ? legalCardIds : [],
+      canPlayCardIds: isMyTurn && !this.isResolvingTrick ? legalCardIds : [],
+      isResolvingTrick: this.isResolvingTrick,
     };
 
     return {

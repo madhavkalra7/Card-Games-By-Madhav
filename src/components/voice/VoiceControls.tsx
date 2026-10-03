@@ -40,7 +40,7 @@ export const VoiceControls: React.FC<VoiceControlsProps> = ({ roomCode, classNam
           disabled={isConnecting}
           title={error || 'Join Table Voice Chat'}
           className={cn(
-            'flex items-center gap-1.5 px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-full text-[10px] sm:text-[11px] font-extrabold uppercase tracking-wider transition-all shadow-md',
+            'flex items-center gap-1.5 px-2 sm:px-2.5 py-0.5 sm:py-1 rounded-full text-[9px] xs:text-[10px] sm:text-[11px] font-extrabold uppercase tracking-wider transition-all shadow-md',
             isConnecting
               ? 'bg-zinc-800 text-zinc-400 cursor-not-allowed'
               : 'bg-black/70 backdrop-blur-md border border-emerald-500/50 text-emerald-300 hover:bg-emerald-950/60 hover:border-emerald-400 active:scale-95'
@@ -49,12 +49,12 @@ export const VoiceControls: React.FC<VoiceControlsProps> = ({ roomCode, classNam
           {isConnecting ? (
             <>
               <Loader2 className="w-3 h-3 animate-spin text-emerald-400" />
-              <span>Connecting...</span>
+              <span className="hidden xs:inline">Connecting...</span>
             </>
           ) : (
             <>
-              <Radio className="w-3 h-3 text-emerald-400 animate-pulse" />
-              <span>Join Voice</span>
+              <Radio className="w-3 h-3 text-emerald-400 animate-pulse shrink-0" />
+              <span className="hidden sm:inline">Voice</span>
             </>
           )}
         </button>

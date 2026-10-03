@@ -172,9 +172,20 @@ async function runBhabhoTest() {
       thirdPlayer.socket.emit('bhabho:playCard', { roomCode, cardId: card.id }, resolve);
     });
     console.log(`Played final spade ${card.rank}${card.suit} in trick.`);
-    await new Promise((r) => setTimeout(r, 400));
+    await new Promise((r) => setTimeout(r, 300));
 
-    console.log('\n--- Clean Trick Completed ---');
+    console.log('\n--- 2-Second Trick Resolution Pause Verification ---');
+    console.log(`Cards visible on table during break: ${state1.bhabhoState.currentTrick.length} (Expected: 3)`);
+    console.log(`isResolvingTrick active: ${state1.bhabhoState.isResolvingTrick}`);
+    if (state1.bhabhoState.currentTrick.length !== 3) {
+      throw new Error(`Expected all 3 cards to remain visible on table during break, got: ${state1.bhabhoState.currentTrick.length}`);
+    }
+    console.log('✅ Rule Verified: Center table keeps all cards visible including the last played card!');
+
+    // Wait for the 2-second resolution break to complete
+    await new Promise((r) => setTimeout(r, 2000));
+
+    console.log('\n--- Clean Trick Completed (After 2s Break) ---');
     console.log(`Waste pile count: ${state1.bhabhoState.wastePileCount} (Expected: 3)`);
     console.log(`Current trick reset to empty: ${state1.bhabhoState.currentTrick.length === 0}`);
     console.log(`Lead suit reset: ${state1.bhabhoState.leadSuit === null}`);
@@ -187,7 +198,7 @@ async function runBhabhoTest() {
       thirdPlayer.socket.emit('bhabho:playCard', { roomCode, cardId: thullaCard.id }, resolve);
     });
     console.log('Thulla play result:', thullaRes);
-    await new Promise((r) => setTimeout(r, 400));
+    await new Promise((r) => setTimeout(r, 2300));
 
     console.log('\n--- Thulla Penalty Resolved ---');
     console.log(`Last trick type: ${state1.bhabhoState.lastTrickResult?.type} (Expected: 'THULLA')`);

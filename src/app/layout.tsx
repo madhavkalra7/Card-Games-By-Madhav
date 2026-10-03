@@ -4,6 +4,7 @@ import { Toast } from '@/components/ui/Toast';
 import { GlobalModals } from '@/components/providers/GlobalModals';
 import { PwaRegistration } from '@/components/pwa/PwaRegistration';
 import { PwaInstallPrompt } from '@/components/pwa/PwaInstallPrompt';
+import { Analytics } from '@vercel/analytics/next';
 
 export const metadata: Metadata = {
   title: 'Card Games By Madhav | Traditional Indian 52-Card Platform',
@@ -62,6 +63,7 @@ export default function RootLayout({
         <GlobalModals />
         <PwaInstallPrompt />
         {children}
+        <Analytics />
       </body>
     </html>
   );

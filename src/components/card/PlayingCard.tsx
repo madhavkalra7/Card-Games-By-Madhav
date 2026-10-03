@@ -45,7 +45,10 @@ export const SuitIcon: React.FC<{ suit: Suit; className?: string }> = ({ suit, c
 };
 
 export function getCardSvgPath(rank: Rank | string, suit: Suit | string): string {
-  if (rank === '🃏' || rank === 'JOKER') return '/cards/red_joker.svg';
+  if (rank === '🃏' || rank === 'JOKER' || rank === 'JKR' || suit === 'JKR') {
+    if (rank === 'JKR-BLK' || suit === 'BLK' || suit === 'BLACK') return '/cards/black_joker.svg';
+    return '/cards/red_joker.svg';
+  }
 
   const suitMap: Record<string, string> = {
     H: 'hearts',
@@ -175,7 +178,7 @@ export const PlayingCard: React.FC<PlayingCardProps> = ({
               size === 'xxs' ? "text-[10px]" : size === 'xs' ? "text-[11px] xs:text-xs" : "text-xs xs:text-sm"
             )}
           >
-            {card.rank}
+            {card.isJoker || (card.rank as string) === 'JKR' ? '🃏' : card.rank}
           </span>
           <span
             className={cn(
@@ -184,7 +187,7 @@ export const PlayingCard: React.FC<PlayingCardProps> = ({
               size === 'xxs' ? "text-[8px]" : size === 'xs' ? "text-[9px]" : "text-[10px] xs:text-xs"
             )}
           >
-            {suitSymbol}
+            {card.isJoker || (card.rank as string) === 'JKR' ? '50' : suitSymbol}
           </span>
         </div>
       )}

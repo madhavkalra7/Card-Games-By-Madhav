@@ -2,7 +2,8 @@ import { Server as SocketIOServer, Socket } from 'socket.io';
 import { DukkiBazaarRoom } from '../game/engine';
 import { BluffMasterRoom } from '../game/bluffEngine';
 import { BhabhoRoom } from '../game/bhabhoEngine';
-import { GameType, Rank } from '../game/types';
+import { DoctorRoom } from '../game/doctorEngine';
+import { GameType, Rank, DoctorConfig } from '../game/types';
 import {
   RoomModel,
   GameHistoryModel,
@@ -13,7 +14,7 @@ import {
   respondToFriendRequest,
 } from '../db';
 
-const activeRooms = new Map<string, DukkiBazaarRoom | BluffMasterRoom | BhabhoRoom>();
+const activeRooms = new Map<string, DukkiBazaarRoom | BluffMasterRoom | BhabhoRoom | DoctorRoom>();
 const disconnectTimers = new Map<string, NodeJS.Timeout>();
 
 interface OnlineUser {
@@ -54,7 +55,7 @@ interface RoomAutoAbort {
 const roomAutoAbortTimers = new Map<string, RoomAutoAbort>();
 
 export function setupSocketHandlers(io: SocketIOServer) {
-  function broadcastRoomState(room: DukkiBazaarRoom | BluffMasterRoom | BhabhoRoom) {
+  function broadcastRoomState(room: DukkiBazaarRoom | BluffMasterRoom | BhabhoRoom | DoctorRoom) {
     for (const player of room.players) {
       if (player.isConnected) {
         const clientView = room.getClientView(player.id);
@@ -67,8 +68,8 @@ export function setupSocketHandlers(io: SocketIOServer) {
     }
   }
 
-  function createRoomInstance(code: string, gameType: GameType = 'DUKKI_BAZAAR'): DukkiBazaarRoom | BluffMasterRoom | BhabhoRoom {
-    const handleGameOver = async (finishedRoom: DukkiBazaarRoom | BluffMasterRoom | BhabhoRoom) => {
+  function createRoomInstance(code: string, gameType: GameType = 'DUKKI_BAZAAR'): DukkiBazaarRoom | BluffMasterRoom | BhabhoRoom | DoctorRoom {
+    const handleGameOver = async (finishedRoom: DukkiBazaarRoom | BluffMasterRoom | BhabhoRoom | DoctorRoom) => {
       try {
         for (const r of finishedRoom.rankings) {
           if (r.scoreEarned || r.coinsEarned) {
@@ -92,6 +93,17 @@ export function setupSocketHandlers(io: SocketIOServer) {
         console.warn('Game over score persistence warning:', err.message);
       }
     };
+
+    if (gameType === 'DOCTOR') {
+      const room = new DoctorRoom(
+        code,
+        () => {
+          broadcastRoomState(room);
+        },
+        handleGameOver
+      );
+      return room;
+    }
 
     if (gameType === 'BHABHO') {
       const room = new BhabhoRoom(
@@ -129,15 +141,19 @@ export function setupSocketHandlers(io: SocketIOServer) {
     let currentRoomCode: string | null = null;
     let playerSessionId: string | null = null;
 
-    socket.on('createRoom', async (data: { name: string; avatarColor: string; sessionId: string; gameType?: GameType }, callback) => {
+    socket.on('createRoom', async (data: { name: string; avatarColor: string; sessionId: string; gameType?: GameType; doctorConfig?: Partial<DoctorConfig> }, callback) => {
       try {
         let code = generateRoomCode();
         while (activeRooms.has(code)) {
           code = generateRoomCode();
         }
 
-        const gameType: GameType = data.gameType === 'BHABHO' ? 'BHABHO' : (data.gameType === 'BLUFF_MASTER' ? 'BLUFF_MASTER' : 'DUKKI_BAZAAR');
+        const gameType: GameType = data.gameType === 'DOCTOR' ? 'DOCTOR' : (data.gameType === 'BHABHO' ? 'BHABHO' : (data.gameType === 'BLUFF_MASTER' ? 'BLUFF_MASTER' : 'DUKKI_BAZAAR'));
         const room = createRoomInstance(code, gameType);
+
+        if (room instanceof DoctorRoom && data.doctorConfig) {
+          room.updateConfig(data.doctorConfig, socket.id);
+        }
 
         const player = room.addPlayer({
           id: socket.id,
@@ -442,6 +458,87 @@ export function setupSocketHandlers(io: SocketIOServer) {
       }
 
       const res = room.playCard(socket.id, data.cardId);
+      if (res.success) {
+        broadcastRoomState(room);
+      }
+      callback?.(res);
+    });
+
+    // ==========================================
+    // Doctor Card Game Specific Socket Handlers
+    // ==========================================
+    socket.on('doctor:updateConfig', (data: { roomCode: string; config: Partial<DoctorConfig> }, callback) => {
+      const room = activeRooms.get(data.roomCode?.toUpperCase());
+      if (!room || !(room instanceof DoctorRoom)) {
+        return callback?.({ success: false, error: 'Doctor room not found' });
+      }
+
+      const res = room.updateConfig(data.config, socket.id);
+      if (res.success) {
+        broadcastRoomState(room);
+      }
+      callback?.(res);
+    });
+
+    socket.on('doctor:drawCard', (data: { roomCode: string }, callback) => {
+      const room = activeRooms.get(data.roomCode?.toUpperCase());
+      if (!room || !(room instanceof DoctorRoom)) {
+        return callback?.({ success: false, error: 'Doctor room not found' });
+      }
+
+      const res = room.drawCard(socket.id);
+      if (res.success) {
+        broadcastRoomState(room);
+      }
+      callback?.(res);
+    });
+
+    socket.on('doctor:pickDiscard', (data: { roomCode: string }, callback) => {
+      const room = activeRooms.get(data.roomCode?.toUpperCase());
+      if (!room || !(room instanceof DoctorRoom)) {
+        return callback?.({ success: false, error: 'Doctor room not found' });
+      }
+
+      const res = room.pickDiscard(socket.id);
+      if (res.success) {
+        broadcastRoomState(room);
+      }
+      callback?.(res);
+    });
+
+    socket.on('doctor:discardCards', (data: { roomCode: string; cardIds: string[] }, callback) => {
+      const room = activeRooms.get(data.roomCode?.toUpperCase());
+      if (!room || !(room instanceof DoctorRoom)) {
+        return callback?.({ success: false, error: 'Doctor room not found' });
+      }
+
+      const res = room.discardCards(socket.id, data.cardIds);
+      if (res.success) {
+        broadcastRoomState(room);
+      }
+      callback?.(res);
+    });
+
+    socket.on('doctor:callShow', (data: { roomCode: string }, callback) => {
+      const room = activeRooms.get(data.roomCode?.toUpperCase());
+      if (!room || !(room instanceof DoctorRoom)) {
+        return callback?.({ success: false, error: 'Doctor room not found' });
+      }
+
+      const res = room.callShow(socket.id);
+      if (res.success) {
+        broadcastRoomState(room);
+      }
+      callback?.(res);
+    });
+
+    socket.on('doctor:nextRound', (data: { roomCode: string }, callback) => {
+      const room = activeRooms.get(data.roomCode?.toUpperCase());
+      if (!room || !(room instanceof DoctorRoom)) {
+        return callback?.({ success: false, error: 'Doctor room not found' });
+      }
+
+      const res = room.nextRound(socket.id);
       if (res.success) {
         broadcastRoomState(room);
       }

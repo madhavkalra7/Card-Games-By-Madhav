@@ -7,6 +7,8 @@ import { Header } from '@/components/ui/Header';
 import { PokerTable } from '@/components/table/PokerTable';
 import { BluffTable } from '@/components/bluff/BluffTable';
 import { BhabhoTable } from '@/components/bhabho/BhabhoTable';
+import { DoctorTable } from '@/components/doctor/DoctorTable';
+import { DoctorSettingsModal } from '@/components/doctor/DoctorSettingsModal';
 import { PenaltyModal } from '@/components/modal/PenaltyModal';
 import { GameOverModal } from '@/components/modal/GameOverModal';
 import { RulesModal } from '@/components/modal/RulesModal';
@@ -19,7 +21,7 @@ import { Toast } from '@/components/ui/Toast';
 import { VoiceControls } from '@/components/voice/VoiceControls';
 import { voiceManager } from '@/lib/voice/voiceManager';
 import { useFriendsStore } from '@/store/friendsStore';
-import { Copy, Crown, Play, ShieldAlert, UserMinus, Users, WifiOff, UserPlus, Volume2, MessageSquare } from 'lucide-react';
+import { Copy, Crown, Play, ShieldAlert, UserMinus, Users, WifiOff, UserPlus, Volume2, MessageSquare, Trophy, Settings2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 export default function RoomPage({ params }: { params: Promise<{ code: string }> }) {
@@ -61,6 +63,7 @@ export default function RoomPage({ params }: { params: Promise<{ code: string }>
   const [joinError, setJoinError] = useState<string | null>(null);
   const [hasPromptedJoin, setHasPromptedJoin] = useState(false);
   const [showExitModal, setShowExitModal] = useState(false);
+  const [showDoctorSettings, setShowDoctorSettings] = useState(false);
 
   // Mobile side-swipe back and browser back navigation interception
   useEffect(() => {
@@ -247,7 +250,7 @@ export default function RoomPage({ params }: { params: Promise<{ code: string }>
                     Waiting Lobby
                   </span>
                   <span className="text-xs font-bold text-amber-400">
-                    {gameState.gameType === 'BLUFF_MASTER' ? 'Bluff Master' : gameState.gameType === 'BHABHO' ? 'Bhabho (Getaway)' : 'Dukki Bazaar'}
+                    {gameState.gameType === 'DOCTOR' ? 'Doctor (Low Sum)' : gameState.gameType === 'BLUFF_MASTER' ? 'Bluff Master' : gameState.gameType === 'BHABHO' ? 'Bhabho (Getaway)' : 'Dukki Bazaar'}
                   </span>
                 </div>
                 <h1 className="text-2xl sm:text-3xl font-black text-white font-serif mt-1">
@@ -298,10 +301,39 @@ export default function RoomPage({ params }: { params: Promise<{ code: string }>
                 <div className="flex items-center gap-2 bg-black/60 px-4 py-2 rounded-2xl border border-white/10 text-xs sm:text-sm font-bold">
                   <Users className="w-4 h-4 text-gold" />
                   <span className="text-white">{gameState.players.length} / 5 Players</span>
-                  <span className="text-zinc-400">(Min 3 to start)</span>
+                  <span className="text-zinc-400">({gameState.gameType === 'DOCTOR' ? 'Min 2 to start' : 'Min 3 to start'})</span>
                 </div>
               </div>
             </div>
+
+            {/* Doctor Custom Rules Banner in Lobby */}
+            {gameState.gameType === 'DOCTOR' && (
+              <div className="mt-4 p-3.5 sm:p-4 rounded-2xl bg-amber-500/10 border border-amber-500/30 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-md">
+                <div className="flex items-center gap-3 min-w-0">
+                  <div className="w-10 h-10 rounded-2xl bg-amber-500/20 border border-amber-400/50 flex items-center justify-center text-amber-300 shrink-0 shadow-sm">
+                    <Trophy className="w-5 h-5 text-amber-400" />
+                  </div>
+                  <div className="flex flex-col min-w-0">
+                    <span className="font-black text-xs sm:text-sm text-white uppercase tracking-wider truncate">
+                      Doctor Match Rules: {gameState.doctorState?.config.cardsPerPlayer || 8} Cards • Show ≤{gameState.doctorState?.config.showLimit || 10} • {gameState.doctorState?.config.totalRounds || 3} Rounds
+                    </span>
+                    <span className="text-[11px] text-zinc-400 truncate">
+                      Jokers = 50 PTS • Pairs/Triples/Quads shed points together • Lowest cumulative score wins!
+                    </span>
+                  </div>
+                </div>
+
+                {isHost && (
+                  <button
+                    type="button"
+                    onClick={() => setShowDoctorSettings(true)}
+                    className="px-4 py-2 rounded-xl bg-gradient-to-r from-amber-500 to-yellow-400 hover:from-amber-400 hover:to-yellow-300 text-black font-black text-xs uppercase tracking-wider shadow-gold-glow flex items-center gap-1.5 shrink-0 active:scale-95 transition-all cursor-pointer"
+                  >
+                    <span>⚙️ Custom Settings</span>
+                  </button>
+                )}
+              </div>
+            )}
 
             {/* Spectator Status Banner if waiting in lobby */}
             {gameState.isSpectator && (
@@ -423,7 +455,9 @@ export default function RoomPage({ params }: { params: Promise<{ code: string }>
       ) : (
         /* ==================== LIVE GAME TABLE VIEW (FULL SCREEN) ==================== */
         <div className="w-full h-screen h-[100dvh] overflow-hidden">
-          {gameState.gameType === 'BLUFF_MASTER' ? (
+          {gameState.gameType === 'DOCTOR' ? (
+            <DoctorTable state={gameState} />
+          ) : gameState.gameType === 'BLUFF_MASTER' ? (
             <BluffTable
               state={gameState}
               onPlayCards={playBluffCards}
@@ -444,6 +478,17 @@ export default function RoomPage({ params }: { params: Promise<{ code: string }>
             />
           )}
         </div>
+      )}
+
+      {/* Doctor Lobby Settings Modal */}
+      {gameState.gameType === 'DOCTOR' && gameState.doctorState && (
+        <DoctorSettingsModal
+          isOpen={showDoctorSettings}
+          onClose={() => setShowDoctorSettings(false)}
+          config={gameState.doctorState.config}
+          onSave={(newCfg) => useGameStore.getState().updateDoctorConfig(newCfg)}
+          isHost={isHost}
+        />
       )}
 
       {/* Game Over Leaderboard Modal */}
@@ -488,7 +533,7 @@ export default function RoomPage({ params }: { params: Promise<{ code: string }>
 
       {isLobby && (
         <div className="w-full text-center py-2 text-[10px] text-zinc-600">
-          Card Games By Madhav • {gameState.gameType === 'BLUFF_MASTER' ? 'Bluff Master' : 'Dukki Bazaar'} Table
+          Card Games By Madhav • {gameState.gameType === 'DOCTOR' ? 'Doctor (Low Sum)' : gameState.gameType === 'BHABHO' ? 'Bhabho (Getaway)' : gameState.gameType === 'BLUFF_MASTER' ? 'Bluff Master' : 'Dukki Bazaar'} Table
         </div>
       )}
     </main>

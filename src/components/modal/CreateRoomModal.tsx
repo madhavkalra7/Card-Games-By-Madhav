@@ -4,7 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useGameStore } from '@/store/gameStore';
 import { GameType } from '@/lib/types';
-import { X, Plus, Flame, ShieldAlert } from 'lucide-react';
+import { X, Plus, Flame, ShieldAlert, Trophy, Layers } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface CreateRoomModalProps {
@@ -37,6 +37,11 @@ export const CreateRoomModal: React.FC<CreateRoomModalProps> = ({
   const [gameType, setGameType] = useState<GameType>(initialGameType);
   const [loading, setLoading] = useState(false);
 
+  // Doctor custom settings
+  const [doctorCardsPerPlayer, setDoctorCardsPerPlayer] = useState<8 | 10 | 12>(8);
+  const [doctorShowLimit, setDoctorShowLimit] = useState<number>(10);
+  const [doctorTotalRounds, setDoctorTotalRounds] = useState<number>(3);
+
   useEffect(() => {
     if (isOpen) {
       initSocketListeners();
@@ -53,7 +58,16 @@ export const CreateRoomModal: React.FC<CreateRoomModalProps> = ({
     if (!name.trim()) return;
 
     setLoading(true);
-    const res = await createRoom(name.trim(), avatar, gameType);
+    const doctorConfig =
+      gameType === 'DOCTOR'
+        ? {
+            cardsPerPlayer: doctorCardsPerPlayer,
+            showLimit: doctorShowLimit,
+            totalRounds: doctorTotalRounds,
+          }
+        : undefined;
+
+    const res = await createRoom(name.trim(), avatar, gameType, doctorConfig);
     setLoading(false);
 
     if (res.success && res.code) {
@@ -107,7 +121,36 @@ export const CreateRoomModal: React.FC<CreateRoomModalProps> = ({
             <label className="block text-[11px] sm:text-xs font-bold text-zinc-300 uppercase tracking-wider mb-1.5 sm:mb-2">
               Select Game
             </label>
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+              <button
+                type="button"
+                onClick={() => setGameType('DOCTOR')}
+                className={cn(
+                  'p-2.5 rounded-xl border text-left transition-all flex flex-col relative',
+                  gameType === 'DOCTOR'
+                    ? 'bg-amber-500/20 border-amber-400 ring-1 ring-amber-400 shadow-gold-glow'
+                    : 'bg-zinc-900 border-zinc-800 text-zinc-400 hover:border-zinc-700'
+                )}
+              >
+                <div className="flex items-center justify-between">
+                  <span
+                    className={cn(
+                      'text-xs font-black uppercase flex items-center gap-1',
+                      gameType === 'DOCTOR' ? 'text-amber-400' : 'text-white'
+                    )}
+                  >
+                    <Trophy className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+                    Doctor
+                  </span>
+                  <span className="text-[8px] bg-red-600 text-white font-extrabold px-1 rounded shadow-sm">
+                    NEW
+                  </span>
+                </div>
+                <span className="text-[10px] text-zinc-400 mt-1">
+                  2-5 Players • Lowest Sum
+                </span>
+              </button>
+
               <button
                 type="button"
                 onClick={() => setGameType('DUKKI_BAZAAR')}
@@ -182,10 +225,98 @@ export const CreateRoomModal: React.FC<CreateRoomModalProps> = ({
                   </span>
                 </div>
                 <span className="text-[10px] text-zinc-400 mt-1">
-                  2-5 Players • Thulla & Escape
+                  2-5 Players • Thulla
                 </span>
               </button>
             </div>
+
+            {/* Doctor Custom Game Settings Panel in Create Room Modal */}
+            {gameType === 'DOCTOR' && (
+              <div className="mt-3 p-3 rounded-2xl bg-amber-500/10 border border-amber-500/30 space-y-3 animate-in fade-in duration-150">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-black uppercase tracking-wider text-amber-300 flex items-center gap-1.5">
+                    <Trophy className="w-3.5 h-3.5 text-yellow-400" />
+                    <span>Doctor Match Setup</span>
+                  </span>
+                  <span className="text-[10px] text-amber-400/80 font-mono">Customizable</span>
+                </div>
+
+                {/* 1. Cards Per Player */}
+                <div>
+                  <div className="flex items-center justify-between text-[11px] font-bold text-zinc-300 mb-1">
+                    <span>Cards Dealt:</span>
+                    <span className="text-amber-300 font-mono">{doctorCardsPerPlayer} Cards</span>
+                  </div>
+                  <div className="grid grid-cols-3 gap-1.5">
+                    {([8, 10, 12] as const).map((c) => (
+                      <button
+                        key={`c-${c}`}
+                        type="button"
+                        onClick={() => setDoctorCardsPerPlayer(c)}
+                        className={cn(
+                          'py-1.5 rounded-lg text-xs font-mono font-bold transition-all border',
+                          doctorCardsPerPlayer === c
+                            ? 'bg-amber-500 text-black border-amber-300 font-black shadow-sm'
+                            : 'bg-zinc-900 text-zinc-400 border-zinc-800 hover:border-zinc-700'
+                        )}
+                      >
+                        {c} Cards
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* 2. Show Limit */}
+                <div>
+                  <div className="flex items-center justify-between text-[11px] font-bold text-zinc-300 mb-1">
+                    <span>Show Threshold:</span>
+                    <span className="text-amber-300 font-mono">Hand Sum ≤ {doctorShowLimit}</span>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    {[10, 11, 12, 13, 14, 15].map((lim) => (
+                      <button
+                        key={`lim-${lim}`}
+                        type="button"
+                        onClick={() => setDoctorShowLimit(lim)}
+                        className={cn(
+                          'flex-1 py-1 rounded-lg text-xs font-mono font-bold transition-all border text-center',
+                          doctorShowLimit === lim
+                            ? 'bg-amber-500 text-black border-amber-300 font-black shadow-sm'
+                            : 'bg-zinc-900 text-zinc-400 border-zinc-800 hover:border-zinc-700'
+                        )}
+                      >
+                        {lim}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* 3. Total Rounds */}
+                <div>
+                  <div className="flex items-center justify-between text-[11px] font-bold text-zinc-300 mb-1">
+                    <span>Total Rounds:</span>
+                    <span className="text-amber-300 font-mono">{doctorTotalRounds} Rounds</span>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    {[1, 2, 3, 5, 7, 10].map((r) => (
+                      <button
+                        key={`r-${r}`}
+                        type="button"
+                        onClick={() => setDoctorTotalRounds(r)}
+                        className={cn(
+                          'flex-1 py-1 rounded-lg text-xs font-mono font-bold transition-all border text-center',
+                          doctorTotalRounds === r
+                            ? 'bg-amber-500 text-black border-amber-300 font-black shadow-sm'
+                            : 'bg-zinc-900 text-zinc-400 border-zinc-800 hover:border-zinc-700'
+                        )}
+                      >
+                        {r}R
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Name Input */}

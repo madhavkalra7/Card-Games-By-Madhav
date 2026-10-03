@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { GameStateClientView, CardFlightEvent, GameType, Rank } from '@/lib/types';
+import { GameStateClientView, CardFlightEvent, GameType, Rank, DoctorConfig } from '@/lib/types';
 import { getSocket, resolveBackendUrl } from '@/socket/client';
 import { getOrCreateSessionId, saveProfile, getSavedProfile } from '@/lib/utils';
 import { sounds } from '@/lib/sound';
@@ -54,7 +54,7 @@ interface GameStore {
   setRulesModalOpen: (open: boolean) => void;
   showToast: (text: string, type?: 'info' | 'error' | 'success') => void;
   
-  createRoom: (name: string, avatar: string, gameType?: GameType) => Promise<{ success: boolean; code?: string; error?: string }>;
+  createRoom: (name: string, avatar: string, gameType?: GameType, doctorConfig?: Partial<DoctorConfig>) => Promise<{ success: boolean; code?: string; error?: string }>;
   joinRoom: (code: string, name: string, avatar: string) => Promise<{ success: boolean; error?: string }>;
   startGame: () => void;
   drawCard: () => void;
@@ -73,6 +73,14 @@ interface GameStore {
 
   // Bhabho (Getaway) Actions
   playBhabhoCard: (cardId: string) => Promise<{ success: boolean; error?: string }>;
+
+  // Doctor Card Game Actions
+  updateDoctorConfig: (config: Partial<DoctorConfig>) => Promise<{ success: boolean; error?: string }>;
+  doctorDrawCard: () => Promise<{ success: boolean; error?: string }>;
+  doctorPickDiscard: () => Promise<{ success: boolean; error?: string }>;
+  doctorDiscardCards: (cardIds: string[]) => Promise<{ success: boolean; error?: string }>;
+  doctorCallShow: () => Promise<{ success: boolean; error?: string }>;
+  doctorNextRound: () => Promise<{ success: boolean; error?: string }>;
 
   // Card Flight Animations
   removeCardFlight: (id: string) => void;
@@ -398,7 +406,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
     });
   },
 
-  createRoom: (name, avatar, gameType = 'DUKKI_BAZAAR') => {
+  createRoom: (name, avatar, gameType = 'DUKKI_BAZAAR', doctorConfig) => {
     return new Promise(async (resolve) => {
       await resolveBackendUrl();
       const socket = getSocket();
@@ -421,7 +429,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
       }, 25000);
 
       const doEmit = () => {
-        socket.emit('createRoom', { name, avatarColor: avatar, sessionId, gameType }, (res: any) => {
+        socket.emit('createRoom', { name, avatarColor: avatar, sessionId, gameType, doctorConfig }, (res: any) => {
           if (settled) return;
           settled = true;
           clearTimeout(timer);
@@ -630,6 +638,111 @@ export const useGameStore = create<GameStore>((set, get) => ({
       socket.emit('bhabho:playCard', { roomCode, cardId }, (res: any) => {
         if (!res || !res.success) {
           const err = res?.error || 'Could not play card';
+          get().showToast(err, 'error');
+          resolve({ success: false, error: err });
+        } else {
+          sounds.playCardSlide();
+          resolve({ success: true });
+        }
+      });
+    });
+  },
+
+  // ==========================================
+  // Doctor Card Game Actions
+  // ==========================================
+  updateDoctorConfig: (config) => {
+    return new Promise((resolve) => {
+      const socket = getSocket();
+      const { roomCode } = get();
+      socket.emit('doctor:updateConfig', { roomCode, config }, (res: any) => {
+        if (!res || !res.success) {
+          const err = res?.error || 'Could not update Doctor settings';
+          get().showToast(err, 'error');
+          resolve({ success: false, error: err });
+        } else {
+          get().showToast('Doctor settings updated!', 'success');
+          resolve({ success: true });
+        }
+      });
+    });
+  },
+
+  doctorDrawCard: () => {
+    return new Promise((resolve) => {
+      const socket = getSocket();
+      const { roomCode } = get();
+      socket.emit('doctor:drawCard', { roomCode }, (res: any) => {
+        if (!res || !res.success) {
+          const err = res?.error || 'Could not draw card';
+          get().showToast(err, 'error');
+          resolve({ success: false, error: err });
+        } else {
+          sounds.playCardFlip();
+          resolve({ success: true });
+        }
+      });
+    });
+  },
+
+  doctorPickDiscard: () => {
+    return new Promise((resolve) => {
+      const socket = getSocket();
+      const { roomCode } = get();
+      socket.emit('doctor:pickDiscard', { roomCode }, (res: any) => {
+        if (!res || !res.success) {
+          const err = res?.error || 'Could not pick from discard';
+          get().showToast(err, 'error');
+          resolve({ success: false, error: err });
+        } else {
+          sounds.playCardSlide();
+          resolve({ success: true });
+        }
+      });
+    });
+  },
+
+  doctorDiscardCards: (cardIds: string[]) => {
+    return new Promise((resolve) => {
+      const socket = getSocket();
+      const { roomCode } = get();
+      socket.emit('doctor:discardCards', { roomCode, cardIds }, (res: any) => {
+        if (!res || !res.success) {
+          const err = res?.error || 'Could not discard cards';
+          get().showToast(err, 'error');
+          resolve({ success: false, error: err });
+        } else {
+          sounds.playCardSlide();
+          resolve({ success: true });
+        }
+      });
+    });
+  },
+
+  doctorCallShow: () => {
+    return new Promise((resolve) => {
+      const socket = getSocket();
+      const { roomCode } = get();
+      socket.emit('doctor:callShow', { roomCode }, (res: any) => {
+        if (!res || !res.success) {
+          const err = res?.error || 'Cannot call Show right now';
+          get().showToast(err, 'error');
+          resolve({ success: false, error: err });
+        } else {
+          sounds.playBazaarOpen();
+          resolve({ success: true });
+        }
+      });
+    });
+  },
+
+  doctorNextRound: () => {
+    return new Promise((resolve) => {
+      const socket = getSocket();
+      const { roomCode } = get();
+      socket.emit('doctor:nextRound', { roomCode }, (res: any) => {
+        if (!res || !res.success) {
+          const err = res?.error || 'Could not start next round';
           get().showToast(err, 'error');
           resolve({ success: false, error: err });
         } else {

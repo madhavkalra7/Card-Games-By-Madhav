@@ -90,18 +90,18 @@ const GAME_THEMES: Record<ExtendedGameType, GameThemeInfo> = {
   },
   DOCTOR: {
     title: 'DOCTOR',
-    hindi: 'डॉक्टर / ट्रम्प कोटा',
-    tagline: 'Strategic Indian Trick & Quota Battle',
+    hindi: 'डॉक्टर / लो सम (Low Sum)',
+    tagline: 'Shed Matching Sets, Minimize Hand Sum & Declare Show!',
     color: '#E882B4',
     panelColor: '#ED9DC4',
     glowColor: 'rgba(232, 130, 180, 0.35)',
     heroImage:
       'https://fifth-gentle-45902158.figma.site/_components/v2/4de492f6d9cf8244ad5293233e5c6f52407d42fc/3.4df853b4.png',
-    players: '3 - 6 Players',
-    deck: '52 Standard Cards',
-    styleBadge: 'Bidding & Trump Quota',
+    players: '2 - 5 Players',
+    deck: '52 Cards + Jokers (50 pts each)',
+    styleBadge: 'Low-Sum Discard & Show',
     objective:
-      'Calculate hand strength, win the bidding round to establish your secret Trump Suit, fulfill your exact trick quota, and outsmart table opponents.',
+      'Minimize your hand sum below the Show Limit. Discard matching rank sets (pairs, triples, quads), avoid 50-pt Jokers, and declare "SHOW!". The lowest hand sum scores 0 PTS; wrong show incurs a +50 PTS penalty per player!',
   },
 };
 
@@ -254,9 +254,8 @@ export const RulesModal: React.FC<RulesModalProps> = ({
                   : 'bg-white/5 hover:bg-white/10 text-zinc-300 hover:text-white border border-white/10'
               )}
             >
-              <span className="text-xs">💎</span>
+              <span className="text-xs">🩺</span>
               <span>Doctor</span>
-              <span className="text-[8px] bg-white/20 text-white px-1 py-0.2 rounded font-normal lowercase">soon</span>
             </button>
           </div>
         </div>
@@ -741,46 +740,189 @@ export const RulesModal: React.FC<RulesModalProps> = ({
           )}
 
           {/* ============================================================== */}
-          {/* TAB 4: DOCTOR (PREVIEW)                                        */}
+          {/* TAB 4: DOCTOR (LOW SUM CARD GAME)                              */}
           {/* ============================================================== */}
           {selectedTab === 'DOCTOR' && (
             <div className="space-y-3.5">
-              <div className="p-3.5 sm:p-4 rounded-2xl bg-zinc-900/70 border border-white/10 space-y-2.5">
+              {/* Step 1: Game Custom Settings & Input Window */}
+              <div className="p-3.5 sm:p-4 rounded-2xl bg-zinc-900/70 border border-white/10 space-y-3">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     <span className="w-6 h-6 rounded-lg bg-[#E882B4]/20 text-[#E882B4] border border-[#E882B4]/40 flex items-center justify-center font-mono font-black text-xs">
                       01
                     </span>
                     <h3 className="font-black text-sm sm:text-base text-white uppercase tracking-wide">
-                      Strategic Indian Trick &amp; Quota Battle
+                      Custom Room Settings (Game Input Window)
                     </h3>
                   </div>
-                  <span className="text-[10px] text-[#E882B4] font-bold font-mono">Bidding Engine</span>
+                  <span className="text-[10px] text-[#E882B4] font-bold font-mono">Room Setup</span>
+                </div>
+
+                <p className="text-zinc-200 leading-relaxed text-xs sm:text-sm">
+                  Upon creating a Doctor table, the host and players configure custom table parameters before starting the match:
+                </p>
+
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 text-xs">
+                  <div className="p-2.5 rounded-xl bg-black/60 border border-[#E882B4]/30">
+                    <strong className="text-[#E882B4] block mb-1 font-bold">1. Cards Dealt 🎴</strong>
+                    <span className="text-zinc-300">Choose between <strong>8, 10, or 12</strong> cards dealt per player at the start of each round.</span>
+                  </div>
+                  <div className="p-2.5 rounded-xl bg-black/60 border border-amber-500/30">
+                    <strong className="text-amber-400 block mb-1 font-bold">2. Show Limit 🎯</strong>
+                    <span className="text-zinc-300">Minimum <strong>10</strong> to maximum <strong>15</strong> points inclusive. You can only call Show if your sum is ≤ limit!</span>
+                  </div>
+                  <div className="p-2.5 rounded-xl bg-black/60 border border-emerald-500/30">
+                    <strong className="text-emerald-400 block mb-1 font-bold">3. Total Rounds 🏆</strong>
+                    <span className="text-zinc-300">Set match length from <strong>1 to 10</strong> rounds. Scores accumulate across all rounds on the whiteboard!</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Step 2: Card Point Values & The Dangerous Joker */}
+              <div className="p-3.5 sm:p-4 rounded-2xl bg-zinc-900/70 border border-white/10 space-y-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <span className="w-6 h-6 rounded-lg bg-[#E882B4]/20 text-[#E882B4] border border-[#E882B4]/40 flex items-center justify-center font-mono font-black text-xs">
+                      02
+                    </span>
+                    <h3 className="font-black text-sm sm:text-base text-white uppercase tracking-wide">
+                      Card Point Values &amp; The 50-Point Joker!
+                    </h3>
+                  </div>
+                  <span className="text-[10px] text-red-400 font-bold font-mono">Points Scale</span>
+                </div>
+
+                <p className="text-zinc-300 leading-relaxed text-xs sm:text-sm">
+                  Your core mission is to <strong>minimize your hand total</strong>. Lower is always better!
+                </p>
+
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-1 text-center font-mono text-xs">
+                  <div className="p-2 rounded-xl bg-black/50 border border-white/10">
+                    <span className="text-white font-bold block">Aces</span>
+                    <span className="text-emerald-400 text-[11px] font-black">1 POINT</span>
+                  </div>
+                  <div className="p-2 rounded-xl bg-black/50 border border-white/10">
+                    <span className="text-white font-bold block">2 to 10</span>
+                    <span className="text-blue-300 text-[11px] font-black">FACE VALUE</span>
+                  </div>
+                  <div className="p-2 rounded-xl bg-black/50 border border-white/10">
+                    <span className="text-white font-bold block">J, Q, K</span>
+                    <span className="text-amber-400 text-[11px] font-black">11, 12, 13 PTS</span>
+                  </div>
+                  <div className="p-2 rounded-xl bg-red-950/40 border border-red-500/50">
+                    <span className="text-red-300 font-bold block">JOKER 🃏</span>
+                    <span className="text-red-400 text-[11px] font-black">50 POINTS!</span>
+                  </div>
+                </div>
+
+                <div className="p-2.5 rounded-xl bg-red-950/30 border border-red-500/40 text-xs text-red-200">
+                  <strong className="text-red-400">⚠️ Joker Warning:</strong> A single Joker adds 50 points to your total! If you draw a Joker, your highest priority is to discard it immediately or pair it up to shed it safely!
+                </div>
+              </div>
+
+              {/* Step 3: Turn Flow: Draw Phase & Group Discards */}
+              <div className="p-3.5 sm:p-4 rounded-2xl bg-zinc-900/70 border border-white/10 space-y-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <span className="w-6 h-6 rounded-lg bg-[#E882B4]/20 text-[#E882B4] border border-[#E882B4]/40 flex items-center justify-center font-mono font-black text-xs">
+                      03
+                    </span>
+                    <h3 className="font-black text-sm sm:text-base text-white uppercase tracking-wide">
+                      Turn Flow: Draw &amp; Shedding Matching Sets
+                    </h3>
+                  </div>
+                  <span className="text-[10px] text-zinc-400 font-mono">Clockwise Play</span>
+                </div>
+
+                <div className="space-y-2 text-xs sm:text-sm text-zinc-300">
+                  <p>
+                    Each turn consists of two sequential phases: <strong className="text-white">1. Draw Phase</strong> followed by <strong className="text-white">2. Discard Phase</strong>.
+                  </p>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
+                    <div className="p-3 rounded-xl bg-black/60 border border-white/10 space-y-1">
+                      <strong className="text-[#E882B4] block font-bold">Phase 1: Draw Options</strong>
+                      <ul className="list-disc list-inside space-y-1 text-zinc-300">
+                        <li>Draw 1 blind card from the center face-down deck.</li>
+                        <li><strong>OR</strong> Pick from the open Discard Pile!</li>
+                      </ul>
+                    </div>
+
+                    <div className="p-3 rounded-xl bg-black/60 border border-white/10 space-y-1">
+                      <strong className="text-emerald-400 block font-bold">Phase 2: Discard Sets</strong>
+                      <ul className="list-disc list-inside space-y-1 text-zinc-300">
+                        <li>Discard any single high card.</li>
+                        <li><strong>OR</strong> Discard a <strong>matching rank set</strong> (pair, triple, or quad of same rank, e.g. three 4s = shed 12 pts at once!).</li>
+                      </ul>
+                    </div>
+                  </div>
+
+                  <div className="p-3 rounded-xl bg-amber-950/30 border border-amber-500/40 text-xs text-amber-200">
+                    <strong className="text-amber-400">🔥 All-or-Nothing Discard Pickup Rule:</strong> If the previous player discarded a set of 2, 3, or 4 matching cards together, and you choose to draw from the discard pile instead of the deck, you <strong>MUST pick up ALL cards of that group together</strong>! You cannot selectively take only one.
+                  </div>
+
+                  <div className="p-2.5 rounded-xl bg-black/60 border border-white/10 text-xs text-zinc-400">
+                    <strong className="text-white">🔄 Auto-Reshuffle Rule:</strong> If the center draw deck is emptied, all cards previously thrown into the graveyard (except the active discard group) are automatically reshuffled face-down. The round never ends until a player calls Show!
+                  </div>
+                </div>
+              </div>
+
+              {/* Step 4: Calling "SHOW!" & Penalty Calculation */}
+              <div className="p-3.5 sm:p-4 rounded-2xl bg-red-950/30 border border-red-500/50 space-y-2.5">
+                <div className="flex items-center gap-2">
+                  <span className="w-6 h-6 rounded-lg bg-red-500/20 text-red-400 border border-red-500/40 flex items-center justify-center font-mono font-black text-xs">
+                    04
+                  </span>
+                  <h3 className="font-black text-sm sm:text-base text-red-400 uppercase tracking-wide">
+                    Declaring &quot;SHOW!&quot; &amp; The 50-Pt Penalty
+                  </h3>
                 </div>
 
                 <p className="text-zinc-200 text-xs sm:text-sm leading-relaxed">
-                  Doctor is a fiercely competitive Indian trick-taking format designed for 3 to 6 players. Players bid on the number of tricks they guarantee to conquer based on their hand strength.
+                  On your turn (before drawing), if your current hand sum is <strong>less than or equal to the room&apos;s Show Limit (10-15)</strong>, you can declare <strong className="text-amber-400">&quot;SHOW!&quot;</strong>.
                 </p>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1 text-xs">
-                  <div className="p-3 rounded-xl bg-black/60 border border-[#E882B4]/30 space-y-1">
-                    <strong className="text-[#E882B4] block font-bold">1. Secret Trump Selection:</strong>
+                  <div className="p-3 rounded-xl bg-black/60 border border-emerald-500/40 space-y-1">
+                    <span className="text-emerald-400 font-bold block">🏆 Successful Show (Lowest Sum):</span>
                     <span className="text-zinc-300">
-                      The highest bidder selects the hidden Trump Suit (Hukkum) face down.
+                      If you have strictly the lowest hand sum, you <strong>WIN THE ROUND</strong> and score <strong className="text-emerald-400">0 POINTS</strong>! Every opponent gets their actual hand sum added to their board score.
                     </span>
                   </div>
-                  <div className="p-3 rounded-xl bg-black/60 border border-[#E882B4]/30 space-y-1">
-                    <strong className="text-[#E882B4] block font-bold">2. Quota Fulfillment:</strong>
+
+                  <div className="p-3 rounded-xl bg-black/60 border border-red-500/40 space-y-1">
+                    <span className="text-red-400 font-bold block">🚨 Wrong Show (Penalty Slam!):</span>
                     <span className="text-zinc-300">
-                      Making your exact quota scores high points; falling short incurs severe point penalties!
+                      If ANY opponent has a hand sum lower than or equal to yours, you suffered a <strong>Wrong Show</strong>! You incur a penalty of <strong className="text-red-400">+50 POINTS PER PLAYER</strong> who beat or tied you, plus your hand sum! The true lowest player scores 0 PTS.
                     </span>
                   </div>
                 </div>
               </div>
 
-              <div className="p-3 rounded-xl bg-[#E882B4]/10 border border-[#E882B4]/30 flex items-center gap-2 text-xs text-[#E882B4]">
-                <Zap className="w-4 h-4 shrink-0" />
-                <span>Doctor multiplayer game room engine is currently in final development. Stay tuned!</span>
+              {/* Step 5: Crazy Animated Whiteboard Scoreboard & Tournament Champion */}
+              <div className="p-3.5 sm:p-4 rounded-2xl bg-[#E882B4]/10 border border-[#E882B4]/40 flex items-start gap-3">
+                <div className="p-2 rounded-xl bg-[#E882B4]/20 text-[#E882B4] shrink-0">
+                  <Trophy className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="font-black text-sm sm:text-base text-white uppercase tracking-wide">
+                    05 • Crazy Animated Marker Scoreboard &amp; Champion
+                  </h3>
+                  <p className="text-zinc-300 text-xs sm:text-sm mt-0.5 leading-relaxed">
+                    At the end of each round, a whiteboard clipboard slides into the center. Round scores are drawn with realistic <strong>thick black marker handwriting</strong> and squeaky sound effects! Round winners get circled with 0 PTS.
+                  </p>
+                  <p className="text-zinc-300 text-xs sm:text-sm mt-1 leading-relaxed">
+                    After all rounds conclude, cumulative totals are calculated. The player with the <strong className="text-emerald-400">LOWEST CUMULATIVE SCORE</strong> across the entire match is crowned the ultimate <strong className="text-[#E882B4]">Doctor Champion</strong>!
+                  </p>
+                </div>
+              </div>
+
+              {/* Pro Strategy Tip */}
+              <div className="p-3 rounded-xl bg-black/60 border border-white/10 flex items-start gap-2.5 text-xs text-zinc-400">
+                <Lightbulb className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
+                <p>
+                  <strong className="text-white">Pro Khiladi Tip:</strong> Don&apos;t rush to show right at the limit (e.g. 10 or 12) if you suspect someone has a 2-card hand of low numbers. Discard pairs or quads to push your sum down to 3, 2, or 1 before calling Show to ensure a guaranteed 0 PTS!
+                </p>
               </div>
             </div>
           )}

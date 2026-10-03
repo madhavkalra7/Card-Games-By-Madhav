@@ -5,9 +5,10 @@ export interface Card {
   id: string;
   suit: Suit;
   rank: Rank;
+  isJoker?: boolean;
 }
 
-export type GameType = 'DUKKI_BAZAAR' | 'BLUFF_MASTER' | 'BHABHO';
+export type GameType = 'DUKKI_BAZAAR' | 'BLUFF_MASTER' | 'BHABHO' | 'DOCTOR';
 
 export interface PlayerClientView {
   id: string;
@@ -120,6 +121,45 @@ export interface PenaltyLog {
   cardsTransferred: number;
 }
 
+export interface DoctorConfig {
+  cardsPerPlayer: 8 | 10 | 12;
+  showLimit: number; // 10 to 15
+  totalRounds: number; // 1 to 10
+}
+
+export interface DoctorRoundScore {
+  roundNumber: number;
+  scores: Record<string, number>; // Points added this round (0 for winner)
+  handSums: Record<string, number>; // Hand sum of each player
+  callerId: string;
+  callerName: string;
+  winnerId: string;
+  winnerName: string;
+  isWrongShow: boolean;
+  penaltyPlayerId?: string;
+  penaltyPoints?: number;
+  revealedHands: Record<string, Card[]>;
+}
+
+export interface DoctorStateClientView {
+  config: DoctorConfig;
+  currentRound: number;
+  totalRounds: number;
+  myHand: Card[];
+  myHandSum: number;
+  canCallShow: boolean;
+  turnPhase: 'DRAW' | 'DISCARD';
+  lastDiscardGroup: Card[];
+  lastDiscardPlayerName?: string;
+  discardPileCount: number;
+  drawDeckCount: number;
+  scoresHistory: DoctorRoundScore[];
+  cumulativeScores: Record<string, number>;
+  latestActionMessage?: string | null;
+  isRoundOver: boolean;
+  roundResult: DoctorRoundScore | null;
+}
+
 export interface CenterDeck {
   id: number; // 0, 1, 2, 3
   suit: Suit | null;
@@ -145,6 +185,7 @@ export interface GameStateClientView {
   myFloatingCard: Card | null;
   bluffState?: BluffStateClientView | null;
   bhabhoState?: BhabhoStateClientView | null;
+  doctorState?: DoctorStateClientView | null;
   lastMove: {
     playerId: string;
     action: 'DRAW' | 'CENTER' | 'RIGHT_DECK' | 'TIMEOUT';

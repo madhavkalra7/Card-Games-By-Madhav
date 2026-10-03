@@ -37,10 +37,10 @@ const IMAGES = [
     bg: '#E882B4',
     panel: '#ED9DC4',
     gameTitle: 'DOCTOR',
-    tagline: 'Strategic Indian Trick & Quota Battle',
-    description: 'A fiercely competitive, strategic Indian trick-taking battle. Calculate your moves, play high-value hands, and outsmart rivals at the table!',
-    actionText: 'VIEW DOCTOR',
-    isAvailable: false,
+    tagline: 'Low-Sum Discard & Show Card Game',
+    description: 'Shed matching rank sets to drop your hand sum below the Show Limit. Beware of 50-pt Jokers and wrong show penalties. Lowest cumulative score wins!',
+    actionText: 'PLAY DOCTOR',
+    isAvailable: true,
   },
   {
     src: 'https://fifth-gentle-45902158.figma.site/_components/v2/4de492f6d9cf8244ad5293233e5c6f52407d42fc/4.4457fbce.png',
@@ -765,7 +765,7 @@ export const ToonHeroSection: React.FC<ToonHeroSectionProps> = ({
             {/* Quick Room Action Buttons */}
             <div className="flex items-center gap-2">
               <button
-                onClick={() => onCreateRoom(activeIndex === 3 ? 'BLUFF_MASTER' : activeIndex === 1 ? 'BHABHO' : 'DUKKI_BAZAAR')}
+                onClick={() => onCreateRoom(activeIndex === 3 ? 'BLUFF_MASTER' : activeIndex === 2 ? 'DOCTOR' : activeIndex === 1 ? 'BHABHO' : 'DUKKI_BAZAAR')}
                 className={cn(
                   "flex items-center gap-1 rounded-xl bg-white text-zinc-900 font-black uppercase tracking-wider shadow-lg hover:bg-zinc-100 active:scale-95 transition-all",
                   isShortHeight ? "px-2.5 py-1.5 text-[10px]" : "px-3.5 sm:px-4 py-2 sm:py-2.5 text-xs"

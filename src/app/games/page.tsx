@@ -70,17 +70,16 @@ const GAMES: GameItem[] = [
   {
     id: 'doctor',
     title: 'DOCTOR',
-    subtitle: 'Strategic Indian Trick & Quota Battle',
-    tagline: 'Calculate moves, play high-value hands, and outsmart rivals.',
-    players: '3 - 6 Players',
-    deck: '52 Cards',
-    status: 'locked',
-    badge: 'Coming Soon',
+    subtitle: 'Low-Sum Discard & Show Card Game',
+    tagline: 'Shed matching sets, minimize hand sum, and declare Show!',
+    players: '2 - 5 Players',
+    deck: '52 Cards + Jokers',
+    status: 'available',
     color: '#E882B4',
     panelColor: '#ED9DC4',
     image: 'https://fifth-gentle-45902158.figma.site/_components/v2/4de492f6d9cf8244ad5293233e5c6f52407d42fc/3.4df853b4.png',
     avatarName: 'Diamonds Shield',
-    description: 'A fiercely competitive, strategic Indian trick-taking battle. Calculate your moves, play high-value hands, and outsmart rivals at the table!',
+    description: 'Shed pairs, triples, and quads to drop your hand sum below the Show Limit. Beware of 50-pt Jokers and wrong show penalties. Lowest score wins!',
   },
   {
     id: 'bluff-master',
@@ -296,7 +295,8 @@ export default function GamesPage() {
                     <>
                       <button
                         onClick={() => {
-                          setSelectedGameType(game.id === 'bluff-master' ? 'BLUFF_MASTER' : game.id === 'bhabho' ? 'BHABHO' : 'DUKKI_BAZAAR');
+                          const targetType: GameType = game.id === 'doctor' ? 'DOCTOR' : (game.id === 'bluff-master' ? 'BLUFF_MASTER' : (game.id === 'bhabho' ? 'BHABHO' : 'DUKKI_BAZAAR'));
+                          setSelectedGameType(targetType);
                           setIsCreateOpen(true);
                         }}
                         className="flex-1 min-w-[130px] flex items-center justify-center gap-2 py-2.5 sm:py-3 px-4 rounded-xl font-black text-xs uppercase tracking-wider transition-all shadow-lg active:scale-95"
@@ -319,7 +319,8 @@ export default function GamesPage() {
 
                       <button
                         onClick={() => {
-                          setSelectedGameType(game.id === 'bluff-master' ? 'BLUFF_MASTER' : game.id === 'bhabho' ? 'BHABHO' : 'DUKKI_BAZAAR');
+                          const targetType: GameType = game.id === 'doctor' ? 'DOCTOR' : (game.id === 'bluff-master' ? 'BLUFF_MASTER' : (game.id === 'bhabho' ? 'BHABHO' : 'DUKKI_BAZAAR'));
+                          setSelectedGameType(targetType);
                           setRulesModalOpen(true);
                         }}
                         className="p-2.5 sm:p-3 rounded-xl bg-white/10 border border-white/20 hover:bg-white/20 text-white transition-all active:scale-95"

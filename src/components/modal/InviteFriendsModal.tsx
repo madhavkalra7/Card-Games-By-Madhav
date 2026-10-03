@@ -116,11 +116,11 @@ export const InviteFriendsModal: React.FC<InviteFriendsModalProps> = ({ roomCode
     const res = await addFriend(quickAddInput.trim());
     setIsAdding(false);
     if (res.success) {
-      showToast(`Added ${quickAddInput.trim()}!`, 'success');
+      showToast(res.message || `Friend request sent to ${quickAddInput.trim()}! Waiting for acceptance.`, 'success');
       setQuickAddInput('');
       sounds.playCardDraw();
     } else {
-      showToast(res.error || 'Could not add friend', 'error');
+      showToast(res.error || 'Could not send friend request', 'error');
     }
   };
 

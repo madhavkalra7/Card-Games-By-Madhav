@@ -24,6 +24,9 @@ import {
   Eye,
   Play,
   MessageSquare,
+  Clock,
+  UserCheck,
+  UserX,
 } from 'lucide-react';
 import { useChatStore } from '@/store/chatStore';
 
@@ -37,6 +40,8 @@ export const FriendsModal: React.FC<FriendsModalProps> = ({ currentRoomCode }) =
     activeTab,
     leaderboard,
     friends,
+    pendingReceived,
+    pendingSent,
     onlinePlayers,
     isLoading,
     setFriendsModalOpen,
@@ -44,7 +49,8 @@ export const FriendsModal: React.FC<FriendsModalProps> = ({ currentRoomCode }) =
     fetchLeaderboard,
     fetchFriends,
     fetchOnlinePlayers,
-    addFriend,
+    sendFriendRequest,
+    respondToRequest,
     sendRoomInvite,
   } = useFriendsStore();
 
@@ -57,11 +63,47 @@ export const FriendsModal: React.FC<FriendsModalProps> = ({ currentRoomCode }) =
   const [addingFriend, setAddingFriend] = useState(false);
   const [addMsg, setAddMsg] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const [invitedIds, setInvitedIds] = useState<Record<string, boolean>>({});
+  const [processingRequestId, setProcessingRequestId] = useState<string | null>(null);
 
   // Real-time live search states
   const [searchResults, setSearchResults] = useState<FriendUser[]>([]);
   const [isSearching, setIsSearching] = useState(false);
   const [addingIdMap, setAddingIdMap] = useState<Record<string, boolean>>({});
+
+  const isFriendOfMine = (idOrName?: string) => {
+    if (!idOrName) return false;
+    const lower = idOrName.toLowerCase();
+    return friends.some(
+      (f) =>
+        (f.id && f.id.toLowerCase() === lower) ||
+        (f.name && f.name.toLowerCase() === lower) ||
+        (f.email && f.email.toLowerCase() === lower)
+    );
+  };
+
+  const isPendingSentTo = (idOrName?: string) => {
+    if (!idOrName) return false;
+    const lower = idOrName.toLowerCase();
+    return pendingSent.some(
+      (r) =>
+        (r.toUserId && r.toUserId.toLowerCase() === lower) ||
+        (r.toName && r.toName.toLowerCase() === lower) ||
+        (r.toEmail && r.toEmail.toLowerCase() === lower)
+    );
+  };
+
+  const getIncomingRequestFrom = (idOrName?: string) => {
+    if (!idOrName) return null;
+    const lower = idOrName.toLowerCase();
+    return (
+      pendingReceived.find(
+        (r) =>
+          (r.fromUserId && r.fromUserId.toLowerCase() === lower) ||
+          (r.fromName && r.fromName.toLowerCase() === lower) ||
+          (r.fromEmail && r.fromEmail.toLowerCase() === lower)
+      ) || null
+    );
+  };
 
   // Real-time debounced user search as user types
   useEffect(() => {
@@ -108,15 +150,15 @@ export const FriendsModal: React.FC<FriendsModalProps> = ({ currentRoomCode }) =
 
     setAddingFriend(true);
     setAddMsg(null);
-    const res = await addFriend(searchFriendInput.trim());
+    const res = await sendFriendRequest(searchFriendInput.trim());
     setAddingFriend(false);
 
     if (res.success) {
-      setAddMsg({ type: 'success', text: `Added ${searchFriendInput.trim()} to friends!` });
+      setAddMsg({ type: 'success', text: res.message || `Friend request sent to ${searchFriendInput.trim()}! Waiting for acceptance.` });
       setSearchFriendInput('');
       sounds.playCardDraw();
     } else {
-      setAddMsg({ type: 'error', text: res.error || 'Failed to add friend' });
+      setAddMsg({ type: 'error', text: res.error || 'Failed to send friend request' });
     }
   };
 
@@ -139,11 +181,6 @@ export const FriendsModal: React.FC<FriendsModalProps> = ({ currentRoomCode }) =
     } else {
       showToast(`Invited ${displayName} to room ${currentRoomCode}`, 'info');
     }
-  };
-
-  // Check if a leaderboard player is already a friend
-  const isFriendOfMine = (playerIdOrEmail: string) => {
-    return friends.some((f) => f.id === playerIdOrEmail || f.email === playerIdOrEmail || f.name === playerIdOrEmail);
   };
 
   return (
@@ -226,6 +263,11 @@ export const FriendsModal: React.FC<FriendsModalProps> = ({ currentRoomCode }) =
                 activeTab === 'friends' ? 'bg-black/30 text-black' : 'bg-gold/20 text-gold'
               )}>
                 {friends.length}
+              </span>
+            )}
+            {pendingReceived.length > 0 && (
+              <span className="ml-1 px-1.5 py-0.5 rounded-full text-[9px] font-extrabold bg-rose-600 text-white animate-pulse shadow-sm">
+                {pendingReceived.length} New
               </span>
             )}
           </button>
@@ -382,45 +424,103 @@ export const FriendsModal: React.FC<FriendsModalProps> = ({ currentRoomCode }) =
                           </button>
                         )}
 
-                        {!currentRoomCode && !isSelf && !isAlreadyFriend && (
-                          <button
-                            type="button"
-                            onClick={() => {
-                              addFriend(player.name);
-                              showToast(`Added ${player.name} to friends!`, 'success');
-                            }}
-                            className="p-1.5 sm:p-2 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 text-zinc-300 hover:text-white transition-all active:scale-95 cursor-pointer"
-                            title="Add to Friends"
-                          >
-                            <UserPlus className="w-3.5 h-3.5" />
-                          </button>
-                        )}
+                        {!currentRoomCode && !isSelf && (
+                          (() => {
+                            const isFriend = isAlreadyFriend;
+                            const incReq = getIncomingRequestFrom(player.id) || getIncomingRequestFrom(player.name) || (player.email ? getIncomingRequestFrom(player.email) : null);
+                            const isPending = isPendingSentTo(player.id) || isPendingSentTo(player.name) || (player.email ? isPendingSentTo(player.email) : false);
 
-                        {!currentRoomCode && !isSelf && isAlreadyFriend && (
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setFriendsModalOpen(false);
-                              const existing = friends.find((f) => f.id === player.id || f.name === player.name) || {
-                                id: player.id,
-                                name: player.name,
-                                email: player.email,
-                                avatarUrl: player.avatarUrl,
-                                avatarColor: player.avatarColor,
-                                avatarId: player.avatarId,
-                                totalScore: player.totalScore,
-                                totalGamesWon: player.totalGamesWon,
-                                totalGamesPlayed: player.totalGamesPlayed,
-                                winRate: player.winRate,
-                                coins: player.coins,
-                              };
-                              openChatWithFriend(existing);
-                            }}
-                            className="p-1.5 sm:p-2 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 border border-indigo-400/40 text-white transition-all active:scale-95 cursor-pointer shadow-sm"
-                            title={`Chat with ${player.name}`}
-                          >
-                            <MessageSquare className="w-3.5 h-3.5" />
-                          </button>
+                            if (isFriend) {
+                              return (
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setFriendsModalOpen(false);
+                                    const existing = friends.find((f) => f.id === player.id || f.name === player.name) || {
+                                      id: player.id,
+                                      name: player.name,
+                                      email: player.email,
+                                      avatarUrl: player.avatarUrl,
+                                      avatarColor: player.avatarColor,
+                                      avatarId: player.avatarId,
+                                      totalScore: player.totalScore,
+                                      totalGamesWon: player.totalGamesWon,
+                                      totalGamesPlayed: player.totalGamesPlayed,
+                                      winRate: player.winRate,
+                                      coins: player.coins,
+                                    };
+                                    openChatWithFriend(existing);
+                                  }}
+                                  className="p-1.5 sm:p-2 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 border border-indigo-400/40 text-white transition-all active:scale-95 cursor-pointer shadow-sm"
+                                  title={`Chat with ${player.name}`}
+                                >
+                                  <MessageSquare className="w-3.5 h-3.5" />
+                                </button>
+                              );
+                            }
+
+                            if (incReq) {
+                              const reqId = incReq.id || incReq._id || '';
+                              const isProc = processingRequestId === reqId;
+                              return (
+                                <button
+                                  type="button"
+                                  disabled={isProc}
+                                  onClick={async () => {
+                                    setProcessingRequestId(reqId);
+                                    const res = await respondToRequest(reqId, 'ACCEPT');
+                                    setProcessingRequestId(null);
+                                    if (res.success) {
+                                      sounds.playCardDraw();
+                                      showToast(`Accepted friend request from ${player.name}! Chat unlocked.`, 'success');
+                                    } else {
+                                      showToast(res.error || 'Failed to accept', 'error');
+                                    }
+                                  }}
+                                  className="px-2 py-1 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-[10px] uppercase tracking-wider flex items-center gap-1 shadow transition-all active:scale-95 cursor-pointer"
+                                  title={`Accept friend request from ${player.name}`}
+                                >
+                                  <UserCheck className="w-3 h-3" />
+                                  <span>Accept</span>
+                                </button>
+                              );
+                            }
+
+                            if (isPending) {
+                              return (
+                                <span
+                                  className="px-2 py-1 rounded-xl bg-amber-500/15 border border-amber-500/30 text-amber-300 text-[10px] font-bold flex items-center gap-1"
+                                  title="Friend request sent, awaiting acceptance"
+                                >
+                                  <Clock className="w-3 h-3" />
+                                  <span>Requested</span>
+                                </span>
+                              );
+                            }
+
+                            return (
+                              <button
+                                type="button"
+                                onClick={async () => {
+                                  if (!user) {
+                                    setAuthModalOpen(true, 'login');
+                                    return;
+                                  }
+                                  const res = await sendFriendRequest(player.name || player.id);
+                                  if (res.success) {
+                                    sounds.playCardDraw();
+                                    showToast(res.message || `Friend request sent to ${player.name}! Waiting for acceptance.`, 'success');
+                                  } else {
+                                    showToast(res.error || 'Failed to send request', 'error');
+                                  }
+                                }}
+                                className="p-1.5 sm:p-2 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 text-zinc-300 hover:text-white transition-all active:scale-95 cursor-pointer"
+                                title="Send Friend Request"
+                              >
+                                <UserPlus className="w-3.5 h-3.5" />
+                              </button>
+                            );
+                          })()
                         )}
                       </div>
                     </div>
@@ -435,6 +535,105 @@ export const FriendsModal: React.FC<FriendsModalProps> = ({ currentRoomCode }) =
         {activeTab === 'friends' && (
           <div className="flex-1 overflow-y-auto p-3 sm:p-6 space-y-4">
             
+            {/* Pending Incoming Friend Requests Banner / Section */}
+            {pendingReceived.length > 0 && (
+              <div className="space-y-2 p-3 sm:p-4 rounded-2xl bg-gradient-to-r from-rose-950/40 via-red-900/20 to-zinc-900/60 border border-rose-500/40 shadow-lg animate-in fade-in duration-200">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-xs font-black uppercase tracking-wider text-rose-300 flex items-center gap-1.5">
+                    <UserPlus className="w-3.5 h-3.5 text-rose-400 animate-bounce" />
+                    <span>Friend Requests Received ({pendingReceived.length})</span>
+                  </h3>
+                  <span className="text-[10px] text-rose-300/80 font-mono">Requires your response</span>
+                </div>
+
+                <div className="space-y-2 pt-1">
+                  {pendingReceived.map((req) => {
+                    const reqId = req.id || req._id || '';
+                    const cartoon = getAvatarById(req.fromAvatarId);
+                    const isProcessing = processingRequestId === reqId;
+
+                    return (
+                      <div
+                        key={reqId}
+                        className="flex items-center justify-between p-2.5 rounded-xl bg-black/60 border border-rose-500/30 gap-2"
+                      >
+                        <div className="flex items-center gap-2.5 min-w-0">
+                          <div
+                            className="w-9 h-9 rounded-full border border-rose-400/60 p-0.5 flex items-center justify-center overflow-hidden shrink-0 shadow"
+                            style={{ backgroundColor: `${cartoon.color}40` }}
+                          >
+                            <img
+                              src={req.fromAvatarUrl || cartoon.image}
+                              alt={req.fromName}
+                              className="w-full h-full object-contain filter drop-shadow"
+                            />
+                          </div>
+                          <div className="flex flex-col min-w-0">
+                            <span className="font-bold text-xs sm:text-sm text-white truncate max-w-[110px] sm:max-w-[170px]">
+                              {req.fromName}
+                            </span>
+                            <span className="text-[9px] text-zinc-400 truncate">
+                              {req.fromEmail || 'wants to be friends & chat'}
+                            </span>
+                          </div>
+                        </div>
+
+                        <div className="flex items-center gap-1.5 shrink-0">
+                          <button
+                            type="button"
+                            disabled={isProcessing}
+                            onClick={async () => {
+                              setProcessingRequestId(reqId);
+                              const res = await respondToRequest(reqId, 'ACCEPT');
+                              setProcessingRequestId(null);
+                              if (res.success) {
+                                sounds.playCardDraw();
+                                showToast(`You and ${req.fromName} are now friends! Chat unlocked.`, 'success');
+                              } else {
+                                showToast(res.error || 'Failed to accept', 'error');
+                              }
+                            }}
+                            className="px-2.5 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-[10px] sm:text-xs uppercase tracking-wider flex items-center gap-1 shadow-md transition-all active:scale-95 cursor-pointer disabled:opacity-50"
+                          >
+                            <UserCheck className="w-3 h-3" />
+                            <span>Accept</span>
+                          </button>
+                          <button
+                            type="button"
+                            disabled={isProcessing}
+                            onClick={async () => {
+                              setProcessingRequestId(reqId);
+                              const res = await respondToRequest(reqId, 'REJECT');
+                              setProcessingRequestId(null);
+                              if (res.success) {
+                                showToast(`Declined friend request from ${req.fromName}`, 'info');
+                              } else {
+                                showToast(res.error || 'Failed to decline', 'error');
+                              }
+                            }}
+                            className="px-2.5 py-1.5 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-zinc-300 hover:text-white font-bold text-[10px] sm:text-xs uppercase tracking-wider flex items-center gap-1 border border-white/10 transition-all active:scale-95 cursor-pointer disabled:opacity-50"
+                          >
+                            <UserX className="w-3 h-3" />
+                            <span>Decline</span>
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
+            {/* Pending Sent Requests info */}
+            {pendingSent.length > 0 && (
+              <div className="flex items-center gap-2 p-2.5 rounded-xl bg-amber-500/10 border border-amber-500/25 text-[11px] text-amber-300/90">
+                <Clock className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+                <span className="truncate">
+                  {pendingSent.length} pending friend request{pendingSent.length > 1 ? 's' : ''} sent ({pendingSent.map((p) => p.toName).join(', ')}). Chat unlocks once accepted.
+                </span>
+              </div>
+            )}
+
             {/* Add Friend Input Form */}
             <form onSubmit={handleAddFriend} className="flex flex-col gap-2">
               <label className="text-[11px] sm:text-xs font-bold uppercase tracking-wider text-zinc-300">
@@ -568,63 +767,111 @@ export const FriendsModal: React.FC<FriendsModalProps> = ({ currentRoomCode }) =
                               )}
 
                               {!isSelf && (
-                                isFriend ? (
-                                  <div className="flex items-center gap-1">
-                                    <span className="px-2 py-1 rounded-lg bg-emerald-500/15 border border-emerald-500/30 text-emerald-300 text-[10px] font-bold flex items-center gap-1">
-                                      <Check className="w-2.5 h-2.5" />
-                                      <span>Friend ✓</span>
-                                    </span>
+                                (() => {
+                                  const incReq = getIncomingRequestFrom(player.id) || getIncomingRequestFrom(player.name) || (player.email ? getIncomingRequestFrom(player.email) : null);
+                                  const isPending = isPendingSentTo(player.id) || isPendingSentTo(player.name) || (player.email ? isPendingSentTo(player.email) : false);
+
+                                  if (isFriend) {
+                                    return (
+                                      <div className="flex items-center gap-1">
+                                        <span className="px-2 py-1 rounded-lg bg-emerald-500/15 border border-emerald-500/30 text-emerald-300 text-[10px] font-bold flex items-center gap-1">
+                                          <Check className="w-2.5 h-2.5" />
+                                          <span>Friend ✓</span>
+                                        </span>
+                                        <button
+                                          type="button"
+                                          onClick={() => {
+                                            setFriendsModalOpen(false);
+                                            const existing = friends.find((f) => f.id === player.id || f.name === player.name) || {
+                                              id: player.id,
+                                              name: player.name,
+                                              email: player.email,
+                                              avatarUrl: player.avatarUrl,
+                                              avatarColor: player.avatarColor,
+                                              avatarId: player.avatarId,
+                                              totalScore: player.totalScore,
+                                              totalGamesWon: player.totalGamesWon,
+                                              totalGamesPlayed: player.totalGamesPlayed,
+                                              winRate: player.winRate,
+                                              coins: player.coins,
+                                            };
+                                            openChatWithFriend(existing);
+                                          }}
+                                          className="p-1 sm:p-1.5 rounded-lg bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white border border-indigo-400/40 transition-all active:scale-95 cursor-pointer shadow-sm"
+                                          title={`Chat with ${player.name}`}
+                                        >
+                                          <MessageSquare className="w-3 h-3" />
+                                        </button>
+                                      </div>
+                                    );
+                                  }
+
+                                  if (incReq) {
+                                    const reqId = incReq.id || incReq._id || '';
+                                    const isProc = processingRequestId === reqId;
+                                    return (
+                                      <button
+                                        type="button"
+                                        disabled={isProc}
+                                        onClick={async () => {
+                                          setProcessingRequestId(reqId);
+                                          const res = await respondToRequest(reqId, 'ACCEPT');
+                                          setProcessingRequestId(null);
+                                          if (res.success) {
+                                            sounds.playCardDraw();
+                                            showToast(`Accepted friend request from ${player.name}! Chat unlocked.`, 'success');
+                                          } else {
+                                            showToast(res.error || 'Failed to accept', 'error');
+                                          }
+                                        }}
+                                        className="px-2.5 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-[10px] uppercase tracking-wider flex items-center gap-1 shadow transition-all active:scale-95 cursor-pointer"
+                                        title={`Accept friend request from ${player.name}`}
+                                      >
+                                        <UserCheck className="w-3 h-3" />
+                                        <span>Accept</span>
+                                      </button>
+                                    );
+                                  }
+
+                                  if (isPending) {
+                                    return (
+                                      <span
+                                        className="px-2 py-1 rounded-lg bg-amber-500/15 border border-amber-500/30 text-amber-300 text-[10px] font-bold flex items-center gap-1"
+                                        title="Friend request sent, awaiting acceptance"
+                                      >
+                                        <Clock className="w-3 h-3" />
+                                        <span>Requested</span>
+                                      </span>
+                                    );
+                                  }
+
+                                  return (
                                     <button
                                       type="button"
-                                      onClick={() => {
-                                        setFriendsModalOpen(false);
-                                        const existing = friends.find((f) => f.id === player.id || f.name === player.name) || {
-                                          id: player.id,
-                                          name: player.name,
-                                          email: player.email,
-                                          avatarUrl: player.avatarUrl,
-                                          avatarColor: player.avatarColor,
-                                          avatarId: player.avatarId,
-                                          totalScore: player.totalScore,
-                                          totalGamesWon: player.totalGamesWon,
-                                          totalGamesPlayed: player.totalGamesPlayed,
-                                          winRate: player.winRate,
-                                          coins: player.coins,
-                                        };
-                                        openChatWithFriend(existing);
+                                      disabled={isAddingThis}
+                                      onClick={async () => {
+                                        if (!user) {
+                                          setAuthModalOpen(true, 'login');
+                                          return;
+                                        }
+                                        const key = player.id || player.name;
+                                        setAddingIdMap((prev) => ({ ...prev, [key]: true }));
+                                        const res = await sendFriendRequest(player.name || player.email || player.id);
+                                        setAddingIdMap((prev) => ({ ...prev, [key]: false }));
+                                        if (res.success) {
+                                          sounds.playCardDraw();
+                                          showToast(res.message || `Friend request sent to ${player.name}! Waiting for acceptance.`, 'success');
+                                        } else {
+                                          showToast(res.error || 'Could not send friend request', 'error');
+                                        }
                                       }}
-                                      className="p-1 sm:p-1.5 rounded-lg bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white border border-indigo-400/40 transition-all active:scale-95 cursor-pointer shadow-sm"
-                                      title={`Chat with ${player.name}`}
+                                      className="px-2.5 py-1 rounded-lg bg-gradient-to-r from-amber-500 to-yellow-400 hover:from-amber-400 hover:to-yellow-300 text-black font-black text-[10px] uppercase tracking-wider flex items-center gap-1 shadow-gold-glow active:scale-95 transition-all cursor-pointer"
                                     >
-                                      <MessageSquare className="w-3 h-3" />
+                                      <UserPlus className="w-3 h-3" />
+                                      <span>{isAddingThis ? 'Sending...' : '+ Add'}</span>
                                     </button>
-                                  </div>
-                                ) : (
-                                  <button
-                                    type="button"
-                                    disabled={isAddingThis}
-                                    onClick={async () => {
-                                      if (!user) {
-                                        setAuthModalOpen(true, 'login');
-                                        return;
-                                      }
-                                      const key = player.id || player.name;
-                                      setAddingIdMap((prev) => ({ ...prev, [key]: true }));
-                                      const res = await addFriend(player.name || player.email || player.id);
-                                      setAddingIdMap((prev) => ({ ...prev, [key]: false }));
-                                      if (res.success) {
-                                        sounds.playCardDraw();
-                                        showToast(`Added ${player.name} to friends!`, 'success');
-                                      } else {
-                                        showToast(res.error || 'Could not add friend', 'error');
-                                      }
-                                    }}
-                                    className="px-2.5 py-1 rounded-lg bg-gradient-to-r from-amber-500 to-yellow-400 hover:from-amber-400 hover:to-yellow-300 text-black font-black text-[10px] uppercase tracking-wider flex items-center gap-1 shadow-gold-glow active:scale-95 transition-all cursor-pointer"
-                                  >
-                                    <UserPlus className="w-3 h-3" />
-                                    <span>{isAddingThis ? 'Adding...' : '+ Add'}</span>
-                                  </button>
-                                )
+                                  );
+                                })()
                               )}
                             </div>
                           </div>

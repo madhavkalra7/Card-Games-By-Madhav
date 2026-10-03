@@ -84,6 +84,27 @@ const directMessageSchema = new mongoose.Schema({
 
 export const DirectMessageModel = mongoose.models.DirectMessage || mongoose.model('DirectMessage', directMessageSchema);
 
+// 6. Friend Request Schema (Separate collection for Friend Requests & Approvals)
+const friendRequestSchema = new mongoose.Schema({
+  fromUserId: { type: String, required: true, index: true },
+  fromName: { type: String, required: true },
+  fromEmail: { type: String },
+  fromAvatarUrl: { type: String },
+  fromAvatarColor: { type: String },
+  fromAvatarId: { type: String },
+  toUserId: { type: String, required: true, index: true },
+  toName: { type: String, required: true },
+  toEmail: { type: String },
+  toAvatarUrl: { type: String },
+  toAvatarColor: { type: String },
+  toAvatarId: { type: String },
+  status: { type: String, enum: ['PENDING', 'ACCEPTED', 'REJECTED'], default: 'PENDING', index: true },
+  createdAt: { type: Date, default: Date.now },
+  updatedAt: { type: Date, default: Date.now },
+});
+
+export const FriendRequestModel = mongoose.models.FriendRequest || mongoose.model('FriendRequest', friendRequestSchema);
+
 // Password hashing helpers using native crypto
 export function hashPassword(password: string): { salt: string; hash: string } {
   const salt = crypto.randomBytes(16).toString('hex');
@@ -393,6 +414,15 @@ export async function getUserFriendsList(userIdOrEmail: string) {
         { email: { $in: user.friends.map((f: string) => f.toLowerCase()) } },
         { name: { $in: user.friends } },
       ],
+      $and: [
+        {
+          $or: [
+            { friends: user._id.toString() },
+            { friends: user.email?.toLowerCase() },
+            { friends: user.name },
+          ],
+        },
+      ],
     }).lean();
 
     return friendsList.map((f: any) => ({
@@ -413,24 +443,190 @@ export async function getUserFriendsList(userIdOrEmail: string) {
   }
 }
 
-// Add friend for a user
-export async function addUserFriend(userIdOrEmail: string, friendEmailOrName: string) {
+// Check if two users are mutual accepted friends
+export async function areUsersFriends(userAIdOrName: string, userBIdOrName: string): Promise<boolean> {
+  const isConnected = await connectDB();
+  if (!isConnected || !userAIdOrName || !userBIdOrName) return false;
+
+  try {
+    const isObjA = mongoose.isValidObjectId(userAIdOrName);
+    const isObjB = mongoose.isValidObjectId(userBIdOrName);
+
+    const userA = isObjA
+      ? await UserModel.findById(userAIdOrName)
+      : await UserModel.findOne({
+          $or: [{ email: userAIdOrName.toLowerCase() }, { name: userAIdOrName }],
+        });
+
+    const userB = isObjB
+      ? await UserModel.findById(userBIdOrName)
+      : await UserModel.findOne({
+          $or: [{ email: userBIdOrName.toLowerCase() }, { name: userBIdOrName }],
+        });
+
+    if (!userA || !userB) return false;
+
+    const idA = userA._id.toString();
+    const idB = userB._id.toString();
+
+    const aHasB = (userA.friends || []).some(
+      (f: string) => f === idB || f.toLowerCase() === userB.email?.toLowerCase() || f === userB.name
+    );
+    const bHasA = (userB.friends || []).some(
+      (f: string) => f === idA || f.toLowerCase() === userA.email?.toLowerCase() || f === userA.name
+    );
+
+    return Boolean(aHasB && bHasA);
+  } catch (err: any) {
+    console.warn('⚠️ Error checking areUsersFriends:', err.message);
+    return false;
+  }
+}
+
+// Send a friend request (Will NOT auto-accept, requires recipient acceptance)
+export async function sendFriendRequest(senderUserIdOrEmail: string, friendEmailOrName: string) {
   const isConnected = await connectDB();
   if (!isConnected) return { success: false, error: 'Database not connected' };
 
   try {
     const cleanTarget = friendEmailOrName.trim().toLowerCase();
     const friendUser = await UserModel.findOne({
-      $or: [
-        { email: cleanTarget },
-        { name: friendEmailOrName.trim() },
-      ],
+      $or: [{ email: cleanTarget }, { name: friendEmailOrName.trim() }],
     });
 
     if (!friendUser) {
       return { success: false, error: 'Player not found with that name or email.' };
     }
 
+    const isObjectId = mongoose.isValidObjectId(senderUserIdOrEmail);
+    let senderUser;
+    if (isObjectId) {
+      senderUser = await UserModel.findById(senderUserIdOrEmail);
+    }
+    if (!senderUser) {
+      senderUser = await UserModel.findOne({
+        $or: [{ email: senderUserIdOrEmail.toLowerCase() }, { name: senderUserIdOrEmail }],
+      });
+    }
+
+    if (!senderUser) {
+      return { success: false, error: 'User not found. Please log in again.' };
+    }
+
+    const senderId = senderUser._id.toString();
+    const friendId = friendUser._id.toString();
+
+    if (senderId === friendId) {
+      return { success: false, error: 'You cannot send a friend request to yourself.' };
+    }
+
+    // Check if already mutual accepted friends
+    const alreadyFriends = await areUsersFriends(senderId, friendId);
+    if (alreadyFriends) {
+      return { success: false, error: 'You are already friends with this player!' };
+    }
+
+    // Check if an existing PENDING request from sender to target already exists
+    const existingReq = await FriendRequestModel.findOne({
+      fromUserId: senderId,
+      toUserId: friendId,
+      status: 'PENDING',
+    });
+
+    if (existingReq) {
+      return { success: false, error: 'Friend request already sent. Waiting for acceptance.' };
+    }
+
+    // Check if reverse request exists (target already sent a request to sender)
+    const reverseReq = await FriendRequestModel.findOne({
+      fromUserId: friendId,
+      toUserId: senderId,
+      status: 'PENDING',
+    });
+
+    if (reverseReq) {
+      // Both users want to be friends -> Accept it!
+      reverseReq.status = 'ACCEPTED';
+      reverseReq.updatedAt = new Date();
+      await reverseReq.save();
+
+      senderUser.friends = senderUser.friends || [];
+      if (!senderUser.friends.includes(friendId)) {
+        senderUser.friends.push(friendId);
+        await senderUser.save();
+      }
+
+      friendUser.friends = friendUser.friends || [];
+      if (!friendUser.friends.includes(senderId)) {
+        friendUser.friends.push(senderId);
+        await friendUser.save();
+      }
+
+      return {
+        success: true,
+        accepted: true,
+        message: `Accepted request from ${friendUser.name}! You are now mutual friends.`,
+        friend: {
+          id: friendId,
+          name: friendUser.name,
+          email: friendUser.email,
+          avatarUrl: friendUser.avatarUrl,
+          avatarColor: friendUser.avatarColor,
+          avatarId: friendUser.avatarId,
+          totalScore: friendUser.totalScore,
+          totalGamesWon: friendUser.totalGamesWon,
+          totalGamesPlayed: friendUser.totalGamesPlayed,
+        },
+      };
+    }
+
+    // Create new PENDING request
+    const newReq = await FriendRequestModel.create({
+      fromUserId: senderId,
+      fromName: senderUser.name,
+      fromEmail: senderUser.email,
+      fromAvatarUrl: senderUser.avatarUrl,
+      fromAvatarColor: senderUser.avatarColor,
+      fromAvatarId: senderUser.avatarId || 'toon-orange',
+      toUserId: friendId,
+      toName: friendUser.name,
+      toEmail: friendUser.email,
+      toAvatarUrl: friendUser.avatarUrl,
+      toAvatarColor: friendUser.avatarColor,
+      toAvatarId: friendUser.avatarId || 'toon-orange',
+      status: 'PENDING',
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    });
+
+    return {
+      success: true,
+      pending: true,
+      message: `Friend request sent to ${friendUser.name}! Waiting for them to accept.`,
+      request: {
+        id: newReq._id.toString(),
+        fromUserId: newReq.fromUserId,
+        fromName: newReq.fromName,
+        fromAvatarUrl: newReq.fromAvatarUrl,
+        fromAvatarColor: newReq.fromAvatarColor,
+        fromAvatarId: newReq.fromAvatarId,
+        toUserId: newReq.toUserId,
+        toName: newReq.toName,
+        status: newReq.status,
+        createdAt: newReq.createdAt.toISOString(),
+      },
+    };
+  } catch (err: any) {
+    return { success: false, error: err.message };
+  }
+}
+
+// Fetch incoming and outgoing friend requests
+export async function getFriendRequestsForUser(userIdOrEmail: string) {
+  const isConnected = await connectDB();
+  if (!isConnected || !userIdOrEmail) return { received: [], sent: [] };
+
+  try {
     const isObjectId = mongoose.isValidObjectId(userIdOrEmail);
     let user;
     if (isObjectId) {
@@ -442,38 +638,154 @@ export async function addUserFriend(userIdOrEmail: string, friendEmailOrName: st
       });
     }
 
-    if (!user) {
-      return { success: false, error: 'User not found' };
+    if (!user) return { received: [], sent: [] };
+
+    const myId = user._id.toString();
+    const myEmail = user.email ? user.email.toLowerCase() : '';
+
+    // 1. Incoming requests waiting for my approval
+    const receivedDocs = await FriendRequestModel.find({
+      $or: [{ toUserId: myId }, { toEmail: myEmail }],
+      status: 'PENDING',
+    })
+      .sort({ createdAt: -1 })
+      .lean();
+
+    // 2. Outgoing requests sent by me waiting for recipient
+    const sentDocs = await FriendRequestModel.find({
+      $or: [{ fromUserId: myId }, { fromEmail: myEmail }],
+      status: 'PENDING',
+    })
+      .sort({ createdAt: -1 })
+      .lean();
+
+    return {
+      received: receivedDocs.map((r: any) => ({
+        id: r._id.toString(),
+        fromUserId: r.fromUserId,
+        fromName: r.fromName,
+        fromEmail: r.fromEmail,
+        fromAvatarUrl: r.fromAvatarUrl,
+        fromAvatarColor: r.fromAvatarColor,
+        fromAvatarId: r.fromAvatarId || 'toon-orange',
+        toUserId: r.toUserId,
+        toName: r.toName,
+        status: r.status,
+        createdAt: r.createdAt ? new Date(r.createdAt).toISOString() : new Date().toISOString(),
+      })),
+      sent: sentDocs.map((r: any) => ({
+        id: r._id.toString(),
+        fromUserId: r.fromUserId,
+        fromName: r.fromName,
+        toUserId: r.toUserId,
+        toName: r.toName,
+        toEmail: r.toEmail,
+        toAvatarUrl: r.toAvatarUrl,
+        toAvatarColor: r.toAvatarColor,
+        toAvatarId: r.toAvatarId || 'toon-orange',
+        status: r.status,
+        createdAt: r.createdAt ? new Date(r.createdAt).toISOString() : new Date().toISOString(),
+      })),
+    };
+  } catch (err: any) {
+    console.warn('⚠️ Error fetching friend requests:', err.message);
+    return { received: [], sent: [] };
+  }
+}
+
+// Respond to friend request (ACCEPT or REJECT)
+export async function respondToFriendRequest(
+  requestId: string,
+  userIdOrEmail: string,
+  action: 'ACCEPT' | 'REJECT'
+) {
+  const isConnected = await connectDB();
+  if (!isConnected) return { success: false, error: 'Database not connected' };
+
+  try {
+    const request = await FriendRequestModel.findById(requestId);
+    if (!request) {
+      return { success: false, error: 'Friend request not found or expired.' };
     }
 
-    if (user._id.toString() === friendUser._id.toString()) {
-      return { success: false, error: 'You cannot add yourself as a friend.' };
+    if (request.status !== 'PENDING') {
+      return { success: false, error: `Request has already been ${request.status.toLowerCase()}.` };
     }
 
-    user.friends = user.friends || [];
-    const friendId = friendUser._id.toString();
-    if (!user.friends.includes(friendId) && !user.friends.includes(friendUser.email)) {
-      user.friends.push(friendId);
-      await user.save();
+    const isObjectId = mongoose.isValidObjectId(userIdOrEmail);
+    let currentUser;
+    if (isObjectId) {
+      currentUser = await UserModel.findById(userIdOrEmail);
+    }
+    if (!currentUser) {
+      currentUser = await UserModel.findOne({
+        $or: [{ email: userIdOrEmail.toLowerCase() }, { name: userIdOrEmail }],
+      });
+    }
+
+    if (!currentUser) {
+      return { success: false, error: 'User not found.' };
+    }
+
+    const currentUserId = currentUser._id.toString();
+    const currentUserEmail = currentUser.email ? currentUser.email.toLowerCase() : '';
+
+    if (request.toUserId !== currentUserId && request.toEmail?.toLowerCase() !== currentUserEmail) {
+      return { success: false, error: 'Unauthorized to respond to this request.' };
+    }
+
+    if (action === 'REJECT') {
+      request.status = 'REJECTED';
+      request.updatedAt = new Date();
+      await request.save();
+      return { success: true, action: 'REJECT', message: 'Friend request declined.' };
+    }
+
+    // Action is ACCEPT
+    request.status = 'ACCEPTED';
+    request.updatedAt = new Date();
+    await request.save();
+
+    // Mutual friendship addition
+    const fromUser = await UserModel.findById(request.fromUserId);
+    if (fromUser) {
+      fromUser.friends = fromUser.friends || [];
+      if (!fromUser.friends.includes(currentUserId)) {
+        fromUser.friends.push(currentUserId);
+        await fromUser.save();
+      }
+    }
+
+    currentUser.friends = currentUser.friends || [];
+    if (!currentUser.friends.includes(request.fromUserId)) {
+      currentUser.friends.push(request.fromUserId);
+      await currentUser.save();
     }
 
     return {
       success: true,
-      friend: {
-        id: friendUser._id.toString(),
-        name: friendUser.name,
-        email: friendUser.email,
-        avatarUrl: friendUser.avatarUrl,
-        avatarColor: friendUser.avatarColor,
-        avatarId: friendUser.avatarId,
-        totalScore: friendUser.totalScore,
-        totalGamesWon: friendUser.totalGamesWon,
-        totalGamesPlayed: friendUser.totalGamesPlayed,
-      },
+      action: 'ACCEPT',
+      message: `You and ${request.fromName} are now friends!`,
+      friend: fromUser ? {
+        id: fromUser._id.toString(),
+        name: fromUser.name,
+        email: fromUser.email,
+        avatarUrl: fromUser.avatarUrl,
+        avatarColor: fromUser.avatarColor,
+        avatarId: fromUser.avatarId,
+        totalScore: fromUser.totalScore,
+        totalGamesWon: fromUser.totalGamesWon,
+        totalGamesPlayed: fromUser.totalGamesPlayed,
+      } : null,
     };
   } catch (err: any) {
     return { success: false, error: err.message };
   }
+}
+
+// Add friend for a user -> redirects to sendFriendRequest so it creates a pending request
+export async function addUserFriend(userIdOrEmail: string, friendEmailOrName: string) {
+  return await sendFriendRequest(userIdOrEmail, friendEmailOrName);
 }
 
 // Search registered users by name or email for real-time friend finding

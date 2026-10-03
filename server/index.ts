@@ -16,7 +16,18 @@ import cors from 'cors';
 import { setupSocketHandlers } from './socket/handler';
 import net from 'net';
 import { execSync } from 'child_process';
-import { connectDB, getGlobalLeaderboard, getUserFriendsList, addUserFriend, saveDirectMessage, getDirectMessagesBetween } from './db';
+import {
+  connectDB,
+  getGlobalLeaderboard,
+  getUserFriendsList,
+  addUserFriend,
+  sendFriendRequest,
+  getFriendRequestsForUser,
+  respondToFriendRequest,
+  areUsersFriends,
+  saveDirectMessage,
+  getDirectMessagesBetween,
+} from './db';
 import { authRouter } from './routes/auth';
 import { verifyAuthToken } from '../src/lib/auth-token';
 
@@ -163,7 +174,13 @@ async function bootstrap() {
       const payload = verifyAuthToken(token);
       if (!payload) return res.json({ success: false, friends: [] });
       const friends = await getUserFriendsList(payload.userId);
-      res.json({ success: true, friends });
+      const requests = await getFriendRequestsForUser(payload.userId);
+      res.json({
+        success: true,
+        friends,
+        pendingReceived: requests.received,
+        pendingSent: requests.sent,
+      });
     } catch (err: any) {
       res.status(500).json({ success: false, error: err.message });
     }
@@ -183,7 +200,31 @@ async function bootstrap() {
 
       const { friendEmailOrName } = req.body || {};
       if (!friendEmailOrName) return res.status(400).json({ success: false, error: 'Provide friend name or email' });
-      const result = await addUserFriend(payload.userId, friendEmailOrName);
+      const result = await sendFriendRequest(payload.userId, friendEmailOrName);
+      res.json(result);
+    } catch (err: any) {
+      res.status(500).json({ success: false, error: err.message });
+    }
+  });
+
+  app.post('/api/friends/respond', async (req, res) => {
+    try {
+      const authHeader = req.headers.authorization;
+      let token = authHeader?.startsWith('Bearer ') ? authHeader.substring(7) : null;
+      if (!token && req.headers.cookie) {
+        const match = req.headers.cookie.match(/cg_auth_token=([^;]+)/);
+        if (match) token = match[1];
+      }
+      if (!token) return res.status(401).json({ success: false, error: 'Unauthorized' });
+      const payload = verifyAuthToken(token);
+      if (!payload) return res.status(401).json({ success: false, error: 'Unauthorized' });
+
+      const { requestId, action } = req.body || {};
+      if (!requestId || !action) {
+        return res.status(400).json({ success: false, error: 'Missing requestId or action' });
+      }
+
+      const result = await respondToFriendRequest(requestId, payload.userId, action);
       res.json(result);
     } catch (err: any) {
       res.status(500).json({ success: false, error: err.message });
@@ -232,6 +273,15 @@ async function bootstrap() {
 
       if (!text || !text.trim()) {
         return res.status(400).json({ success: false, error: 'Message cannot be empty' });
+      }
+
+      // Mutual friendship check: Users can only chat if accepted friends
+      const areFriends = await areUsersFriends(activeSenderId, activeRecipientId || activeRecipientName);
+      if (!areFriends) {
+        return res.status(403).json({
+          success: false,
+          error: 'Friend request pending. Chat will be enabled once your friend request is accepted.',
+        });
       }
 
       const savedMsg = await saveDirectMessage(

@@ -9,6 +9,8 @@ import { useGameStore } from '@/store/gameStore';
 import { useChatStore } from '@/store/chatStore';
 import { getSocket } from '@/socket/client';
 
+import { useFriendsStore } from '@/store/friendsStore';
+
 export const GlobalModals: React.FC = () => {
   const { user, checkAuth } = useAuthStore();
   const { myName, myAvatar } = useGameStore();
@@ -16,6 +18,7 @@ export const GlobalModals: React.FC = () => {
   useEffect(() => {
     checkAuth();
     useChatStore.getState().initSocketListeners();
+    useFriendsStore.getState().initSocketListeners();
   }, [checkAuth]);
 
   // Keep socket updated with current user registration

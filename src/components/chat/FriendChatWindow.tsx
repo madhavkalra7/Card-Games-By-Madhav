@@ -49,8 +49,15 @@ const QUICK_STARTERS = [
 
 export const FriendChatWindow: React.FC = () => {
   const { activeFriend, isChatWindowOpen, closeChatWindow, messagesByFriend, sendMessage, isLoadingHistory } = useChatStore();
-  const { onlinePlayers, sendRoomInvite } = useFriendsStore();
+  const { onlinePlayers, sendRoomInvite, friends } = useFriendsStore();
   const { roomCode: currentRoomCode, showToast } = useGameStore();
+
+  const isAcceptedFriend = friends.some(
+    (f) =>
+      (activeFriend?.id && f.id === activeFriend.id) ||
+      (activeFriend?.name && f.name.toLowerCase() === activeFriend.name.toLowerCase()) ||
+      (activeFriend?.email && f.email?.toLowerCase() === activeFriend.email.toLowerCase())
+  );
 
   const [inputText, setInputText] = useState('');
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
@@ -230,7 +237,19 @@ export const FriendChatWindow: React.FC = () => {
           </div>
         )}
 
-        {messages.length === 0 && !isLoadingHistory && (
+        {!isAcceptedFriend && (
+          <div className="mx-auto my-4 max-w-sm p-4 rounded-2xl bg-amber-500/10 border-2 border-amber-500/40 text-center shadow-lg animate-in fade-in">
+            <div className="w-11 h-11 rounded-full bg-amber-500/20 text-amber-300 mx-auto flex items-center justify-center text-xl mb-2">
+              ⏳
+            </div>
+            <h4 className="font-black text-sm text-amber-300">Friend Request Pending</h4>
+            <p className="text-xs text-zinc-300 mt-1.5 leading-relaxed">
+              You cannot send messages until <strong>{activeFriend.name}</strong> accepts your friend request. Once accepted, live 1-on-1 chat will unlock automatically!
+            </p>
+          </div>
+        )}
+
+        {messages.length === 0 && !isLoadingHistory && isAcceptedFriend && (
           <div className="flex flex-col items-center justify-center py-12 text-center max-w-sm mx-auto px-4">
             <div className="w-14 h-14 rounded-2xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-amber-400 text-2xl mb-3 shadow-lg">
               <MessageSquare className="w-7 h-7" />
@@ -370,14 +389,17 @@ export const FriendChatWindow: React.FC = () => {
           {/* Emoji Toggle Button */}
           <button
             type="button"
+            disabled={!isAcceptedFriend}
             onClick={() => setShowEmojiPicker((prev) => !prev)}
             className={cn(
               'p-2 sm:p-2.5 rounded-xl transition-all cursor-pointer shrink-0',
-              showEmojiPicker
+              !isAcceptedFriend
+                ? 'bg-zinc-800 text-zinc-600 cursor-not-allowed opacity-50'
+                : showEmojiPicker
                 ? 'bg-amber-500 text-black shadow-md'
                 : 'bg-zinc-800 text-zinc-300 hover:text-white hover:bg-zinc-700'
             )}
-            title="Emoji Picker"
+            title={!isAcceptedFriend ? 'Chat locked: Waiting for request acceptance' : 'Emoji Picker'}
           >
             <Smile className="w-5 h-5" />
           </button>
@@ -386,23 +408,33 @@ export const FriendChatWindow: React.FC = () => {
           <input
             ref={inputRef}
             type="text"
+            disabled={!isAcceptedFriend}
             value={inputText}
             onChange={(e) => setInputText(e.target.value)}
-            placeholder={`Message ${activeFriend.name}... (full keyboard & emojis)`}
-            className="flex-1 min-w-0 bg-zinc-950 border border-white/15 focus:border-amber-400 focus:outline-none rounded-xl px-3 sm:px-4 py-2 sm:py-2.5 text-xs sm:text-sm text-white placeholder:text-zinc-500 font-sans shadow-inner touch-manipulation"
+            placeholder={
+              !isAcceptedFriend
+                ? 'Chat is locked until friend request is accepted...'
+                : `Message ${activeFriend.name}... (full keyboard & emojis)`
+            }
+            className={cn(
+              'flex-1 min-w-0 border rounded-xl px-3 sm:px-4 py-2 sm:py-2.5 text-xs sm:text-sm font-sans shadow-inner touch-manipulation',
+              isAcceptedFriend
+                ? 'bg-zinc-950 border-white/15 focus:border-amber-400 focus:outline-none text-white placeholder:text-zinc-500'
+                : 'bg-zinc-900 border-zinc-800 text-zinc-500 placeholder:text-zinc-600 cursor-not-allowed'
+            )}
           />
 
           {/* Send Button */}
           <button
             type="submit"
-            disabled={!inputText.trim()}
+            disabled={!isAcceptedFriend || !inputText.trim()}
             className={cn(
               'p-2 sm:p-2.5 rounded-xl font-black transition-all cursor-pointer shrink-0 flex items-center justify-center',
-              inputText.trim()
+              isAcceptedFriend && inputText.trim()
                 ? 'bg-gradient-to-r from-amber-500 to-yellow-400 text-black shadow-gold-glow active:scale-95'
                 : 'bg-zinc-800 text-zinc-500 cursor-not-allowed opacity-50'
             )}
-            title="Send Message (Enter)"
+            title={!isAcceptedFriend ? 'Friend request pending' : 'Send Message (Enter)'}
           >
             <Send className="w-5 h-5" />
           </button>

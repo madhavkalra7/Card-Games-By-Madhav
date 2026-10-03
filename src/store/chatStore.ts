@@ -1,7 +1,7 @@
 'use client';
 
 import { create } from 'zustand';
-import { FriendUser } from './friendsStore';
+import { FriendUser, useFriendsStore } from './friendsStore';
 import { useAuthStore } from './authStore';
 import { useGameStore } from './gameStore';
 import { getSocket } from '@/socket/client';
@@ -138,6 +138,20 @@ export const useChatStore = create<ChatStoreState>((set, get) => ({
     const trimmed = text.trim();
     const { activeFriend } = get();
     if (!trimmed || !activeFriend) return false;
+
+    // Verify recipient is an accepted friend
+    const { friends } = useFriendsStore.getState();
+    const isAcceptedFriend = friends.some(
+      (f) =>
+        (activeFriend.id && f.id === activeFriend.id) ||
+        (activeFriend.name && f.name.toLowerCase() === activeFriend.name.toLowerCase()) ||
+        (activeFriend.email && f.email?.toLowerCase() === activeFriend.email.toLowerCase())
+    );
+
+    if (!isAcceptedFriend) {
+      useGameStore.getState().showToast('Friend request pending. Chat will be enabled once your request is accepted.', 'error');
+      return false;
+    }
 
     const { user } = useAuthStore.getState();
     const myName = user?.name || useGameStore.getState().myName || 'Player';

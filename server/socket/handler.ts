@@ -3,7 +3,15 @@ import { DukkiBazaarRoom } from '../game/engine';
 import { BluffMasterRoom } from '../game/bluffEngine';
 import { BhabhoRoom } from '../game/bhabhoEngine';
 import { GameType, Rank } from '../game/types';
-import { RoomModel, GameHistoryModel, updatePlayerStats, saveDirectMessage } from '../db';
+import {
+  RoomModel,
+  GameHistoryModel,
+  updatePlayerStats,
+  saveDirectMessage,
+  areUsersFriends,
+  sendFriendRequest,
+  respondToFriendRequest,
+} from '../db';
 
 const activeRooms = new Map<string, DukkiBazaarRoom | BluffMasterRoom | BhabhoRoom>();
 const disconnectTimers = new Map<string, NodeJS.Timeout>();
@@ -782,6 +790,16 @@ export function setupSocketHandlers(io: SocketIOServer) {
           return;
         }
 
+        // 0. Enforce friendship check: Users can only chat if accepted friends
+        const areFriends = await areUsersFriends(data.senderId || data.senderName, data.recipientId || data.recipientName);
+        if (!areFriends) {
+          if (callback) callback({
+            success: false,
+            error: 'Friend request pending. Chat will be enabled once your request is accepted.',
+          });
+          return;
+        }
+
         // 1. Save to separate database collection in MongoDB
         const savedMsg = await saveDirectMessage(
           data.senderId,
@@ -806,6 +824,45 @@ export function setupSocketHandlers(io: SocketIOServer) {
         if (callback) callback({ success: true, message: savedMsg });
       } catch (err: any) {
         if (callback) callback({ success: false, error: err?.message || 'Failed to send direct chat' });
+      }
+    });
+
+    // ==========================================
+    // Real-Time Friend Request Handlers
+    // ==========================================
+    socket.on('send_friend_request', async (data: { senderUserId: string; targetNameOrEmail: string }, callback) => {
+      try {
+        const res = await sendFriendRequest(data.senderUserId, data.targetNameOrEmail);
+        if (res.success && res.request) {
+          const target = (res.request.toUserId || res.request.toName || '').toLowerCase();
+          for (const [sId, u] of onlineUsers.entries()) {
+            if (
+              (u.userId && u.userId.toLowerCase() === target) ||
+              (u.name && u.name.toLowerCase() === target)
+            ) {
+              io.to(sId).emit('friend_request_received', res.request);
+            }
+          }
+        }
+        if (callback) callback(res);
+      } catch (err: any) {
+        if (callback) callback({ success: false, error: err?.message || 'Failed to send request' });
+      }
+    });
+
+    socket.on('respond_friend_request', async (data: { requestId: string; userId: string; action: 'ACCEPT' | 'REJECT' }, callback) => {
+      try {
+        const res = await respondToFriendRequest(data.requestId, data.userId, data.action);
+        if (res.success) {
+          io.emit('friend_request_updated', {
+            requestId: data.requestId,
+            action: data.action,
+            friend: res.friend,
+          });
+        }
+        if (callback) callback(res);
+      } catch (err: any) {
+        if (callback) callback({ success: false, error: err?.message || 'Failed to respond to request' });
       }
     });
 

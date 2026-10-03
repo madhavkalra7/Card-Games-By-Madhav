@@ -1,6 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { verifyAuthToken } from '@/lib/auth-token';
-import { getUserFriendsList, addUserFriend, searchUsers } from '../../../../server/db';
+import {
+  getUserFriendsList,
+  sendFriendRequest,
+  getFriendRequestsForUser,
+  respondToFriendRequest,
+  searchUsers,
+} from '../../../../server/db';
 
 export const dynamic = 'force-dynamic';
 
@@ -27,11 +33,17 @@ export async function GET(request: NextRequest) {
     }
 
     if (!userId) {
-      return NextResponse.json({ success: false, friends: [] });
+      return NextResponse.json({ success: true, friends: [], pendingReceived: [], pendingSent: [] });
     }
 
     const friends = await getUserFriendsList(userId);
-    return NextResponse.json({ success: true, friends });
+    const requests = await getFriendRequestsForUser(userId);
+    return NextResponse.json({
+      success: true,
+      friends,
+      pendingReceived: requests.received,
+      pendingSent: requests.sent,
+    });
   } catch (err: any) {
     return NextResponse.json({ success: false, error: err.message }, { status: 500 });
   }
@@ -45,13 +57,20 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { friendEmailOrName } = body || {};
+    const { friendEmailOrName, requestId, action } = body || {};
 
+    // 1. Responding to existing request (ACCEPT / REJECT)
+    if (requestId && action) {
+      const res = await respondToFriendRequest(requestId, userId, action);
+      return NextResponse.json(res);
+    }
+
+    // 2. Sending a new friend request
     if (!friendEmailOrName || typeof friendEmailOrName !== 'string' || !friendEmailOrName.trim()) {
       return NextResponse.json({ success: false, error: 'Please provide friend name or email' }, { status: 400 });
     }
 
-    const result = await addUserFriend(userId, friendEmailOrName.trim());
+    const result = await sendFriendRequest(userId, friendEmailOrName.trim());
     return NextResponse.json(result);
   } catch (err: any) {
     return NextResponse.json({ success: false, error: err.message }, { status: 500 });

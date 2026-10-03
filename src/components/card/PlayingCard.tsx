@@ -44,16 +44,48 @@ export const SuitIcon: React.FC<{ suit: Suit; className?: string }> = ({ suit, c
   }
 };
 
-export function getCardSvgPath(rank: Rank | string, suit: Suit | string, isGolden?: boolean): string {
-  if (isGolden || rank === 'JKR_GOLD' || rank === 'GOLDEN_JOKER' || suit === 'GOLD') {
+export function getCardSvgPath(
+  rank: Rank | string,
+  suit: Suit | string,
+  isGolden?: boolean,
+  specialEdition?: 'gold' | 'silver' | 'diamond'
+): string {
+  const cleanRankUpper = (rank || '').toString().toUpperCase();
+  const cleanSuitUpper = (suit || '').toString().toUpperCase();
+
+  if (
+    isGolden ||
+    specialEdition === 'gold' ||
+    cleanRankUpper === 'JKR_GOLD' ||
+    cleanRankUpper === 'GOLDEN_JOKER' ||
+    cleanSuitUpper === 'GOLD'
+  ) {
     return '/cards/golden_joker.png';
   }
 
-  if (rank === '🃏' || rank === 'JOKER' || rank === 'JKR' || suit === 'JKR') {
-    if (rank === 'JKR-BLK' || suit === 'BLK' || suit === 'BLACK' || suit === 'S' || suit === 'C') return '/cards/black_joker.svg';
-    return '/cards/red_joker.svg';
+  if (
+    specialEdition === 'diamond' ||
+    cleanSuitUpper === 'DIAMOND' ||
+    cleanRankUpper === 'A♠' ||
+    cleanRankUpper === 'DIAMOND_ACE'
+  ) {
+    if (cleanRankUpper === 'A' || cleanRankUpper === 'ACE' || cleanRankUpper === 'A♠' || cleanRankUpper === 'DIAMOND_ACE') {
+      return '/cards/diamond_ace.png';
+    }
   }
 
+  if (specialEdition === 'silver' || cleanSuitUpper === 'SILVER') {
+    if (cleanRankUpper === 'J' || cleanRankUpper === 'JACK') return '/cards/silver_jack.png';
+    if (cleanRankUpper === 'Q' || cleanRankUpper === 'QUEEN') return '/cards/silver_queen.png';
+    if (cleanRankUpper === 'K' || cleanRankUpper === 'KING') return '/cards/silver_king.png';
+  }
+
+  if (rank === '🃏' || cleanRankUpper === 'JOKER' || cleanRankUpper === 'JKR' || cleanSuitUpper === 'JKR') {
+    if (cleanRankUpper === 'JKR-BLK' || cleanSuitUpper === 'BLK' || cleanSuitUpper === 'BLACK' || cleanSuitUpper === 'S' || cleanSuitUpper === 'C') {
+      return '/cards/black_joker.svg';
+    }
+    return '/cards/red_joker.svg';
+  }
 
   const suitMap: Record<string, string> = {
     H: 'hearts',
@@ -79,8 +111,8 @@ export function getCardSvgPath(rank: Rank | string, suit: Suit | string, isGolde
     KING: 'king',
   };
 
-  const cleanSuit = suitMap[suit.toUpperCase()] || 'spades';
-  const cleanRank = rankMap[rank.toUpperCase()] || rank.toLowerCase();
+  const cleanSuit = suitMap[cleanSuitUpper] || 'spades';
+  const cleanRank = rankMap[cleanRankUpper] || (rank || '').toString().toLowerCase();
 
   return `/cards/${cleanRank}_of_${cleanSuit}.svg`;
 }
@@ -142,15 +174,48 @@ export const PlayingCard: React.FC<PlayingCardProps> = ({
     );
   }
 
+  const cleanRank = (card.rank || '').toString().toUpperCase();
+  const cleanSuit = (card.suit || '').toString().toUpperCase();
+  const cardId = card.id || '';
+
   const isGolden = Boolean(
     card.isGolden ||
     card.isGoldenJoker ||
-    card.id === 'store_golden_joker' ||
-    (card.rank as string) === 'JKR_GOLD' ||
-    (card.suit as string) === 'GOLD' ||
+    card.specialEdition === 'gold' ||
+    cardId === 'store_golden_joker' ||
+    cardId === 'card_golden_joker_fixed' ||
+    cardId === 'VAULT-GOLDEN-JOKER' ||
+    cleanRank === 'JKR_GOLD' ||
+    cleanRank === 'GOLDEN_JOKER' ||
+    cleanSuit === 'GOLD' ||
     (card as any)?.golden
   );
 
+  const isDiamondAce = Boolean(
+    card.isDiamond ||
+    card.isDiamondAce ||
+    card.specialEdition === 'diamond' ||
+    cleanSuit === 'DIAMOND' ||
+    cardId === 'store_diamond_ace' ||
+    cardId === 'VAULT-DIAMOND-ACE' ||
+    cleanRank === 'A♠' ||
+    cleanRank === 'DIAMOND_ACE' ||
+    (cardId.includes('diamond_ace') && (cleanRank === 'A' || cleanRank === 'ACE'))
+  );
+
+  const isSilver = Boolean(
+    card.isSilver ||
+    card.specialEdition === 'silver' ||
+    cleanSuit === 'SILVER' ||
+    cardId.includes('silver') ||
+    cardId.startsWith('VAULT-SILVER')
+  );
+
+  const isSilverJack = isSilver && (cleanRank === 'J' || cleanRank === 'JACK' || cardId.includes('SILVER-J') || cardId.includes('silver_jack'));
+  const isSilverQueen = isSilver && (cleanRank === 'Q' || cleanRank === 'QUEEN' || cardId.includes('SILVER-Q') || cardId.includes('silver_queen'));
+  const isSilverKing = isSilver && (cleanRank === 'K' || cleanRank === 'KING' || cardId.includes('SILVER-K') || cardId.includes('silver_king'));
+
+  // 1. 24K Solid Gold Joker
   if (isGolden) {
     return (
       <div
@@ -179,7 +244,76 @@ export const PlayingCard: React.FC<PlayingCardProps> = ({
     );
   }
 
-  const svgPath = getCardSvgPath(card.rank, card.suit);
+  // 2. Prismatic Diamond Ace
+  if (isDiamondAce) {
+    return (
+      <div
+        onClick={onClick}
+        className={cn(
+          'relative rounded-[7px] xs:rounded-[9px] sm:rounded-[11px] md:rounded-[13px] select-none shadow-md overflow-hidden',
+          'transition-all duration-200 flex items-center justify-center p-0.5',
+          'border-[1.5px] sm:border-2 border-cyan-400/90 bg-[#02131e]/50 shadow-[0_0_22px_rgba(56,189,248,0.45)]',
+          sizeClasses,
+          interactive && 'hover:-translate-y-2 hover:shadow-[0_0_32px_rgba(56,189,248,0.75)] cursor-pointer active:scale-95 touch-manipulation',
+          glow && 'ring-2 sm:ring-3 ring-cyan-300 shadow-[0_0_30px_rgba(56,189,248,0.9)] animate-pulse',
+          className
+        )}
+      >
+        <img
+          src="/cards/diamond_ace.png"
+          alt="Celestial Diamond Ace"
+          className="w-full h-full object-contain pointer-events-none select-none rounded-[5px] xs:rounded-[7px] sm:rounded-[9px]"
+          loading="eager"
+          decoding="async"
+        />
+
+        {/* Iridescent diamond prismatic shimmer overlay */}
+        <div className="absolute inset-0 bg-gradient-to-tr from-cyan-400/15 via-fuchsia-300/20 to-sky-300/15 pointer-events-none opacity-50 mix-blend-color-dodge rounded-[5px] xs:rounded-[7px] sm:rounded-[9px]" />
+      </div>
+    );
+  }
+
+  // 3. Liquid Silver Jack, Queen, King
+  if (isSilverJack || isSilverQueen || isSilverKing) {
+    const silverSrc = isSilverJack
+      ? '/cards/silver_jack.png'
+      : isSilverQueen
+      ? '/cards/silver_queen.png'
+      : '/cards/silver_king.png';
+    const silverName = isSilverJack
+      ? 'Liquid Silver Jack'
+      : isSilverQueen
+      ? 'Liquid Silver Queen'
+      : 'Liquid Silver King';
+
+    return (
+      <div
+        onClick={onClick}
+        className={cn(
+          'relative rounded-[7px] xs:rounded-[9px] sm:rounded-[11px] md:rounded-[13px] select-none shadow-md overflow-hidden',
+          'transition-all duration-200 flex items-center justify-center p-0.5',
+          'border-[1.5px] sm:border-2 border-slate-300/90 bg-[#0f172a]/50 shadow-[0_0_22px_rgba(203,213,225,0.4)]',
+          sizeClasses,
+          interactive && 'hover:-translate-y-2 hover:shadow-[0_0_32px_rgba(203,213,225,0.7)] cursor-pointer active:scale-95 touch-manipulation',
+          glow && 'ring-2 sm:ring-3 ring-slate-200 shadow-[0_0_30px_rgba(226,232,240,0.85)] animate-pulse',
+          className
+        )}
+      >
+        <img
+          src={silverSrc}
+          alt={silverName}
+          className="w-full h-full object-contain pointer-events-none select-none rounded-[5px] xs:rounded-[7px] sm:rounded-[9px]"
+          loading="eager"
+          decoding="async"
+        />
+
+        {/* Liquid chrome metallic shimmer overlay */}
+        <div className="absolute inset-0 bg-gradient-to-tr from-transparent via-white/30 to-transparent pointer-events-none opacity-45 mix-blend-overlay rounded-[5px] xs:rounded-[7px] sm:rounded-[9px]" />
+      </div>
+    );
+  }
+
+  const svgPath = getCardSvgPath(card.rank, card.suit, false, card.specialEdition);
   const isRed = card.suit === 'H' || card.suit === 'D';
   const suitSymbol = card.suit === 'H' ? '♥' : card.suit === 'D' ? '♦' : card.suit === 'C' ? '♣' : '♠';
 
@@ -203,7 +337,6 @@ export const PlayingCard: React.FC<PlayingCardProps> = ({
         loading="eager"
         decoding="async"
       />
-
     </div>
   );
 };

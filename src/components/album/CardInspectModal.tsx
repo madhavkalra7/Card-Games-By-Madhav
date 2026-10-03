@@ -125,7 +125,7 @@ export const CardInspectModal: React.FC = () => {
                         alt={selectedCard.name}
                         className={cn(
                           'w-full h-full object-contain pointer-events-none select-none rounded-[6px] xs:rounded-[8px] sm:rounded-[12px]',
-                          selectedCard.specialEffect === 'silver_chrome' && 'filter contrast-110 brightness-105 saturate-50'
+                          selectedCard.specialEffect === 'silver_chrome' && !svgUrl.endsWith('.png') && 'filter contrast-110 brightness-105 saturate-50'
                         )}
                         loading="eager"
                         decoding="async"

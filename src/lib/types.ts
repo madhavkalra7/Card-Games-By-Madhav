@@ -8,6 +8,10 @@ export interface Card {
   isJoker?: boolean;
   isGolden?: boolean;
   isGoldenJoker?: boolean;
+  isSilver?: boolean;
+  isDiamond?: boolean;
+  isDiamondAce?: boolean;
+  specialEdition?: 'gold' | 'silver' | 'diamond';
 }
 
 

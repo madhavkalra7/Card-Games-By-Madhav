@@ -14,11 +14,11 @@ interface CollectibleCardViewProps {
 }
 
 export function getCollectibleSvg(card: CollectibleCard): string {
-  if (card.id === 'VAULT-GOLDEN-JOKER') return '/cards/red_joker.svg';
-  if (card.id === 'VAULT-DIAMOND-ACE') return '/cards/ace_of_spades.svg';
-  if (card.id === 'VAULT-SILVER-J') return '/cards/jack_of_spades.svg';
-  if (card.id === 'VAULT-SILVER-Q') return '/cards/queen_of_spades.svg';
-  if (card.id === 'VAULT-SILVER-K') return '/cards/king_of_spades.svg';
+  if (card.id === 'VAULT-GOLDEN-JOKER') return '/cards/golden_joker.png';
+  if (card.id === 'VAULT-DIAMOND-ACE') return '/cards/diamond_ace.png';
+  if (card.id === 'VAULT-SILVER-J') return '/cards/silver_jack.png';
+  if (card.id === 'VAULT-SILVER-Q') return '/cards/silver_queen.png';
+  if (card.id === 'VAULT-SILVER-K') return '/cards/silver_king.png';
   return getCardSvgPath(card.rank, card.suit);
 }
 
@@ -93,7 +93,7 @@ export const CollectibleCardView: React.FC<CollectibleCardViewProps> = ({
                 alt={card.name}
                 className={cn(
                   'w-full h-full object-contain pointer-events-none select-none rounded-[5px] xs:rounded-[7px] sm:rounded-[11px]',
-                  card.specialEffect === 'silver_chrome' && 'filter contrast-110 brightness-105 saturate-50'
+                  card.specialEffect === 'silver_chrome' && !svgUrl.endsWith('.png') && 'filter contrast-110 brightness-105 saturate-50'
                 )}
                 loading="lazy"
                 decoding="async"

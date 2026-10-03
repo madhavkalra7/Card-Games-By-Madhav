@@ -1,10 +1,11 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { ArrowLeft, ArrowRight, Gamepad2, Plus, Users, Music, User, Trophy, BookOpen } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { funkyMusic } from '@/lib/funkyMusic';
+import { sounds } from '@/lib/sound';
 import { useAuthStore } from '@/store/authStore';
 import { useFriendsStore } from '@/store/friendsStore';
 import { getAvatarById } from '@/lib/avatars';
@@ -72,6 +73,20 @@ export const ToonHeroSection: React.FC<ToonHeroSectionProps> = ({
   const [isShortHeight, setIsShortHeight] = useState(false);
   const [isMusicPlaying, setIsMusicPlaying] = useState(false);
 
+  // Touch and drag swipe state
+  const [dragOffset, setDragOffset] = useState<number>(0);
+  const [isDragging, setIsDragging] = useState<boolean>(false);
+
+  const touchStartXRef = useRef<number | null>(null);
+  const touchStartYRef = useRef<number | null>(null);
+  const touchStartTimeRef = useRef<number>(0);
+  const hasDraggedRef = useRef<boolean>(false);
+
+  // Mouse drag support for desktop/laptop trackpads
+  const isMouseDownRef = useRef<boolean>(false);
+  const mouseStartXRef = useRef<number>(0);
+  const mouseStartTimeRef = useRef<number>(0);
+
   const user = useAuthStore((s) => s.user);
   const checkAuth = useAuthStore((s) => s.checkAuth);
   const setAuthModalOpen = useAuthStore((s) => s.setAuthModalOpen);
@@ -124,14 +139,157 @@ export const ToonHeroSection: React.FC<ToonHeroSectionProps> = ({
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
-  // Navigation logic with 650ms animation lock
+  // Navigation logic with 650ms animation lock + sound effect
   const navigate = (direction: 'next' | 'prev') => {
     if (isAnimating) return;
     setIsAnimating(true);
+    try {
+      sounds.playCardSlide();
+    } catch {}
     setActiveIndex((prev) => (direction === 'next' ? (prev + 1) % 4 : (prev + 3) % 4));
     setTimeout(() => {
       setIsAnimating(false);
     }, 650);
+  };
+
+  // Direct jump to game index
+  const goToIndex = (index: number) => {
+    if (index === activeIndex || isAnimating) return;
+    setIsAnimating(true);
+    try {
+      sounds.playCardSlide();
+    } catch {}
+    setActiveIndex(index);
+    setTimeout(() => {
+      setIsAnimating(false);
+    }, 650);
+  };
+
+  // Touch gesture handlers for mobile phone screens
+  const handleTouchStart = (e: React.TouchEvent) => {
+    if (isAnimating || e.touches.length !== 1) return;
+    touchStartXRef.current = e.touches[0].clientX;
+    touchStartYRef.current = e.touches[0].clientY;
+    touchStartTimeRef.current = Date.now();
+    hasDraggedRef.current = false;
+    setIsDragging(true);
+    setDragOffset(0);
+  };
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    if (!isDragging || touchStartXRef.current === null || touchStartYRef.current === null) return;
+    const currentX = e.touches[0].clientX;
+    const currentY = e.touches[0].clientY;
+    const deltaX = currentX - touchStartXRef.current;
+    const deltaY = currentY - touchStartYRef.current;
+
+    if (Math.abs(deltaX) > 10) {
+      hasDraggedRef.current = true;
+    }
+
+    // Only respond horizontally so normal vertical scroll is not blocked
+    if (Math.abs(deltaX) > Math.abs(deltaY) * 0.75) {
+      const clamped = Math.max(-110, Math.min(110, deltaX * 0.75));
+      setDragOffset(clamped);
+    }
+  };
+
+  const handleTouchEnd = (e: React.TouchEvent) => {
+    if (!isDragging || touchStartXRef.current === null) {
+      setIsDragging(false);
+      setDragOffset(0);
+      return;
+    }
+
+    const touchEndX = e.changedTouches[0].clientX;
+    const touchEndY = e.changedTouches[0].clientY;
+    const deltaX = touchEndX - touchStartXRef.current;
+    const deltaY = touchEndY - (touchStartYRef.current ?? touchEndY);
+    const duration = Math.max(Date.now() - touchStartTimeRef.current, 1);
+    const velocity = Math.abs(deltaX) / duration;
+
+    touchStartXRef.current = null;
+    touchStartYRef.current = null;
+    setIsDragging(false);
+    setDragOffset(0);
+
+    if (Math.abs(deltaX) > Math.abs(deltaY) * 0.75) {
+      // 38px swipe threshold or fast flick (>0.25px/ms with at least 18px movement)
+      const isSwipe = Math.abs(deltaX) > 38 || (Math.abs(deltaX) > 18 && velocity > 0.25);
+      if (isSwipe) {
+        if (deltaX < 0) {
+          navigate('next');
+        } else {
+          navigate('prev');
+        }
+      }
+    }
+  };
+
+  const handleTouchCancel = () => {
+    touchStartXRef.current = null;
+    touchStartYRef.current = null;
+    setIsDragging(false);
+    setDragOffset(0);
+  };
+
+  // Mouse drag handlers for desktop/laptop interaction
+  const handleMouseDown = (e: React.MouseEvent) => {
+    if (e.button !== 0 || isAnimating) return;
+    if ((e.target as HTMLElement).closest('button, a, input')) return;
+    isMouseDownRef.current = true;
+    mouseStartXRef.current = e.clientX;
+    mouseStartTimeRef.current = Date.now();
+    hasDraggedRef.current = false;
+    setIsDragging(true);
+    setDragOffset(0);
+  };
+
+  const handleMouseMove = (e: React.MouseEvent) => {
+    if (!isMouseDownRef.current) return;
+    const deltaX = e.clientX - mouseStartXRef.current;
+    if (Math.abs(deltaX) > 10) {
+      hasDraggedRef.current = true;
+    }
+    const clamped = Math.max(-110, Math.min(110, deltaX * 0.75));
+    setDragOffset(clamped);
+  };
+
+  const handleMouseUp = (e: React.MouseEvent) => {
+    if (!isMouseDownRef.current) return;
+    isMouseDownRef.current = false;
+    const deltaX = e.clientX - mouseStartXRef.current;
+    const duration = Math.max(Date.now() - mouseStartTimeRef.current, 1);
+    const velocity = Math.abs(deltaX) / duration;
+
+    setIsDragging(false);
+    setDragOffset(0);
+
+    const isSwipe = Math.abs(deltaX) > 40 || (Math.abs(deltaX) > 20 && velocity > 0.25);
+    if (isSwipe) {
+      if (deltaX < 0) {
+        navigate('next');
+      } else {
+        navigate('prev');
+      }
+    }
+  };
+
+  const handleMouseLeave = () => {
+    if (isMouseDownRef.current) {
+      isMouseDownRef.current = false;
+      setIsDragging(false);
+      setDragOffset(0);
+    }
+  };
+
+  const handleFigurineClick = (role: 'center' | 'left' | 'right' | 'back') => {
+    if (hasDraggedRef.current) {
+      hasDraggedRef.current = false;
+      return;
+    }
+    if (role === 'left') navigate('prev');
+    if (role === 'right') navigate('next');
   };
 
   // Keyboard arrow keys navigation
@@ -163,7 +321,17 @@ export const ToonHeroSection: React.FC<ToonHeroSectionProps> = ({
         fontFamily: "'Inter', sans-serif",
       }}
     >
-      <div className="relative w-full h-[100dvh] min-h-[320px] overflow-hidden">
+      <div
+        className="relative w-full h-[100dvh] min-h-[320px] overflow-hidden touch-pan-y"
+        onTouchStart={handleTouchStart}
+        onTouchMove={handleTouchMove}
+        onTouchEnd={handleTouchEnd}
+        onTouchCancel={handleTouchCancel}
+        onMouseDown={handleMouseDown}
+        onMouseMove={handleMouseMove}
+        onMouseUp={handleMouseUp}
+        onMouseLeave={handleMouseLeave}
+      >
         
         {/* 1. Grain overlay */}
         <div
@@ -473,21 +641,50 @@ export const ToonHeroSection: React.FC<ToonHeroSectionProps> = ({
               }
             }
 
+            // Interactive drag transformations for dynamic responsiveness
+            let activeDragTransform = roleStyle.transform || '';
+            let activeOpacity = roleStyle.opacity;
+            let activeFilter = roleStyle.filter;
+
+            if (isDragging && dragOffset !== 0) {
+              if (role === 'center') {
+                // Main figurine tilts and shifts with the finger
+                activeDragTransform = `${roleStyle.transform} translateX(${dragOffset * 0.75}px) rotate(${dragOffset * 0.04}deg)`;
+              } else if (role === 'left') {
+                // If dragging right, reveal left card
+                if (dragOffset > 0) {
+                  const factor = Math.min(1, dragOffset / 100);
+                  activeDragTransform = `${roleStyle.transform} translateX(${dragOffset * 0.4}px) scale(${1 + factor * 0.12})`;
+                  activeOpacity = Math.min(1, 0.85 + factor * 0.15);
+                  activeFilter = `blur(${Math.max(0, 2 - factor * 2)}px)`;
+                }
+              } else if (role === 'right') {
+                // If dragging left, reveal right card
+                if (dragOffset < 0) {
+                  const factor = Math.min(1, -dragOffset / 100);
+                  activeDragTransform = `${roleStyle.transform} translateX(${dragOffset * 0.4}px) scale(${1 + factor * 0.12})`;
+                  activeOpacity = Math.min(1, 0.85 + factor * 0.15);
+                  activeFilter = `blur(${Math.max(0, 2 - factor * 2)}px)`;
+                }
+              }
+            }
+
             return (
               <div
                 key={img.src}
                 className="cursor-pointer"
-                onClick={() => {
-                  if (role === 'left') navigate('prev');
-                  if (role === 'right') navigate('next');
-                }}
+                onClick={() => handleFigurineClick(role)}
                 style={{
                   position: 'absolute',
                   aspectRatio: '0.6 / 1',
-                  transition:
-                    'transform 650ms cubic-bezier(0.4, 0, 0.2, 1), filter 650ms cubic-bezier(0.4, 0, 0.2, 1), opacity 650ms cubic-bezier(0.4, 0, 0.2, 1), left 650ms cubic-bezier(0.4, 0, 0.2, 1)',
+                  transition: isDragging
+                    ? 'none'
+                    : 'transform 650ms cubic-bezier(0.4, 0, 0.2, 1), filter 650ms cubic-bezier(0.4, 0, 0.2, 1), opacity 650ms cubic-bezier(0.4, 0, 0.2, 1), left 650ms cubic-bezier(0.4, 0, 0.2, 1)',
                   willChange: 'transform, filter, opacity',
                   ...roleStyle,
+                  transform: activeDragTransform,
+                  opacity: activeOpacity,
+                  filter: activeFilter,
                 }}
               >
                 <img
@@ -515,6 +712,10 @@ export const ToonHeroSection: React.FC<ToonHeroSectionProps> = ({
               ? "bottom-[max(0.5rem,env(safe-area-inset-bottom))] left-[max(0.6rem,env(safe-area-inset-left))] sm:left-6 max-w-[270px] sm:max-w-[340px]"
               : "bottom-[max(0.75rem,env(safe-area-inset-bottom))] sm:bottom-16 left-[max(0.6rem,env(safe-area-inset-left))] sm:left-12 lg:left-24 max-w-[calc(100vw-20px)] xs:max-w-[320px] sm:max-w-[380px]"
           )}
+          style={{
+            transform: isDragging ? `translateX(${dragOffset * 0.12}px)` : undefined,
+            transition: isDragging ? 'none' : 'transform 250ms ease-out',
+          }}
         >
           {/* Glass Card Container */}
           <div className={cn(
@@ -581,55 +782,80 @@ export const ToonHeroSection: React.FC<ToonHeroSectionProps> = ({
             </div>
           </div>
 
-          {/* Two circular navigation buttons */}
+          {/* Navigation Controls: Arrows + Dots */}
           <div className="flex items-center gap-2 sm:gap-2.5">
             <button
               onClick={() => navigate('prev')}
               disabled={isAnimating}
               title="Previous Game"
               className={cn(
-                "rounded-full border-2 border-white flex items-center justify-center text-white transition-all active:scale-95",
+                "rounded-full border-2 border-white flex items-center justify-center text-white transition-all active:scale-95 shadow-md",
                 isShortHeight ? "w-8 h-8 sm:w-10 sm:h-10" : "w-10 h-10 sm:w-14 sm:h-14"
               )}
               style={{
-                backgroundColor: 'transparent',
+                backgroundColor: 'rgba(255, 255, 255, 0.1)',
                 transition: 'transform 150ms, background-color 150ms',
               }}
               onMouseEnter={(e) => {
                 e.currentTarget.style.transform = 'scale(1.08)';
-                e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.15)';
+                e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.2)';
               }}
               onMouseLeave={(e) => {
                 e.currentTarget.style.transform = 'scale(1)';
-                e.currentTarget.style.backgroundColor = 'transparent';
+                e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.1)';
               }}
             >
               <ArrowLeft className={cn(isShortHeight ? "w-4 h-4" : "w-4 h-4 sm:w-6 sm:h-6")} strokeWidth={2.25} />
             </button>
+
+            {/* Pagination Dots (Clickable + Active Game Indicator) */}
+            <div className="flex items-center gap-1.5 px-1 sm:px-2">
+              {IMAGES.map((img, i) => (
+                <button
+                  key={img.gameTitle}
+                  type="button"
+                  onClick={() => goToIndex(i)}
+                  title={`Go to ${img.gameTitle}`}
+                  className={cn(
+                    "h-2 rounded-full transition-all duration-300 cursor-pointer",
+                    i === activeIndex
+                      ? "w-6 sm:w-7 bg-white shadow-[0_0_10px_rgba(255,255,255,0.8)]"
+                      : "w-2 sm:w-2.5 bg-white/40 hover:bg-white/70"
+                  )}
+                />
+              ))}
+            </div>
 
             <button
               onClick={() => navigate('next')}
               disabled={isAnimating}
               title="Next Game"
               className={cn(
-                "rounded-full border-2 border-white flex items-center justify-center text-white transition-all active:scale-95",
+                "rounded-full border-2 border-white flex items-center justify-center text-white transition-all active:scale-95 shadow-md",
                 isShortHeight ? "w-8 h-8 sm:w-10 sm:h-10" : "w-10 h-10 sm:w-14 sm:h-14"
               )}
               style={{
-                backgroundColor: 'transparent',
+                backgroundColor: 'rgba(255, 255, 255, 0.1)',
                 transition: 'transform 150ms, background-color 150ms',
               }}
               onMouseEnter={(e) => {
                 e.currentTarget.style.transform = 'scale(1.08)';
-                e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.15)';
+                e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.2)';
               }}
               onMouseLeave={(e) => {
                 e.currentTarget.style.transform = 'scale(1)';
-                e.currentTarget.style.backgroundColor = 'transparent';
+                e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.1)';
               }}
             >
               <ArrowRight className={cn(isShortHeight ? "w-4 h-4" : "w-4 h-4 sm:w-6 sm:h-6")} strokeWidth={2.25} />
             </button>
+          </div>
+
+          {/* Mobile Swipe Guidance Hint */}
+          <div className="flex sm:hidden items-center gap-1.5 text-[9px] text-white/75 font-semibold tracking-wider uppercase mt-1 px-1 select-none pointer-events-none">
+            <span className="text-white/40">‹</span>
+            <span>Swipe screen or tap arrows</span>
+            <span className="text-white/40">›</span>
           </div>
         </div>
 

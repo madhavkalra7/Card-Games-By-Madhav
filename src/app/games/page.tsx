@@ -137,18 +137,18 @@ export default function GamesPage() {
       {/* 3. Top Navigation matching Landing Page */}
       <header className="relative z-30 w-full px-3 sm:px-8 py-3 sm:py-5 flex items-center justify-between border-b border-white/10 bg-black/30 backdrop-blur-md">
         <Link href="/" className="flex items-center gap-1.5 xs:gap-2 sm:gap-2.5 group min-w-0">
-          <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg bg-white/20 backdrop-blur-md flex items-center justify-center text-white font-black text-xs sm:text-sm border border-white/30 shadow-sm group-hover:scale-105 transition-transform shrink-0">
-            ♠
+          <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl overflow-hidden border border-white/40 shadow-md shrink-0 group-hover:scale-105 transition-transform">
+            <img src="/logo.png" alt="Card Games Logo" className="w-full h-full object-cover" />
           </div>
-          <div className="min-w-0">
+          <div className="flex flex-col min-w-0 justify-center">
             <span
-              className="text-[10px] sm:text-xs font-semibold uppercase text-white tracking-[0.14em] sm:tracking-[0.18em] block truncate"
-              style={{ opacity: 0.9 }}
+              className="text-[10px] sm:text-xs font-black uppercase text-white tracking-[0.1em] sm:tracking-[0.18em] whitespace-nowrap block truncate"
+              style={{ opacity: 0.95 }}
             >
               <span className="hidden xs:inline">CARD GAMES BY MADHAV</span>
               <span className="xs:hidden">CARD GAMES</span>
             </span>
-            <span className="hidden sm:block text-[9px] text-white/70 font-medium tracking-wider uppercase">
+            <span className="hidden sm:block text-[9px] text-white/75 font-medium tracking-wider uppercase whitespace-nowrap">
               Traditional Indian 52-Card Platform
             </span>
           </div>

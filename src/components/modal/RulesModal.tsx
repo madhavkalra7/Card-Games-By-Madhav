@@ -797,7 +797,10 @@ export const RulesModal: React.FC<RulesModalProps> = ({
               {currentTheme.title} Engine
             </span>
           </span>
-          <span className="font-mono">Card Games By Madhav</span>
+          <span className="font-mono flex items-center gap-1.5 text-zinc-400">
+            <img src="/logo.png" alt="Card Games Logo" className="w-3.5 h-3.5 rounded object-cover" />
+            <span>Card Games By Madhav</span>
+          </span>
         </div>
       </div>
     </div>

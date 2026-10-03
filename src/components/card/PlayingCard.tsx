@@ -50,7 +50,7 @@ export function getCardSvgPath(rank: Rank | string, suit: Suit | string, isGolde
   }
 
   if (rank === '🃏' || rank === 'JOKER' || rank === 'JKR' || suit === 'JKR') {
-    if (rank === 'JKR-BLK' || suit === 'BLK' || suit === 'BLACK') return '/cards/black_joker.svg';
+    if (rank === 'JKR-BLK' || suit === 'BLK' || suit === 'BLACK' || suit === 'S' || suit === 'C') return '/cards/black_joker.svg';
     return '/cards/red_joker.svg';
   }
 

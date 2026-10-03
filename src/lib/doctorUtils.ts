@@ -1,7 +1,18 @@
 import { Card } from './types';
 
+export function isDoctorJoker(card: Card | null | undefined): boolean {
+  if (!card) return false;
+  return Boolean(
+    card.isJoker ||
+    (card.rank as string) === 'JKR' ||
+    (card.rank as string) === 'JOKER' ||
+    (card.suit as string) === 'JKR' ||
+    (card.id && card.id.startsWith('JKR-'))
+  );
+}
+
 export function getDoctorCardValue(card: Card): number {
-  if (card.isJoker || (card.rank as string) === 'JKR' || (card.suit as string) === 'JKR') return 50;
+  if (isDoctorJoker(card)) return 50;
   if (card.rank === 'A') return 1;
   if (card.rank === 'J') return 11;
   if (card.rank === 'Q') return 12;

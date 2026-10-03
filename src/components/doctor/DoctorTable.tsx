@@ -6,7 +6,7 @@ import { useGameStore } from '@/store/gameStore';
 import { useFriendsStore } from '@/store/friendsStore';
 import { useRouter } from 'next/navigation';
 import { sounds } from '@/lib/sound';
-import { getDoctorCardValue, calculateDoctorHandSum } from '@/lib/doctorUtils';
+import { getDoctorCardValue, calculateDoctorHandSum, isDoctorJoker } from '@/lib/doctorUtils';
 import { PlayingCard } from '@/components/card/PlayingCard';
 import { DoctorSettingsModal } from './DoctorSettingsModal';
 import { DoctorScoreboardModal } from './DoctorScoreboardModal';
@@ -164,8 +164,11 @@ export const DoctorTable: React.FC<DoctorTableProps> = ({ state }) => {
       return;
     }
 
-    const isSameRank =
-      firstSelected.isJoker ? !!card.isJoker : (!card.isJoker && card.rank === firstSelected.rank);
+    const isFirstJoker = isDoctorJoker(firstSelected);
+    const isCardJoker = isDoctorJoker(card);
+    const isSameRank = isFirstJoker
+      ? isCardJoker
+      : (!isCardJoker && card.rank === firstSelected.rank);
 
     if (isSameRank) {
       // Add to pair/triple/quad
@@ -226,11 +229,12 @@ export const DoctorTable: React.FC<DoctorTableProps> = ({ state }) => {
     if (myHand.length === 0) return;
     sounds.playCardSlide();
 
-    // Look for pairs/triples/quads
+    // Look for pairs/triples/quads (including Joker pairs/triples)
     const rankGroups: Record<string, Card[]> = {};
     for (const c of myHand) {
-      rankGroups[c.rank] = rankGroups[c.rank] || [];
-      rankGroups[c.rank].push(c);
+      const key = isDoctorJoker(c) ? 'JKR' : c.rank;
+      rankGroups[key] = rankGroups[key] || [];
+      rankGroups[key].push(c);
     }
 
     let bestGroup: Card[] = [];
@@ -709,7 +713,7 @@ export const DoctorTable: React.FC<DoctorTableProps> = ({ state }) => {
             {sortedHand.map((card, idx) => {
               const isSelected = selectedCardIds.includes(card.id);
               const cardVal = getDoctorCardValue(card);
-              const isJoker = !!card.isJoker || (card.rank as string) === 'JKR' || (card.suit as string) === 'JKR';
+              const isJoker = isDoctorJoker(card);
 
               return (
                 <div

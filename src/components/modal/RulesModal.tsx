@@ -98,7 +98,7 @@ const GAME_THEMES: Record<ExtendedGameType, GameThemeInfo> = {
     heroImage:
       'https://fifth-gentle-45902158.figma.site/_components/v2/4de492f6d9cf8244ad5293233e5c6f52407d42fc/3.4df853b4.png',
     players: '2 - 5 Players',
-    deck: '52 Cards + Jokers (50 pts each)',
+    deck: '55-Card Deck (52 Cards + 3 Jokers)',
     styleBadge: 'Low-Sum Discard & Show',
     objective:
       'Minimize your hand sum below the Show Limit. Discard matching rank sets (pairs, triples, quads), avoid 50-pt Jokers, and declare "SHOW!". The lowest hand sum scores 0 PTS; wrong show incurs a +50 PTS penalty per player!',
@@ -852,7 +852,7 @@ export const RulesModal: React.FC<RulesModalProps> = ({
                       <strong className="text-emerald-400 block font-bold">Phase 2: Discard Sets</strong>
                       <ul className="list-disc list-inside space-y-1 text-zinc-300">
                         <li>Discard any single high card.</li>
-                        <li><strong>OR</strong> Discard a <strong>matching rank set</strong> (pair, triple, or quad of same rank, e.g. three 4s = shed 12 pts at once!).</li>
+                        <li><strong>OR</strong> Discard a <strong>matching rank set</strong> (pair, triple, or quad of same rank, e.g. three 4s = shed 12 pts at once, or a <strong>pair/triple of Jokers</strong> = shed 100 or 150 pts at once!).</li>
                       </ul>
                     </div>
                   </div>

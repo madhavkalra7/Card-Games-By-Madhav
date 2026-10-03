@@ -13,8 +13,19 @@ import { SUITS, RANKS, shuffleDeck } from './deck';
 import { drawRandomRewardCard, CollectibleRewardInfo } from '../../src/lib/collectibles';
 import { calculateRankPoints, calculateRankCoins } from './engine';
 
+export function isDoctorJoker(card: Card | null | undefined): boolean {
+  if (!card) return false;
+  return Boolean(
+    card.isJoker ||
+    (card.rank as string) === 'JKR' ||
+    (card.rank as string) === 'JOKER' ||
+    (card.suit as string) === 'JKR' ||
+    (card.id && card.id.startsWith('JKR-'))
+  );
+}
+
 export function getDoctorCardValue(card: Card): number {
-  if (card.isJoker || (card.rank as string) === 'JKR' || (card.suit as string) === 'JKR') return 50;
+  if (isDoctorJoker(card)) return 50;
   if (card.rank === 'A') return 1;
   if (card.rank === 'J') return 11;
   if (card.rank === 'Q') return 12;
@@ -28,11 +39,13 @@ export function calculateHandSum(cards: Card[]): number {
 }
 
 export function createDoctorDeck(playerCount: number = 4, cardsPerPlayer: number = 8): Card[] {
+  // 52 standard cards + 3 Jokers = 55 cards per deck
   const totalCardsNeeded = playerCount * cardsPerPlayer + 20;
-  const deckCount = totalCardsNeeded > 45 ? 2 : 1;
+  const deckCount = totalCardsNeeded > 48 ? 2 : 1;
   const deck: Card[] = [];
 
   for (let d = 0; d < deckCount; d++) {
+    // 52 standard cards
     for (const suit of SUITS) {
       for (const rank of RANKS) {
         deck.push({
@@ -42,16 +55,25 @@ export function createDoctorDeck(playerCount: number = 4, cardsPerPlayer: number
         });
       }
     }
-    // 2 Jokers per deck (Red Joker & Black Joker), each worth 50 points!
+    // 3 Jokers added to the 52-card deck -> 55-card deck!
+    // 1. Red Joker (Hearts)
     deck.push({
       id: `JKR-RED-${d}`,
       suit: 'H',
       rank: 'JKR' as unknown as Rank,
       isJoker: true,
     });
+    // 2. Black Joker (Spades)
     deck.push({
       id: `JKR-BLK-${d}`,
       suit: 'S',
+      rank: 'JKR' as unknown as Rank,
+      isJoker: true,
+    });
+    // 3. Color Joker (Diamonds)
+    deck.push({
+      id: `JKR-COL-${d}`,
+      suit: 'D',
       rank: 'JKR' as unknown as Rank,
       isJoker: true,
     });
@@ -425,11 +447,12 @@ export class DoctorRoom {
     // Either single card OR all cards have identical rank (e.g. all 4s, or all Jokers)
     if (selectedCards.length > 1) {
       const first = selectedCards[0];
+      const isFirstJoker = isDoctorJoker(first);
       const allSame = selectedCards.every((c) =>
-        first.isJoker ? c.isJoker : (!c.isJoker && c.rank === first.rank)
+        isFirstJoker ? isDoctorJoker(c) : (!isDoctorJoker(c) && c.rank === first.rank)
       );
       if (!allSame) {
-        return { success: false, error: 'Pairs, Triples, or Quads must have the EXACT SAME RANK to discard together!' };
+        return { success: false, error: 'Pairs, Triples, or Quads must have the EXACT SAME RANK (or all Jokers) to discard together!' };
       }
     }
 
@@ -442,7 +465,8 @@ export class DoctorRoom {
     this.lastDiscardPlayerName = current.name;
 
     const thrownSum = calculateHandSum(selectedCards);
-    this.latestActionMessage = `${current.name} discarded ${selectedCards.length} card(s) (${selectedCards.map((c) => c.rank).join(', ')}) [-${thrownSum} pts].`;
+    const thrownNames = selectedCards.map((c) => isDoctorJoker(c) ? '🃏 Joker' : c.rank).join(', ');
+    this.latestActionMessage = `${current.name} discarded ${selectedCards.length} card(s) (${thrownNames}) [-${thrownSum} pts].`;
 
     // Reshuffle discard into drawDeck if drawDeck is empty
     if (this.drawDeck.length === 0) {
@@ -721,8 +745,9 @@ export class DoctorRoom {
         // Discard highest pair or highest card
         const rankGroups: Record<string, Card[]> = {};
         for (const c of p.cards) {
-          rankGroups[c.rank] = rankGroups[c.rank] || [];
-          rankGroups[c.rank].push(c);
+          const key = isDoctorJoker(c) ? 'JKR' : c.rank;
+          rankGroups[key] = rankGroups[key] || [];
+          rankGroups[key].push(c);
         }
 
         let bestGroup: Card[] = [];

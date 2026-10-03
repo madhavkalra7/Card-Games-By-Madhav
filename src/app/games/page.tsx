@@ -194,10 +194,6 @@ export default function GamesPage() {
         
         {/* Page Title & Intro */}
         <div className="mb-5 sm:mb-10 text-center sm:text-left">
-          <div className="inline-flex items-center gap-1.5 sm:gap-2 px-3 py-1 rounded-full bg-white/10 border border-white/20 text-white text-[11px] sm:text-xs font-bold mb-2 sm:mb-3 backdrop-blur-md">
-            <Gamepad2 className="w-3.5 h-3.5 text-amber-300" />
-            <span className="tracking-wide">TRADITIONAL 52-CARD CATALOG • 4 INDIAN FORMATS</span>
-          </div>
 
           <h1
             className="text-3xl sm:text-5xl md:text-6xl font-black text-white tracking-tight uppercase"

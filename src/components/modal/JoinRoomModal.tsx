@@ -61,7 +61,7 @@ export const JoinRoomModal: React.FC<JoinRoomModalProps> = ({ isOpen, onClose, i
     >
       <div
         onClick={(e) => e.stopPropagation()}
-        className="relative w-full max-w-md max-h-[92vh] overflow-y-auto bg-zinc-950 border-2 border-gold/70 rounded-2xl sm:rounded-3xl p-4 sm:p-7 shadow-2xl"
+        className="relative w-full max-w-md max-h-[94dvh] my-auto overflow-y-auto bg-zinc-950 border-2 border-gold/70 rounded-2xl sm:rounded-3xl p-3.5 sm:p-7 shadow-2xl"
       >
         
         {/* Close */}

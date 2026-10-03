@@ -26,7 +26,8 @@ export const FanHand: React.FC<FanHandProps> = ({
   isMyTurn = false,
   disabled = false,
 }) => {
-  const { isMobile, viewportWidth } = useViewportOrientation();
+  const { isMobile, isLandscape, viewportWidth, viewportHeight } = useViewportOrientation();
+  const isLandscapeMobile = isLandscape && (viewportHeight <= 520 || isMobile);
   const total = cards.length;
 
   // Adaptive geometry for realistic zoomed hand fan
@@ -37,7 +38,9 @@ export const FanHand: React.FC<FanHandProps> = ({
 
     // Fan angle spread:
     // Gentle tilt across the hand, never exceeding 58 deg total span
-    const maxSpan = isMobile
+    const maxSpan = isLandscapeMobile
+      ? Math.min(38, Math.max(14, total * 1.6))
+      : isMobile
       ? Math.min(48, Math.max(16, total * 2.1))
       : Math.min(58, Math.max(22, total * 2.4));
     const angleStep = total > 1 ? maxSpan / (total - 1) : 0;
@@ -45,7 +48,10 @@ export const FanHand: React.FC<FanHandProps> = ({
     // Card spacing calculation:
     // Fits hands cleanly with at least 16px of each card exposed so ranks are crystal clear
     let cardSpacing = 28;
-    if (isMobile) {
+    if (isLandscapeMobile) {
+      const availWidth = Math.max(300, (viewportWidth || 600) - 80);
+      cardSpacing = total > 1 ? Math.max(14, Math.min(26, (availWidth - 60) / (total - 1))) : 0;
+    } else if (isMobile) {
       const availWidth = Math.max(280, (viewportWidth || 360) - 24);
       cardSpacing = total > 1 ? Math.max(16, Math.min(32, (availWidth - 68) / (total - 1))) : 0;
     } else {
@@ -55,7 +61,11 @@ export const FanHand: React.FC<FanHandProps> = ({
     }
 
     // Zoomed card width for mobile phone readability
-    const cardWidth = isMobile ? (total > 16 ? 64 : total > 10 ? 70 : 76) : 82;
+    const cardWidth = isLandscapeMobile
+      ? (total > 14 ? 50 : 58)
+      : isMobile
+      ? (total > 16 ? 64 : total > 10 ? 70 : 76)
+      : 82;
     const computedWidth = Math.max(280, (total - 1) * cardSpacing + cardWidth + 30);
 
     const styles = cards.map((card, i) => {
@@ -72,7 +82,7 @@ export const FanHand: React.FC<FanHandProps> = ({
     });
 
     return { fanStyles: styles, containerWidth: computedWidth };
-  }, [cards, total, isMobile, viewportWidth]);
+  }, [cards, total, isMobile, isLandscapeMobile, viewportWidth]);
 
   if (total === 0) {
     return (
@@ -82,9 +92,9 @@ export const FanHand: React.FC<FanHandProps> = ({
     );
   }
 
-  // Zoomed card size: 'md' or 'sm' (never drops to tiny 'xs')
-  const cardSize = isMobile ? (total > 16 ? 'sm' : 'md') : 'md';
-  const selectLift = isMobile ? 28 : 36;
+  // Zoomed card size: adaptive for landscape mobile
+  const cardSize = isLandscapeMobile ? (total > 12 ? 'xs' : 'sm') : isMobile ? (total > 16 ? 'sm' : 'md') : 'md';
+  const selectLift = isLandscapeMobile ? 20 : isMobile ? 28 : 36;
 
   return (
     <div className="relative w-full flex flex-col items-center select-none pointer-events-auto">
@@ -133,12 +143,15 @@ export const FanHand: React.FC<FanHandProps> = ({
       </div>
 
       {/* Fan Cards Container: Anchored baseline so cards are 100% visible and NEVER cut off */}
-      <div className="relative w-full max-w-full overflow-x-auto overflow-y-hidden no-scrollbar scrollbar-none flex items-end justify-start sm:justify-center px-4 pt-7 pb-1 min-h-[116px] xs:min-h-[128px] sm:min-h-[148px]">
+      <div className={cn(
+        'relative w-full max-w-full overflow-x-auto overflow-y-hidden no-scrollbar scrollbar-none flex items-end justify-start sm:justify-center px-4 pb-1',
+        isLandscapeMobile ? 'pt-3 min-h-[92px]' : 'pt-7 min-h-[116px] xs:min-h-[128px] sm:min-h-[148px]'
+      )}>
         <div
           className="relative flex items-end justify-center mx-auto shrink-0"
           style={{
             width: `${containerWidth}px`,
-            height: isMobile ? '106px' : '124px',
+            height: isLandscapeMobile ? '86px' : isMobile ? '106px' : '124px',
           }}
         >
           {fanStyles.map(({ card, angle, translateX, zIndex }) => {

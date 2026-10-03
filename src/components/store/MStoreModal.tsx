@@ -550,39 +550,42 @@ export const MStoreModal: React.FC = () => {
       {selectedPackForShowcase && (
         <div
           onClick={() => setSelectedPackForShowcase(null)}
-          className="fixed inset-0 z-[170] flex items-center justify-center p-4 bg-black/85 backdrop-blur-md animate-in fade-in zoom-in-95 duration-150"
+          className="fixed inset-0 z-[170] flex items-center justify-center p-2.5 sm:p-4 bg-black/85 backdrop-blur-md animate-in fade-in zoom-in-95 duration-150 overflow-y-auto"
         >
           <div
             onClick={(e) => e.stopPropagation()}
-            className="relative w-full max-w-sm p-6 rounded-3xl bg-gradient-to-b from-[#1a080e] to-black border-2 border-red-500/60 text-center space-y-4 shadow-2xl overflow-hidden"
+            className={cn(
+              'relative w-full max-w-sm rounded-3xl bg-gradient-to-b from-[#1a080e] to-black border-2 border-red-500/60 text-center shadow-2xl overflow-y-auto my-auto',
+              isLandscapeMobile ? 'max-h-[96dvh] p-3.5 space-y-2.5' : 'max-h-[92dvh] p-6 space-y-4'
+            )}
           >
-            <div className="flex justify-center pt-2">
+            <div className="flex justify-center pt-1">
               <img
                 src="/icons/casino-chip.png"
                 alt="Casino Chip"
-                className="w-16 h-16 object-contain filter drop-shadow-lg"
+                className={cn('object-contain filter drop-shadow-lg', isLandscapeMobile ? 'w-10 h-10' : 'w-16 h-16')}
               />
             </div>
 
-            <div className="space-y-1">
+            <div className="space-y-0.5">
               <span className="px-2.5 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider bg-red-500/25 text-red-300 border border-red-500/40">
                 {selectedPackForShowcase.badge || 'Coin Pack'}
               </span>
-              <h3 className="text-2xl font-black text-white font-mono flex items-center justify-center gap-1.5">
+              <h3 className={cn('font-black text-white font-mono flex items-center justify-center gap-1.5', isLandscapeMobile ? 'text-xl' : 'text-2xl')}>
                 <span>{selectedPackForShowcase.coins.toLocaleString()}</span>
                 <span className="text-xs text-red-300 font-sans font-bold">M Coins</span>
               </h3>
             </div>
 
             {/* Price Tag */}
-            <div className="p-3.5 rounded-2xl bg-black/70 border border-white/10">
-              <span className="font-mono font-black text-3xl text-emerald-400">
+            <div className={cn('rounded-2xl bg-black/70 border border-white/10', isLandscapeMobile ? 'p-2' : 'p-3.5')}>
+              <span className={cn('font-mono font-black text-emerald-400', isLandscapeMobile ? 'text-2xl' : 'text-3xl')}>
                 ₹{selectedPackForShowcase.priceRupees} <span className="text-xs text-zinc-400 font-sans">INR</span>
               </span>
             </div>
 
             {/* Clean Status Note (No "Demo" word, no chaos) */}
-            <div className="p-3 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-200 text-xs leading-relaxed">
+            <div className="p-2.5 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-200 text-[11px] leading-relaxed">
               Online checkout (UPI, QR &amp; Cards) is opening soon in the next update!
             </div>
 
@@ -601,22 +604,25 @@ export const MStoreModal: React.FC = () => {
       {inspectingCard && (
         <div
           onClick={() => setInspectingCard(null)}
-          className="fixed inset-0 z-[170] flex items-center justify-center p-4 bg-black/90 backdrop-blur-md animate-in fade-in zoom-in-95 duration-200"
+          className="fixed inset-0 z-[170] flex items-center justify-center p-2.5 sm:p-4 bg-black/90 backdrop-blur-md animate-in fade-in zoom-in-95 duration-200 overflow-y-auto"
         >
           <div
             onClick={(e) => e.stopPropagation()}
-            className="relative w-full max-w-sm p-6 rounded-3xl bg-gradient-to-b from-[#18080d] to-black border-2 border-red-500/70 text-center space-y-4 shadow-2xl flex flex-col items-center"
+            className={cn(
+              'relative w-full max-w-sm rounded-3xl bg-gradient-to-b from-[#18080d] to-black border-2 border-red-500/70 text-center shadow-2xl flex flex-col items-center my-auto overflow-y-auto',
+              isLandscapeMobile ? 'max-h-[96dvh] p-3.5 space-y-2' : 'max-h-[92dvh] p-6 space-y-4'
+            )}
           >
             <button
               type="button"
               onClick={() => setInspectingCard(null)}
-              className="absolute top-4 right-4 p-1.5 rounded-xl text-zinc-400 hover:text-white hover:bg-white/10 cursor-pointer"
+              className="absolute top-3 right-3 p-1.5 rounded-xl text-zinc-400 hover:text-white hover:bg-white/10 cursor-pointer"
             >
               <X className="w-5 h-5" />
             </button>
 
             {/* Rarity & Title */}
-            <div className="space-y-1">
+            <div className="space-y-0.5">
               <span
                 className="px-2.5 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider border shadow"
                 style={{
@@ -627,16 +633,16 @@ export const MStoreModal: React.FC = () => {
               >
                 {inspectingCard.rarity}
               </span>
-              <h3 className="text-xl font-black text-white font-serif">
+              <h3 className={cn('font-black text-white font-serif', isLandscapeMobile ? 'text-lg' : 'text-xl')}>
                 {inspectingCard.name}
               </h3>
             </div>
 
             {/* Big Card Rendering */}
-            <div className="py-2 transform hover:scale-105 transition-transform duration-300">
+            <div className={cn('transform hover:scale-105 transition-transform duration-300', isLandscapeMobile ? 'py-1' : 'py-2')}>
               <PlayingCard
                 card={inspectingCard.card}
-                size="lg"
+                size={isLandscapeMobile ? 'md' : 'lg'}
                 showIndexBadge={true}
                 glow={true}
               />

@@ -19,7 +19,10 @@ interface MStoreState {
   buyCard: (card: DailyStoreCard) => { success: boolean; message: string };
   isCardOwned: (cardId: string) => boolean;
   refreshDailyCards: () => void;
+  addCoins: (amount: number) => void;
+  deductCoins: (amount: number) => boolean;
 }
+
 
 const DEFAULT_DEMO_COINS = 2500;
 
@@ -144,4 +147,43 @@ export const useMStore = create<MStoreState>((set, get) => ({
   refreshDailyCards: () => {
     set({ dailyCards: getDailyStoreCards() });
   },
+
+  addCoins: (amount: number) => {
+    if (amount <= 0) return;
+    const current = get().mCoins;
+    const newCoins = current + amount;
+    if (typeof window !== 'undefined') {
+      try {
+        localStorage.setItem('cg_m_coins', newCoins.toString());
+        const authProfile = localStorage.getItem('cg_user_profile');
+        if (authProfile) {
+          const parsed = JSON.parse(authProfile);
+          parsed.coins = newCoins;
+          localStorage.setItem('cg_user_profile', JSON.stringify(parsed));
+        }
+      } catch {}
+    }
+    set({ mCoins: newCoins });
+  },
+
+  deductCoins: (amount: number): boolean => {
+    if (amount <= 0) return true;
+    const current = get().mCoins;
+    if (current < amount) return false;
+    const newCoins = current - amount;
+    if (typeof window !== 'undefined') {
+      try {
+        localStorage.setItem('cg_m_coins', newCoins.toString());
+        const authProfile = localStorage.getItem('cg_user_profile');
+        if (authProfile) {
+          const parsed = JSON.parse(authProfile);
+          parsed.coins = newCoins;
+          localStorage.setItem('cg_user_profile', JSON.stringify(parsed));
+        }
+      } catch {}
+    }
+    set({ mCoins: newCoins });
+    return true;
+  },
 }));
+

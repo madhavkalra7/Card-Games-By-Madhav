@@ -18,6 +18,8 @@ import { DesiSoundboardModal } from '@/components/table/DesiSoundboardModal';
 import { TableChatModal } from '@/components/table/TableChatModal';
 import { TableChatBubbleOverlay } from '@/components/table/TableChatBubbleOverlay';
 import { MStoreModal } from '@/components/store/MStoreModal';
+import { FinisherSideBetModal } from '@/components/bet/FinisherSideBetModal';
+import { FinisherSideBetWidget } from '@/components/bet/FinisherSideBetWidget';
 import { Toast } from '@/components/ui/Toast';
 import { VoiceControls } from '@/components/voice/VoiceControls';
 import { voiceManager } from '@/lib/voice/voiceManager';
@@ -534,6 +536,10 @@ export default function RoomPage({ params }: { params: Promise<{ code: string }>
 
       {/* M Store Modal */}
       <MStoreModal />
+
+      {/* Finisher Side Bet System (1st vs 2nd place bet on remaining players) */}
+      <FinisherSideBetWidget />
+      <FinisherSideBetModal />
 
       {isLobby && (
         <div className="w-full text-center py-2 text-[10px] text-zinc-600">

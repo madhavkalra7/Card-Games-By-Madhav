@@ -1,11 +1,13 @@
 import { create } from 'zustand';
-import { GameStateClientView, CardFlightEvent, GameType, Rank, DoctorConfig } from '@/lib/types';
+import { GameStateClientView, CardFlightEvent, GameType, Rank, DoctorConfig, FinisherSideBet } from '@/lib/types';
 import { getSocket, resolveBackendUrl } from '@/socket/client';
 import { getOrCreateSessionId, saveProfile, getSavedProfile } from '@/lib/utils';
 import { sounds } from '@/lib/sound';
 import { ThrownItemEvent, ThrowableType } from '@/lib/throwables';
 import { playSoundboardAudio } from '@/lib/soundboard';
 import { saveActiveRoom, clearActiveRoom } from '@/lib/activeMatch';
+import { useMStore } from '@/store/mStore';
+import confetti from 'canvas-confetti';
 
 // Deduplication cache to prevent duplicate playback on socket reconnections or rapid events
 const recentSoundboardPlays = new Map<string, number>();
@@ -99,7 +101,18 @@ interface GameStore {
   setTableChatOpen: (open: boolean) => void;
   sendTableChatMessage: (message: string) => Promise<boolean>;
   clearTableChat: () => void;
+
+  // Finisher Side Bet System
+  activeSideBet: FinisherSideBet | null;
+  isSideBetModalOpen: boolean;
+  resolvedSideBetResult: FinisherSideBet | null;
+  setSideBetModalOpen: (open: boolean) => void;
+  proposeSideBet: (targetPlayerId: string, amount: number) => Promise<{ success: boolean; error?: string }>;
+  acceptSideBet: (targetPlayerId: string) => Promise<{ success: boolean; error?: string }>;
+  declineSideBet: () => Promise<{ success: boolean; error?: string }>;
+  clearResolvedSideBet: () => void;
 }
+
 
 const saved = getSavedProfile();
 
@@ -123,6 +136,15 @@ export const useGameStore = create<GameStore>((set, get) => ({
   isTableChatOpen: false,
   unreadTableChatCount: 0,
   latestTableBubble: null,
+
+  // Finisher Side Bet Initial State
+  activeSideBet: null,
+  isSideBetModalOpen: false,
+  resolvedSideBetResult: null,
+
+  setSideBetModalOpen: (open) => set({ isSideBetModalOpen: open }),
+  clearResolvedSideBet: () => set({ resolvedSideBetResult: null }),
+
 
   removeCardFlight: (id: string) => {
     set((prev) => ({
@@ -332,6 +354,56 @@ export const useGameStore = create<GameStore>((set, get) => ({
           });
         }, 4500);
       });
+
+      // ==========================================
+      // Finisher Side Bet Socket Listeners
+      // ==========================================
+      s.off('side_bet:proposed');
+      s.on('side_bet:proposed', (bet: FinisherSideBet) => {
+        sounds.playCoinJingle();
+        set({ activeSideBet: bet });
+        const myPlayerId = get().gameState?.myPlayerId;
+        if (myPlayerId === bet.challengerId) {
+          get().showToast(`⚡ ${bet.initiatorName} placed a ${bet.amount} M Coin bet! Open Side Bet to match.`, 'info');
+        }
+      });
+
+      s.off('side_bet:accepted');
+      s.on('side_bet:accepted', (bet: FinisherSideBet) => {
+        sounds.playCoinJingle();
+        set({ activeSideBet: bet });
+        const myPlayerId = get().gameState?.myPlayerId;
+        if (myPlayerId === bet.initiatorId || myPlayerId === bet.challengerId) {
+          useMStore.getState().deductCoins(bet.amount);
+        }
+        get().showToast(`🔥 Side Bet Locked! ${bet.initiatorName} vs ${bet.challengerName} (${bet.pot} M Coins pot)`, 'success');
+      });
+
+      s.off('side_bet:declined');
+      s.on('side_bet:declined', () => {
+        set({ activeSideBet: null });
+        get().showToast(`Side bet was declined.`, 'info');
+      });
+
+      s.off('side_bet:resolved');
+      s.on('side_bet:resolved', (bet: FinisherSideBet) => {
+        set({ activeSideBet: bet, resolvedSideBetResult: bet });
+        const myPlayerId = get().gameState?.myPlayerId;
+        if (myPlayerId === bet.winnerBettorId) {
+          useMStore.getState().addCoins(bet.pot);
+          sounds.playRoseChime();
+          try {
+            confetti({ particleCount: 75, spread: 80, origin: { y: 0.5 } });
+          } catch {}
+          get().showToast(`🏆 YOU WON THE SIDE BET! +${bet.pot.toLocaleString()} M Coins!`, 'success');
+        } else if (myPlayerId === bet.initiatorId || myPlayerId === bet.challengerId) {
+          sounds.playWrongShowBuzzer();
+          get().showToast(`Side Bet Result: ${bet.winnerBettorName} won with ${bet.winningTargetName}!`, 'info');
+        } else {
+          get().showToast(`🏆 Side Bet: ${bet.winnerBettorName} won ${bet.pot} M Coins!`, 'info');
+        }
+      });
+
 
       s.on('syncState', (state: GameStateClientView) => {
         const currentRoomCode = get().roomCode;
@@ -826,7 +898,11 @@ export const useGameStore = create<GameStore>((set, get) => ({
       activeImpacts: {},
       activeSoundboardDecals: {},
       activeCardFlights: [],
+      activeSideBet: null,
+      isSideBetModalOpen: false,
+      resolvedSideBetResult: null,
     });
+
   },
 
   // ==========================================
@@ -948,4 +1024,80 @@ export const useGameStore = create<GameStore>((set, get) => ({
     sounds.playCardSlide();
     return true;
   },
+
+  // ==========================================
+  // Finisher Side Bet Actions (M Coins)
+  // ==========================================
+  proposeSideBet: async (targetPlayerId: string, amount: number) => {
+    const s = getSocket();
+    const roomCode = get().roomCode || get().gameState?.roomCode;
+    if (!roomCode) return { success: false, error: 'No active room' };
+    const balance = useMStore.getState().mCoins;
+    if (balance < amount) {
+      const err = `Insufficient M Coins! You have ${balance.toLocaleString()} M Coins.`;
+      get().showToast(err, 'error');
+      return { success: false, error: err };
+    }
+
+    return new Promise<{ success: boolean; error?: string }>((resolve) => {
+      s.emit('side_bet:propose', { roomCode, targetPlayerId, amount }, (res: any) => {
+        if (res && res.success) {
+          set({ activeSideBet: res.bet, isSideBetModalOpen: false });
+          sounds.playCoinJingle();
+          get().showToast(`Proposed ${amount} M Coin bet to 2nd finisher!`, 'success');
+          resolve({ success: true });
+        } else {
+          const err = res?.error || 'Failed to propose side bet';
+          get().showToast(err, 'error');
+          resolve({ success: false, error: err });
+        }
+      });
+    });
+  },
+
+  acceptSideBet: async (targetPlayerId: string) => {
+    const s = getSocket();
+    const roomCode = get().roomCode || get().gameState?.roomCode;
+    const currentBet = get().activeSideBet;
+    if (!roomCode || !currentBet) return { success: false, error: 'No bet to accept' };
+    const balance = useMStore.getState().mCoins;
+    if (balance < currentBet.amount) {
+      const err = `Insufficient M Coins! You need ${currentBet.amount} M Coins to match.`;
+      get().showToast(err, 'error');
+      return { success: false, error: err };
+    }
+
+    return new Promise<{ success: boolean; error?: string }>((resolve) => {
+      s.emit('side_bet:accept', { roomCode, targetPlayerId }, (res: any) => {
+        if (res && res.success) {
+          set({ activeSideBet: res.bet, isSideBetModalOpen: false });
+          sounds.playCoinJingle();
+          get().showToast(`Matched ${currentBet.amount} M Coins! Bet is active.`, 'success');
+          resolve({ success: true });
+        } else {
+          const err = res?.error || 'Failed to accept side bet';
+          get().showToast(err, 'error');
+          resolve({ success: false, error: err });
+        }
+      });
+    });
+  },
+
+  declineSideBet: async () => {
+    const s = getSocket();
+    const roomCode = get().roomCode || get().gameState?.roomCode;
+    if (!roomCode) return { success: false, error: 'No active room' };
+
+    return new Promise<{ success: boolean; error?: string }>((resolve) => {
+      s.emit('side_bet:decline', { roomCode }, (res: any) => {
+        if (res && res.success) {
+          set({ activeSideBet: null, isSideBetModalOpen: false });
+          resolve({ success: true });
+        } else {
+          resolve({ success: false, error: res?.error });
+        }
+      });
+    });
+  },
 }));
+

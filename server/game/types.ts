@@ -235,6 +235,7 @@ export interface GameStateClientView {
     secondsRemaining: number;
     disconnectedPlayerName: string;
   } | null;
+  activeSideBet?: FinisherSideBet | null;
   rankings?: Array<{
     playerId: string;
     name: string;
@@ -260,9 +261,36 @@ export interface GameStateClientView {
   }>;
 }
 
+export interface FinisherSideBet {
+  id: string;
+  roomCode: string;
+  amount: number; // M Coins bet per player
+  pot: number; // amount * 2
+  initiatorId: string;
+  initiatorName: string;
+  initiatorAvatar?: string;
+  initiatorRank: number; // 1 or 2
+  initiatorTargetId: string;
+  initiatorTargetName: string;
+
+  challengerId?: string;
+  challengerName?: string;
+  challengerAvatar?: string;
+  challengerRank?: number; // 1 or 2
+  challengerTargetId?: string;
+  challengerTargetName?: string;
+
+  status: 'PROPOSED' | 'ACTIVE' | 'RESOLVED' | 'DECLINED' | 'CANCELLED';
+  winnerBettorId?: string;
+  winnerBettorName?: string;
+  winningTargetName?: string;
+  createdAt: number;
+}
+
 export interface Spectator {
   id: string;
   sessionId: string;
   name: string;
   avatarColor: string;
 }
+

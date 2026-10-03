@@ -3,7 +3,7 @@ import { DukkiBazaarRoom } from '../game/engine';
 import { BluffMasterRoom } from '../game/bluffEngine';
 import { BhabhoRoom } from '../game/bhabhoEngine';
 import { DoctorRoom } from '../game/doctorEngine';
-import { GameType, Rank, DoctorConfig } from '../game/types';
+import { GameType, Rank, DoctorConfig, FinisherSideBet } from '../game/types';
 import {
   RoomModel,
   GameHistoryModel,
@@ -16,6 +16,8 @@ import {
 
 const activeRooms = new Map<string, DukkiBazaarRoom | BluffMasterRoom | BhabhoRoom | DoctorRoom>();
 const disconnectTimers = new Map<string, NodeJS.Timeout>();
+const roomSideBets = new Map<string, FinisherSideBet>();
+
 
 interface OnlineUser {
   socketId: string;
@@ -56,14 +58,50 @@ const roomAutoAbortTimers = new Map<string, RoomAutoAbort>();
 
 export function setupSocketHandlers(io: SocketIOServer) {
   function broadcastRoomState(room: DukkiBazaarRoom | BluffMasterRoom | BhabhoRoom | DoctorRoom) {
+    const currentBet = roomSideBets.get(room.roomCode);
+    if (currentBet && currentBet.status === 'ACTIVE') {
+      const t1 = room.players.find(p => p.id === currentBet.initiatorTargetId);
+      const t2 = room.players.find(p => p.id === currentBet.challengerTargetId);
+      
+      if (t1?.isFinished && !t2?.isFinished) {
+        currentBet.status = 'RESOLVED';
+        currentBet.winnerBettorId = currentBet.initiatorId;
+        currentBet.winnerBettorName = currentBet.initiatorName;
+        currentBet.winningTargetName = currentBet.initiatorTargetName;
+        io.to(room.roomCode).emit('side_bet:resolved', currentBet);
+      } else if (t2?.isFinished && !t1?.isFinished) {
+        currentBet.status = 'RESOLVED';
+        currentBet.winnerBettorId = currentBet.challengerId;
+        currentBet.winnerBettorName = currentBet.challengerName;
+        currentBet.winningTargetName = currentBet.challengerTargetName;
+        io.to(room.roomCode).emit('side_bet:resolved', currentBet);
+      } else if (room.status === 'GAME_OVER' || (t1?.isFinished && t2?.isFinished)) {
+        const r1 = t1?.rank || 999;
+        const r2 = t2?.rank || 999;
+        currentBet.status = 'RESOLVED';
+        if (r1 < r2) {
+          currentBet.winnerBettorId = currentBet.initiatorId;
+          currentBet.winnerBettorName = currentBet.initiatorName;
+          currentBet.winningTargetName = currentBet.initiatorTargetName;
+        } else if (r2 < r1) {
+          currentBet.winnerBettorId = currentBet.challengerId;
+          currentBet.winnerBettorName = currentBet.challengerName;
+          currentBet.winningTargetName = currentBet.challengerTargetName;
+        }
+        io.to(room.roomCode).emit('side_bet:resolved', currentBet);
+      }
+    }
+
     for (const player of room.players) {
       if (player.isConnected) {
         const clientView = room.getClientView(player.id);
+        clientView.activeSideBet = currentBet || null;
         io.to(player.id).emit('syncState', clientView);
       }
     }
     for (const spectator of (room as any).spectators || []) {
       const clientView = room.getClientView(spectator.id);
+      clientView.activeSideBet = currentBet || null;
       io.to(spectator.id).emit('syncState', clientView);
     }
   }
@@ -562,12 +600,135 @@ export function setupSocketHandlers(io: SocketIOServer) {
       const room = activeRooms.get(data.roomCode);
       if (!room) return callback({ success: false, error: 'Room not found' });
 
+      roomSideBets.delete(data.roomCode.trim().toUpperCase());
       const res = room.playAgain(socket.id);
       if (res.success) {
         broadcastRoomState(room);
       }
       callback(res);
     });
+
+    // ==========================================
+    // Finisher Side Bet System (1st & 2nd place bet on remaining players)
+    // ==========================================
+    socket.on('side_bet:propose', (data: { roomCode: string; targetPlayerId: string; amount: number }, callback) => {
+      try {
+        const code = (data.roomCode || '').trim().toUpperCase();
+        const room = activeRooms.get(code);
+        if (!room) return callback({ success: false, error: 'Room not found' });
+        if (room.status !== 'PLAYING') return callback({ success: false, error: 'Side bets are only allowed during an active game' });
+
+        const caller = room.players.find(p => p.id === socket.id);
+        if (!caller || !caller.isFinished || (caller.rank !== 1 && caller.rank !== 2)) {
+          return callback({ success: false, error: 'Only players who finished in 1st or 2nd place can place side bets!' });
+        }
+
+        const otherRank = caller.rank === 1 ? 2 : 1;
+        const otherFinisher = room.players.find(p => p.isFinished && p.rank === otherRank);
+        if (!otherFinisher) {
+          return callback({ success: false, error: 'Waiting for both 1st and 2nd place to finish before side betting can start.' });
+        }
+
+        const activeUnfinished = room.players.filter(p => !p.isFinished);
+        if (activeUnfinished.length < 2) {
+          return callback({ success: false, error: 'At least 2 active players must remain to bet on!' });
+        }
+
+        const target = activeUnfinished.find(p => p.id === data.targetPlayerId);
+        if (!target) {
+          return callback({ success: false, error: 'Selected target player is not currently active.' });
+        }
+
+        const amount = Math.floor(Number(data.amount));
+        if (isNaN(amount) || amount < 10) {
+          return callback({ success: false, error: 'Minimum bet is 10 M Coins.' });
+        }
+
+        const existing = roomSideBets.get(code);
+        if (existing && existing.status === 'ACTIVE') {
+          return callback({ success: false, error: 'A side bet is already active for this round!' });
+        }
+
+        const bet: FinisherSideBet = {
+          id: `bet_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
+          roomCode: code,
+          amount,
+          pot: amount * 2,
+          initiatorId: caller.id,
+          initiatorName: caller.name,
+          initiatorAvatar: caller.avatarColor,
+          initiatorRank: caller.rank || 1,
+          initiatorTargetId: target.id,
+          initiatorTargetName: target.name,
+          challengerId: otherFinisher.id,
+          challengerName: otherFinisher.name,
+          challengerAvatar: otherFinisher.avatarColor,
+          challengerRank: otherFinisher.rank || 2,
+          status: 'PROPOSED',
+          createdAt: Date.now(),
+        };
+
+        roomSideBets.set(code, bet);
+        io.to(code).emit('side_bet:proposed', bet);
+        broadcastRoomState(room);
+        callback({ success: true, bet });
+      } catch (err: any) {
+        callback({ success: false, error: err.message || 'Failed to propose side bet' });
+      }
+    });
+
+    socket.on('side_bet:accept', (data: { roomCode: string; targetPlayerId: string }, callback) => {
+      try {
+        const code = (data.roomCode || '').trim().toUpperCase();
+        const room = activeRooms.get(code);
+        if (!room) return callback({ success: false, error: 'Room not found' });
+
+        const bet = roomSideBets.get(code);
+        if (!bet || bet.status !== 'PROPOSED') {
+          return callback({ success: false, error: 'No active bet proposal to accept.' });
+        }
+
+        if (bet.challengerId !== socket.id) {
+          return callback({ success: false, error: 'Only the challenged finisher can accept this bet.' });
+        }
+
+        const activeUnfinished = room.players.filter(p => !p.isFinished);
+        const target = activeUnfinished.find(p => p.id === data.targetPlayerId);
+        if (!target) {
+          return callback({ success: false, error: 'Selected target player is not currently active.' });
+        }
+
+        bet.challengerTargetId = target.id;
+        bet.challengerTargetName = target.name;
+        bet.status = 'ACTIVE';
+
+        io.to(code).emit('side_bet:accepted', bet);
+        broadcastRoomState(room);
+        callback({ success: true, bet });
+      } catch (err: any) {
+        callback({ success: false, error: err.message || 'Failed to accept side bet' });
+      }
+    });
+
+    socket.on('side_bet:decline', (data: { roomCode: string }, callback) => {
+      try {
+        const code = (data.roomCode || '').trim().toUpperCase();
+        const bet = roomSideBets.get(code);
+        if (bet && bet.status === 'PROPOSED' && (bet.challengerId === socket.id || bet.initiatorId === socket.id)) {
+          bet.status = 'DECLINED';
+          io.to(code).emit('side_bet:declined', bet);
+          roomSideBets.delete(code);
+          const room = activeRooms.get(code);
+          if (room) broadcastRoomState(room);
+          callback({ success: true });
+        } else {
+          callback({ success: false, error: 'No bet proposal to decline.' });
+        }
+      } catch (err: any) {
+        callback({ success: false, error: err.message || 'Failed to decline side bet' });
+      }
+    });
+
 
     // ==========================================
     // Interactive Felt Throwables (Chappal, Chai, Tomato, Cash, Rose)

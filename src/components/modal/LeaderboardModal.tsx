@@ -2,7 +2,7 @@
 
 import React, { useEffect } from 'react';
 import confetti from 'canvas-confetti';
-import { Trophy, Crown, RotateCcw, LogOut, Medal, Sparkles } from 'lucide-react';
+import { Trophy, Crown, RotateCcw, LogOut, Medal } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { sounds } from '@/lib/sound';
 
@@ -73,7 +73,7 @@ export const LeaderboardModal: React.FC<LeaderboardModalProps> = ({
                 <Trophy className="w-7 h-7 sm:w-8 sm:h-8 text-amber-400 animate-pulse" />
               </div>
             </div>
-            <Sparkles className="absolute -top-1 -right-1 w-5 h-5 text-yellow-300 animate-spin" style={{ animationDuration: '6s' }} />
+            <Crown className="absolute -top-1.5 -right-1.5 w-5 h-5 text-yellow-300 rotate-12" />
           </div>
 
           <h2 className="text-xl sm:text-2xl font-black tracking-wider uppercase text-center text-gold-gradient font-anton">

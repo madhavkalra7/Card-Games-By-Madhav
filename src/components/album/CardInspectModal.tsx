@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useAlbumStore } from '@/store/albumStore';
 import { FAMILIES } from '@/lib/collectibles';
 import { getCollectibleSvg } from './CollectibleCardView';
-import { X, Lock, CheckCircle, Sparkles, Gem, Crown, Shield, Zap } from 'lucide-react';
+import { X, Lock, CheckCircle, Gem, Crown, Shield, Zap, Award } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { sounds } from '@/lib/sound';
 
@@ -224,7 +224,7 @@ export const CardInspectModal: React.FC = () => {
                           </span>
                         ) : selectedCard.specialEffect === 'holo_shimmer' ? (
                           <span className="px-2 py-0.5 rounded-full bg-black/90 border border-purple-400 text-purple-200 text-[8px] sm:text-[9px] font-mono font-black shadow-sm flex items-center gap-1">
-                            <Sparkles className="w-2.5 h-2.5 text-yellow-300 fill-yellow-300" />
+                            <Zap className="w-2.5 h-2.5 text-yellow-300 fill-yellow-300" />
                             <span>HOLO</span>
                           </span>
                         ) : null}
@@ -338,7 +338,7 @@ export const CardInspectModal: React.FC = () => {
                   </div>
                 </div>
                 <div className="flex items-center gap-1.5">
-                  <Sparkles className="w-3.5 h-3.5 text-red-600 shrink-0" />
+                  <Award className="w-3.5 h-3.5 text-red-600 shrink-0" />
                   <div>
                     <span className="text-[7.5px] xs:text-[8px] uppercase tracking-wider text-stone-500 block leading-none">
                       Collector ID

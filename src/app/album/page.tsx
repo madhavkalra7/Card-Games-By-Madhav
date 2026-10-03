@@ -4,7 +4,7 @@ import React, { useState } from 'react';
 import Link from 'next/link';
 import { AlbumBook } from '@/components/album/AlbumBook';
 import { CardInspectModal } from '@/components/album/CardInspectModal';
-import { ArrowLeft, Volume2, VolumeX, Sparkles, BookOpen } from 'lucide-react';
+import { ArrowLeft, Volume2, VolumeX, Crown, BookOpen } from 'lucide-react';
 import { sounds } from '@/lib/sound';
 import { useAlbumStore } from '@/store/albumStore';
 
@@ -63,7 +63,7 @@ export default function AlbumPage() {
             className="flex items-center gap-1.5 px-2.5 py-1 sm:px-3 sm:py-1 rounded-full bg-gradient-to-r from-amber-500/10 via-purple-500/10 to-cyan-500/10 hover:from-amber-500/20 hover:to-cyan-500/20 border border-amber-500/30 text-[10px] sm:text-xs font-bold text-amber-900 transition-all shadow-xs cursor-pointer"
             title="View Silver, Gold & Diamond Editions Showcase"
           >
-            <Sparkles className="w-3 h-3 text-amber-600 animate-spin-slow" />
+            <Crown className="w-3 h-3 text-amber-600" />
             <span>Editions Showcase</span>
           </Link>
 

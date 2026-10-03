@@ -4,7 +4,7 @@ import React, { useEffect } from 'react';
 import confetti from 'canvas-confetti';
 import Link from 'next/link';
 import { PlayerClientView } from '@/lib/types';
-import { Crown, RotateCcw, Trophy, LogOut, Medal, Sparkles, BookOpen, Gem } from 'lucide-react';
+import { Crown, RotateCcw, Trophy, LogOut, Medal, BookOpen, Gem } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { sounds } from '@/lib/sound';
 import { useAlbumStore } from '@/store/albumStore';
@@ -159,9 +159,8 @@ export const GameOverModal: React.FC<GameOverModalProps> = ({
               <Trophy className="w-6 h-6 xs:w-7 xs:h-7 sm:w-9 sm:h-9 text-amber-400 animate-pulse" />
             </div>
           </div>
-          <Sparkles
-            className="absolute -top-1 -right-1 w-5 h-5 text-yellow-300 animate-spin"
-            style={{ animationDuration: '6s' }}
+          <Crown
+            className="absolute -top-1.5 -right-1.5 w-5 h-5 text-yellow-300 rotate-12"
           />
         </div>
 

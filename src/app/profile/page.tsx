@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useAuthStore } from '@/store/authStore';
 import { CARTOON_AVATARS, getAvatarById } from '@/lib/avatars';
-import { ArrowLeft, Trophy, Award, Play, Flame, Check, Edit2, LogOut, Sparkles, UserCheck } from 'lucide-react';
+import { ArrowLeft, Trophy, Award, Play, Flame, Check, Edit2, LogOut, UserCheck } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { sounds } from '@/lib/sound';
 import { AuthModal } from '@/components/modal/AuthModal';
@@ -150,7 +150,7 @@ export default function ProfilePage() {
                 <p className="text-xs text-zinc-400 mt-0.5">{user.email}</p>
 
                 <div className="mt-2.5 flex items-center gap-1.5 px-3 py-1 rounded-full bg-gradient-to-r from-amber-500/20 via-yellow-500/10 to-transparent border border-amber-400/40 text-amber-300 text-[10px] sm:text-xs font-black uppercase tracking-wider">
-                  <Sparkles className="w-3 h-3 text-yellow-400" />
+                  <Award className="w-3.5 h-3.5 text-yellow-400" />
                   <span>
                     {user.totalGamesWon >= 10
                       ? 'Grandmaster Shark 👑'

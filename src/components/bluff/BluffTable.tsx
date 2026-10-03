@@ -27,7 +27,7 @@ import {
   Check,
   Copy,
   LogOut,
-  Sparkles,
+  Play,
   UserPlus,
   Volume2,
   VolumeX,
@@ -524,7 +524,7 @@ export const BluffTable: React.FC<BluffTableProps> = ({
                 </div>
               ) : (
                 <div className="flex items-center gap-1.5 bg-amber-500/20 backdrop-blur-md px-3 sm:px-5 py-1 rounded-full border border-gold/50 text-gold text-[10px] xs:text-xs sm:text-sm font-black uppercase tracking-wider shadow-lg">
-                  <Sparkles className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-amber-300" />
+                  <Play className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-amber-300 fill-amber-300" />
                   <span>Fresh Cycle • Lead with any rank!</span>
                 </div>
               )}

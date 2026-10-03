@@ -17,7 +17,7 @@ import { Toast } from '@/components/ui/Toast';
 import { VoiceControls } from '@/components/voice/VoiceControls';
 import { voiceManager } from '@/lib/voice/voiceManager';
 import { useFriendsStore } from '@/store/friendsStore';
-import { Copy, Crown, Play, ShieldAlert, Sparkles, UserMinus, Users, WifiOff, UserPlus, Volume2 } from 'lucide-react';
+import { Copy, Crown, Play, ShieldAlert, UserMinus, Users, WifiOff, UserPlus, Volume2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 export default function RoomPage({ params }: { params: Promise<{ code: string }> }) {

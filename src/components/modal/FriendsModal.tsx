@@ -13,7 +13,6 @@ import {
   Users,
   X,
   UserPlus,
-  Sparkles,
   Search,
   Check,
   Send,
@@ -452,7 +451,7 @@ export const FriendsModal: React.FC<FriendsModalProps> = ({ currentRoomCode }) =
                 <div className="mt-1 space-y-2 p-3 rounded-2xl bg-black/60 border border-gold/40 animate-in fade-in zoom-in-95 duration-150 shadow-lg">
                   <div className="flex items-center justify-between text-[11px] text-amber-300 font-bold uppercase tracking-wider px-0.5">
                     <span className="flex items-center gap-1.5">
-                      <Sparkles className="w-3.5 h-3.5 text-yellow-400" />
+                      <Search className="w-3.5 h-3.5 text-yellow-400" />
                       <span>Live Search Results {searchResults.length > 0 && `(${searchResults.length})`}</span>
                     </span>
                     {isSearching && (

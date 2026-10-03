@@ -17,7 +17,6 @@ const IMAGES = [
     bg: '#F4845F',
     panel: '#F79B7F',
     gameTitle: 'DUKKI BAZAAR',
-    gameBadge: 'Available Now',
     tagline: 'Classic Indian 52-Card Game',
     description: 'Gather your friends for authentic traditional Indian 52-card action. Establish 4 center suit rails, trigger Bazaar Open, and play online with authoritative table rules.',
     actionText: 'ENTER BAZAAR',
@@ -28,7 +27,6 @@ const IMAGES = [
     bg: '#6BBF7A',
     panel: '#85CC92',
     gameTitle: 'BHABHO',
-    gameBadge: 'Available Now',
     tagline: 'Classic Indian Get-Away Card Game',
     description: 'Iconic traditional Indian get-away card game. Discard matching cards, avoid getting stuck with the highest card, and escape before becoming the Bhabho!',
     actionText: 'PLAY BHABHO',
@@ -39,7 +37,6 @@ const IMAGES = [
     bg: '#E882B4',
     panel: '#ED9DC4',
     gameTitle: 'DOCTOR',
-    gameBadge: 'Coming Soon',
     tagline: 'Strategic Indian Trick & Quota Battle',
     description: 'A fiercely competitive, strategic Indian trick-taking battle. Calculate your moves, play high-value hands, and outsmart rivals at the table!',
     actionText: 'VIEW DOCTOR',
@@ -50,7 +47,6 @@ const IMAGES = [
     bg: '#6EB5FF',
     panel: '#8DC4FF',
     gameTitle: 'BLUFF MASTER',
-    gameBadge: 'Available Now',
     tagline: 'High-Stakes Deception & Card Shedding',
     description: 'Classic high-stakes card game of deception and bluffing. Play your cards face down, claim the rank, catch lying rivals, and empty your hand to win!',
     actionText: 'PLAY BLUFF MASTER',
@@ -722,19 +718,14 @@ export const ToonHeroSection: React.FC<ToonHeroSectionProps> = ({
             "bg-black/30 backdrop-blur-md rounded-2xl sm:rounded-3xl border border-white/15 shadow-2xl",
             isShortHeight ? "p-2.5 sm:p-3.5 mb-2" : "p-3 sm:p-5 mb-2.5 sm:mb-3"
           )}>
-            {/* Game Badge & Tagline */}
+            {/* Game Tagline */}
             <div className="flex items-center gap-2 mb-1.5 sm:mb-2">
-              <span
-                className={cn(
-                  'px-2 py-0.5 rounded-full text-[9px] sm:text-[10px] font-black uppercase tracking-wider',
-                  currentItem.isAvailable
-                    ? 'bg-emerald-500/30 text-emerald-200 border border-emerald-400/40'
-                    : 'bg-white/15 text-white/90 border border-white/20'
-                )}
-              >
-                {currentItem.gameBadge}
-              </span>
-              <span className="text-[9px] sm:text-[10px] text-white/75 font-bold uppercase tracking-wider truncate">
+              {!currentItem.isAvailable && (
+                <span className="px-2 py-0.5 rounded-full text-[9px] sm:text-[10px] font-bold uppercase tracking-wider bg-white/15 text-white/90 border border-white/20">
+                  Coming Soon
+                </span>
+              )}
+              <span className="text-[10px] sm:text-[11px] text-white/85 font-bold uppercase tracking-wider truncate">
                 {currentItem.tagline}
               </span>
             </div>

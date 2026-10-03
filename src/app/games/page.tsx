@@ -12,10 +12,10 @@ import {
   ArrowLeft,
   BookOpen,
   Clock,
+  Gamepad2,
   Lock,
   Play,
   Plus,
-  Sparkles,
   Users,
   Volume2,
   VolumeX,
@@ -30,7 +30,7 @@ interface GameItem {
   players: string;
   deck: string;
   status: 'available' | 'locked';
-  badge: string;
+  badge?: string;
   color: string;
   panelColor: string;
   image: string;
@@ -47,7 +47,6 @@ const GAMES: GameItem[] = [
     players: '2 - 5 Players',
     deck: '52 Cards',
     status: 'available',
-    badge: 'Available Now',
     color: '#F4845F',
     panelColor: '#F79B7F',
     image: 'https://fifth-gentle-45902158.figma.site/_components/v2/4de492f6d9cf8244ad5293233e5c6f52407d42fc/1.02464a56.png',
@@ -62,7 +61,6 @@ const GAMES: GameItem[] = [
     players: '2 - 5 Players',
     deck: '52 Cards',
     status: 'available',
-    badge: 'Available Now',
     color: '#6BBF7A',
     panelColor: '#85CC92',
     image: 'https://fifth-gentle-45902158.figma.site/_components/v2/4de492f6d9cf8244ad5293233e5c6f52407d42fc/2.b977faab.png',
@@ -92,7 +90,6 @@ const GAMES: GameItem[] = [
     players: '2 - 5 Players',
     deck: '52 Cards',
     status: 'available',
-    badge: 'Available Now',
     color: '#6EB5FF',
     panelColor: '#8DC4FF',
     image: 'https://fifth-gentle-45902158.figma.site/_components/v2/4de492f6d9cf8244ad5293233e5c6f52407d42fc/4.4457fbce.png',
@@ -178,7 +175,7 @@ export default function GamesPage() {
             href="/album"
             className="flex items-center gap-1 sm:gap-1.5 px-2 xs:px-2.5 sm:px-3.5 py-1 sm:py-1.5 rounded-full bg-gradient-to-r from-amber-500/25 via-yellow-500/20 to-amber-500/25 hover:from-amber-500/40 hover:to-yellow-500/30 backdrop-blur-md border border-amber-400/60 text-amber-300 text-[10px] xs:text-[11px] sm:text-xs font-black uppercase tracking-wider transition-all shadow-gold-glow active:scale-95 shrink-0"
           >
-            <Sparkles className="w-3.5 h-3.5 text-amber-300 shrink-0" />
+            <BookOpen className="w-3.5 h-3.5 text-amber-300 shrink-0" />
             <span>Album</span>
           </Link>
 
@@ -198,7 +195,7 @@ export default function GamesPage() {
         {/* Page Title & Intro */}
         <div className="mb-5 sm:mb-10 text-center sm:text-left">
           <div className="inline-flex items-center gap-1.5 sm:gap-2 px-3 py-1 rounded-full bg-white/10 border border-white/20 text-white text-[11px] sm:text-xs font-bold mb-2 sm:mb-3 backdrop-blur-md">
-            <Sparkles className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-yellow-300" />
+            <Gamepad2 className="w-3.5 h-3.5 text-amber-300" />
             <span className="tracking-wide">TRADITIONAL 52-CARD CATALOG • 4 INDIAN FORMATS</span>
           </div>
 
@@ -256,19 +253,15 @@ export default function GamesPage() {
                 <div className="relative z-10">
                   {/* Top Badges */}
                   <div className="flex items-center justify-between gap-2 mb-3 sm:mb-4">
-                    <span
-                      className={cn(
-                        'px-3 py-1 rounded-full text-[10px] sm:text-xs font-black uppercase tracking-wider',
-                        isAvailable
-                          ? 'text-black shadow-md'
-                          : 'bg-white/15 text-white/90 border border-white/20'
-                      )}
-                      style={{
-                        backgroundColor: isAvailable ? game.color : undefined,
-                      }}
-                    >
-                      {game.badge}
-                    </span>
+                    {!isAvailable ? (
+                      <span className="px-3 py-1 rounded-full text-[10px] sm:text-xs font-bold uppercase tracking-wider bg-white/15 text-white/90 border border-white/20">
+                        Coming Soon
+                      </span>
+                    ) : (
+                      <span className="text-[11px] sm:text-xs font-bold text-white/75 uppercase tracking-wider">
+                        {game.subtitle}
+                      </span>
+                    )}
 
                     <div className="flex items-center gap-2.5 text-[11px] sm:text-xs text-white/70 font-medium">
                       <span className="flex items-center gap-1">

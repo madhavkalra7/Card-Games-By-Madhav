@@ -4,7 +4,7 @@ import React from 'react';
 import { FAMILIES, CollectibleFamily, getCardsByFamily, MYTHIC_VAULT_CARDS } from '@/lib/collectibles';
 import { CollectibleCardView } from './CollectibleCardView';
 import { useAlbumStore } from '@/store/albumStore';
-import { Crown, Sparkles, Trophy, BookOpen, Gem, Zap } from 'lucide-react';
+import { Crown, Trophy, BookOpen, Gem, Zap } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface AlbumPageProps {
@@ -122,9 +122,8 @@ export const AlbumPage: React.FC<AlbumPageProps> = ({ pageIndex }) => {
               <Crown className="w-4 h-4 xs:w-5 xs:h-5 sm:w-6 sm:h-6 text-white" />
             </div>
             <div className="text-left">
-              <h3 className="text-xs xs:text-sm sm:text-base font-black text-purple-950 uppercase tracking-wider flex items-center gap-1 sm:gap-1.5 font-serif">
+              <h3 className="text-xs xs:text-sm sm:text-base font-black text-purple-950 uppercase tracking-wider font-serif">
                 {family.name}
-                <Sparkles className="w-3 h-3 xs:w-3.5 xs:h-3.5 text-amber-500 animate-pulse" />
               </h3>
               <span className="text-[9px] xs:text-[10px] sm:text-xs font-bold text-purple-700">
                 {family.hindiName}

@@ -4,7 +4,7 @@ import React, { useMemo } from 'react';
 import { Card, Suit } from '@/lib/types';
 import { PlayingCard } from '../card/PlayingCard';
 import { cn } from '@/lib/utils';
-import { ArrowUpDown, Play, Sparkles, Check } from 'lucide-react';
+import { ArrowUpDown, Play, Check } from 'lucide-react';
 import { useViewportOrientation } from '@/hooks/useViewportOrientation';
 
 interface BhabhoFanHandProps {
@@ -93,7 +93,7 @@ export const BhabhoFanHand: React.FC<BhabhoFanHandProps> = ({
     return (
       <div className="w-full flex items-center justify-center py-2 sm:py-3 select-none pointer-events-none">
         <div className="px-4 py-1.5 sm:py-2 rounded-full bg-emerald-500/20 border border-emerald-500/40 text-emerald-300 font-black text-xs sm:text-sm flex items-center gap-2 backdrop-blur-md shadow-lg">
-          <Sparkles className="w-4 h-4 text-emerald-400" />
+          <Check className="w-4 h-4 text-emerald-400 stroke-[3]" />
           <span>YOU HAVE ESCAPED! Relax and watch the other players struggle!</span>
         </div>
       </div>

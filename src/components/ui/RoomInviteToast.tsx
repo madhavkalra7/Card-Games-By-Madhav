@@ -6,7 +6,7 @@ import { useFriendsStore, RoomInvite } from '@/store/friendsStore';
 import { useAuthStore } from '@/store/authStore';
 import { getSocket } from '@/socket/client';
 import { sounds } from '@/lib/sound';
-import { X, Play, Sparkles } from 'lucide-react';
+import { X, Play, Gamepad2 } from 'lucide-react';
 
 export const RoomInviteToast: React.FC = () => {
   const router = useRouter();
@@ -82,7 +82,7 @@ export const RoomInviteToast: React.FC = () => {
           {/* Invite Text */}
           <div className="flex-1 min-w-0 text-left">
             <div className="flex items-center gap-1.5 text-[10px] text-amber-300 font-bold uppercase tracking-wider">
-              <Sparkles className="w-3 h-3 text-yellow-400" />
+              <Gamepad2 className="w-3 h-3 text-yellow-400" />
               <span>Table Invitation</span>
             </div>
             <h4 className="font-extrabold text-xs sm:text-sm text-white truncate">

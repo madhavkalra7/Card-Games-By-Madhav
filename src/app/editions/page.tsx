@@ -7,7 +7,7 @@ import { MYTHIC_VAULT_CARDS, CollectibleCard } from '@/lib/collectibles';
 import { CollectibleCardView } from '@/components/album/CollectibleCardView';
 import { CardInspectModal } from '@/components/album/CardInspectModal';
 import { useAlbumStore } from '@/store/albumStore';
-import { ArrowLeft, Sparkles, Gem, Crown, Shield, BookOpen, Eye } from 'lucide-react';
+import { ArrowLeft, Gem, Crown, Shield, BookOpen, Eye } from 'lucide-react';
 
 export default function EditionsShowcasePage() {
   const openInspect = useAlbumStore((s) => s.openInspect);
@@ -44,7 +44,7 @@ export default function EditionsShowcasePage() {
           </Link>
           <div className="h-4 w-px bg-stone-700/60" />
           <h1 className="text-sm sm:text-base font-bold text-amber-300 flex items-center gap-2">
-            <Sparkles className="w-4 h-4 text-amber-400" />
+            <Crown className="w-4 h-4 text-amber-400" />
             Special Collector Editions
           </h1>
         </div>

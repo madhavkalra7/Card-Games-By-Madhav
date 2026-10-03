@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import { GameType } from '@/lib/types';
 import { useGameStore } from '@/store/gameStore';
-import { BookOpen, CheckCircle, Flame, ShieldAlert, Sparkles, X, Trophy, AlertTriangle } from 'lucide-react';
+import { BookOpen, CheckCircle, Flame, ShieldAlert, X, Trophy, AlertTriangle } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface RulesModalProps {
@@ -112,7 +112,7 @@ export const RulesModal: React.FC<RulesModalProps> = ({ isOpen, onClose, default
               {/* Overview */}
               <div className="bg-emerald-950/30 p-4 rounded-2xl border border-emerald-500/40 space-y-2">
                 <h3 className="font-extrabold text-emerald-400 flex items-center gap-2">
-                  <Sparkles className="w-4 h-4" />
+                  <BookOpen className="w-4 h-4" />
                   What is Bhabho (Getaway / Thulla)?
                 </h3>
                 <p className="text-zinc-200 leading-relaxed">
@@ -171,7 +171,7 @@ export const RulesModal: React.FC<RulesModalProps> = ({ isOpen, onClose, default
               {/* 4. Clean Tricks */}
               <div className="bg-zinc-900/60 p-4 rounded-2xl border border-zinc-800 space-y-2">
                 <h3 className="font-extrabold text-gold flex items-center gap-2">
-                  <Sparkles className="w-4 h-4" />
+                  <CheckCircle className="w-4 h-4 text-emerald-400" />
                   4. Clean Trick (Waste Pile Discard)
                 </h3>
                 <p className="text-zinc-300 leading-relaxed">
@@ -202,7 +202,7 @@ export const RulesModal: React.FC<RulesModalProps> = ({ isOpen, onClose, default
               {/* Overview */}
               <div className="bg-blue-950/30 p-4 rounded-2xl border border-blue-500/40 space-y-2">
                 <h3 className="font-extrabold text-blue-400 flex items-center gap-2">
-                  <Sparkles className="w-4 h-4" />
+                  <BookOpen className="w-4 h-4" />
                   1. Objective & Setup (52 Cards)
                 </h3>
                 <p className="text-zinc-200 leading-relaxed font-medium">
@@ -291,7 +291,7 @@ export const RulesModal: React.FC<RulesModalProps> = ({ isOpen, onClose, default
               {/* Card Visibility */}
               <div className="bg-zinc-900/60 p-4 rounded-2xl border border-zinc-800 space-y-2">
                 <h3 className="font-extrabold text-gold flex items-center gap-2">
-                  <Sparkles className="w-4 h-4" />
+                  <BookOpen className="w-4 h-4" />
                   1. Two Decks Per Player
                 </h3>
                 <p className="text-zinc-300 leading-relaxed">

@@ -4,7 +4,7 @@ import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { BhabhoTrickCard, BhabhoLastTrickResult, Suit } from '@/lib/types';
 import { PlayingCard, SuitIcon } from '../card/PlayingCard';
-import { Crown, Flame, Trash2, CheckCircle2, Sparkles, Clock } from 'lucide-react';
+import { Crown, Flame, Trash2, CheckCircle2, Clock } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface BhabhoCenterTrickProps {
@@ -230,7 +230,7 @@ export const BhabhoCenterTrick: React.FC<BhabhoCenterTrickProps> = ({
               </>
             ) : (
               <>
-                <Sparkles className="w-3 h-3 text-emerald-400 shrink-0" />
+                <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
                 <span>
                   Clean trick won by{' '}
                   <strong className="text-white">{lastTrickResult?.winnerOrPenalizedPlayerName}</strong> ({lastTrickResult?.cards.length || currentTrick.length} cards)

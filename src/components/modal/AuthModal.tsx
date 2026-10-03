@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import { useAuthStore } from '@/store/authStore';
-import { X, Mail, Lock, User, Eye, EyeOff, Sparkles, ArrowRight } from 'lucide-react';
+import { X, Mail, Lock, User, Eye, EyeOff, Crown, ArrowRight } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 export const AuthModal: React.FC = () => {
@@ -167,7 +167,7 @@ export const AuthModal: React.FC = () => {
         {/* Header Branding */}
         <div className="text-center mb-5 sm:mb-6">
           <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-gold/15 border border-gold/40 text-gold text-[10px] sm:text-xs font-black uppercase tracking-widest mb-2">
-            <Sparkles className="w-3 h-3 text-amber-300" />
+            <Crown className="w-3 h-3 text-amber-300" />
             <span>Card Games By Madhav</span>
           </div>
 

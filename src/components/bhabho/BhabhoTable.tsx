@@ -19,7 +19,6 @@ import {
   Check,
   Copy,
   LogOut,
-  Sparkles,
   UserPlus,
   Volume2,
   VolumeX,

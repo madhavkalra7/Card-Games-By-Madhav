@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Volume2, Sparkles, Music, Flame, Globe, Play, Check, AlertCircle, Search } from 'lucide-react';
+import { X, Volume2, Music, Flame, Globe, Play, Check, AlertCircle, Search } from 'lucide-react';
 import { DESI_SOUNDBOARD_CLIPS, SoundboardClip, playSoundboardAudio } from '@/lib/soundboard';
 import { useGameStore } from '@/store/gameStore';
 import { cn } from '@/lib/utils';
@@ -173,7 +173,7 @@ export const DesiSoundboardModal: React.FC = () => {
                   : 'text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800/50'
               )}
             >
-              <Sparkles className="w-2.5 h-2.5 sm:w-3 sm:h-3" />
+              <Volume2 className="w-2.5 h-2.5 sm:w-3 sm:h-3" />
               <span>All ({DESI_SOUNDBOARD_CLIPS.length})</span>
             </button>
 
@@ -322,7 +322,7 @@ export const DesiSoundboardModal: React.FC = () => {
               /* Custom Meme Audio Link Player */
               <div className="flex flex-col gap-3 py-1">
                 <div className="bg-amber-950/20 border border-amber-500/30 rounded-xl p-3 text-xs text-amber-200 flex items-start gap-2">
-                  <Sparkles className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
+                  <Volume2 className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
                   <div>
                     <span className="font-bold">Real Internet Meme Audio:</span>
                     <p className="text-[11px] text-zinc-300 mt-0.5 leading-relaxed">
@@ -411,7 +411,7 @@ export const DesiSoundboardModal: React.FC = () => {
                       disabled={!customUrl.trim() || cooldownRemaining > 0}
                       className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl bg-gradient-to-r from-amber-500 to-yellow-400 hover:from-amber-400 hover:to-yellow-300 text-black text-xs font-black uppercase tracking-wide shadow-gold-glow transition-all disabled:opacity-50 active:scale-95 cursor-pointer"
                     >
-                      <Sparkles className="w-3.5 h-3.5" />
+                      <Play className="w-3.5 h-3.5 fill-black" />
                       <span>Play to Table</span>
                     </button>
                   </div>

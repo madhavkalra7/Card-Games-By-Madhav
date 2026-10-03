@@ -4,7 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useGameStore } from '@/store/gameStore';
 import { GameType } from '@/lib/types';
-import { X, Sparkles, Flame, ShieldAlert } from 'lucide-react';
+import { X, Plus, Flame, ShieldAlert } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface CreateRoomModalProps {
@@ -82,7 +82,7 @@ export const CreateRoomModal: React.FC<CreateRoomModalProps> = ({
         {/* Title */}
         <div className="flex items-center gap-2.5 sm:gap-3 mb-3.5 sm:mb-5">
           <div className="p-2 sm:p-3 rounded-xl sm:rounded-2xl bg-amber-500/20 border border-gold/40 text-gold shrink-0">
-            <Sparkles className="w-5 h-5 sm:w-6 sm:h-6" />
+            <Plus className="w-5 h-5 sm:w-6 sm:h-6 stroke-[2.5]" />
           </div>
           <div>
             <h2 className="text-lg sm:text-xl font-black text-white uppercase tracking-wide">

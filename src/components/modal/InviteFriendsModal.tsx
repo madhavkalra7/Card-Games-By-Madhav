@@ -13,7 +13,6 @@ import {
   Send,
   Check,
   Copy,
-  Sparkles,
   Share2,
   Wifi,
   Search,
@@ -203,7 +202,7 @@ export const InviteFriendsModal: React.FC<InviteFriendsModalProps> = ({ roomCode
           <div>
             <div className="flex items-center justify-between mb-2">
               <span className="text-xs font-black uppercase tracking-wider text-zinc-300 flex items-center gap-1.5">
-                <Sparkles className="w-3.5 h-3.5 text-gold" />
+                <Users className="w-3.5 h-3.5 text-gold" />
                 <span>Your Friends ({friends.length})</span>
               </span>
             </div>

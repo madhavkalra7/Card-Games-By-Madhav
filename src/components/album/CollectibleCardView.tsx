@@ -2,7 +2,7 @@ import React from 'react';
 import { motion } from 'framer-motion';
 import { CollectibleCard } from '@/lib/collectibles';
 import { getCardSvgPath } from '@/components/card/PlayingCard';
-import { Lock, Sparkles, Crown, Gem, Shield } from 'lucide-react';
+import { Lock, Zap, Crown, Gem, Shield } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { sounds } from '@/lib/sound';
 
@@ -166,7 +166,7 @@ export const CollectibleCardView: React.FC<CollectibleCardViewProps> = ({
                   </span>
                 ) : card.specialEffect === 'holo_shimmer' ? (
                   <span className="px-1.5 py-0.5 rounded-full bg-black/85 border border-purple-400 text-purple-200 text-[6.5px] xs:text-[7px] sm:text-[8px] font-mono font-black shadow-sm flex items-center gap-0.5">
-                    <Sparkles className="w-2 h-2 text-yellow-300 fill-yellow-300" />
+                    <Zap className="w-2 h-2 text-yellow-300 fill-yellow-300" />
                     <span>HOLO</span>
                   </span>
                 ) : null}

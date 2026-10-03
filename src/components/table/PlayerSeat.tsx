@@ -6,7 +6,7 @@ import { PlayerClientView, Card } from '@/lib/types';
 import { CardStack } from '../card/CardStack';
 import { PlayingCard } from '../card/PlayingCard';
 import { cn } from '@/lib/utils';
-import { Crown, Sparkles, WifiOff, Grab, Mic, MicOff } from 'lucide-react';
+import { Crown, WifiOff, Grab, Mic, MicOff } from 'lucide-react';
 import { useVoiceStore } from '@/store/voiceStore';
 import { useGameStore } from '@/store/gameStore';
 import { ThrowablePicker } from './ThrowablePicker';
@@ -330,7 +330,7 @@ export const PlayerSeat: React.FC<PlayerSeatProps> = ({
       {/* Golden Glowing Bazaar Open Badge */}
       {player.isBazaarOpen && (
         <div className="mt-0.5 sm:mt-1 flex items-center gap-1 px-1.5 sm:px-2 py-0.2 sm:py-0.5 rounded-full bg-gradient-to-r from-amber-500 to-yellow-400 text-black text-[8px] sm:text-[9px] font-black shadow-gold-glow animate-pulse border border-yellow-200">
-          <Sparkles className="w-2.5 h-2.5 fill-black" />
+          <Crown className="w-2.5 h-2.5 fill-black" />
           <span>BAZAAR OPEN</span>
         </div>
       )}

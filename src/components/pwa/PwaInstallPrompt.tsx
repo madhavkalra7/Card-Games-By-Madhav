@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Download, Share, PlusSquare, X, Sparkles, Smartphone, Check } from 'lucide-react';
+import { Download, Share, PlusSquare, X, Smartphone, Check } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 export const PwaInstallPrompt: React.FC = () => {

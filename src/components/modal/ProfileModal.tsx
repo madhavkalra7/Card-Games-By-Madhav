@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import { useAuthStore } from '@/store/authStore';
 import { CARTOON_AVATARS, getAvatarById } from '@/lib/avatars';
-import { X, Trophy, Flame, Play, Award, Check, Edit2, LogOut, Sparkles } from 'lucide-react';
+import { X, Trophy, Flame, Play, Award, Check, Edit2, LogOut } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { sounds } from '@/lib/sound';
 
@@ -131,7 +131,7 @@ export const ProfileModal: React.FC = () => {
 
             {/* Rank Tier Pill */}
             <div className="mt-2.5 flex items-center gap-1.5 px-3 py-1 rounded-full bg-gradient-to-r from-amber-500/20 via-yellow-500/10 to-transparent border border-amber-400/40 text-amber-300 text-[10px] sm:text-xs font-black uppercase tracking-wider">
-              <Sparkles className="w-3 h-3 text-yellow-400" />
+              <Award className="w-3.5 h-3.5 text-yellow-400" />
               <span>
                 {user.totalGamesWon >= 10
                   ? 'Grandmaster Shark 👑'

@@ -10,13 +10,15 @@ import { FlyingPenaltyOverlay } from './FlyingPenaltyOverlay';
 import { CardFlightOverlay } from './CardFlightOverlay';
 import { ThrowablesOverlay } from './ThrowablesOverlay';
 import { ExitConfirmModal } from '../modal/ExitConfirmModal';
+import { TableChatModal } from './TableChatModal';
+import { TableChatBubbleOverlay } from './TableChatBubbleOverlay';
 import { canPlayOnAnyCenterDeck, canPlayOnOtherRightDeck } from '@/lib/validator';
 import { sounds } from '@/lib/sound';
 import { useGameStore } from '@/store/gameStore';
 import { VoiceControls } from '../voice/VoiceControls';
 import { useViewportOrientation } from '@/hooks/useViewportOrientation';
 import { useFriendsStore } from '@/store/friendsStore';
-import { BookOpen, Check, Copy, LogOut, Volume2, VolumeX, UserPlus, ShieldAlert, Eye } from 'lucide-react';
+import { BookOpen, Check, Copy, LogOut, Volume2, VolumeX, UserPlus, ShieldAlert, Eye, MessageSquare } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface PokerTableProps {
@@ -47,7 +49,7 @@ export const PokerTable: React.FC<PokerTableProps> = ({
     activePenaltyAnimation,
   } = state;
 
-  const { setRulesModalOpen, setSoundboardOpen, showToast, leaveRoom } = useGameStore();
+  const { setRulesModalOpen, setSoundboardOpen, showToast, leaveRoom, setTableChatOpen, unreadTableChatCount } = useGameStore();
   const { setInviteModalOpen } = useFriendsStore();
   const router = useRouter();
   const { isLandscape, isMobile } = useViewportOrientation();
@@ -287,6 +289,21 @@ export const PokerTable: React.FC<PokerTableProps> = ({
               <span className="hidden sm:inline sm:ml-1">Sounds</span>
             </button>
 
+            {/* In-Game Table Chat Button */}
+            <button
+              onClick={() => setTableChatOpen(true)}
+              title="In-Game Table Chat"
+              className="relative flex items-center justify-center w-6 h-6 xs:w-7 xs:h-7 sm:w-auto sm:px-2.5 sm:py-1.5 rounded-full bg-gradient-to-r from-blue-600/30 via-indigo-600/30 to-purple-600/30 hover:from-blue-600/50 hover:to-purple-600/50 backdrop-blur-md border border-indigo-500/50 text-[10px] sm:text-[11px] font-extrabold text-indigo-300 hover:text-white shadow-lg transition-all active:scale-95 cursor-pointer"
+            >
+              <MessageSquare className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-indigo-400" />
+              <span className="hidden sm:inline sm:ml-1">Chat</span>
+              {unreadTableChatCount > 0 && (
+                <span className="absolute -top-1 -right-1 w-3.5 h-3.5 xs:w-4 xs:h-4 rounded-full bg-red-600 text-white font-black text-[8px] xs:text-[9px] flex items-center justify-center shadow-md animate-pulse border border-white">
+                  {unreadTableChatCount > 9 ? '9+' : unreadTableChatCount}
+                </span>
+              )}
+            </button>
+
             <button
               onClick={() => setRulesModalOpen(true)}
               title="View Rules"
@@ -436,6 +453,10 @@ export const PokerTable: React.FC<PokerTableProps> = ({
         }}
         isPlaying={state.status === 'PLAYING'}
       />
+
+      {/* In-Game Table Chat Floating Speech Bubble & Interactive Modal */}
+      <TableChatBubbleOverlay />
+      <TableChatModal />
     </div>
   );
 };

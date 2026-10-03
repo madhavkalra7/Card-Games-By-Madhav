@@ -16,7 +16,7 @@ import cors from 'cors';
 import { setupSocketHandlers } from './socket/handler';
 import net from 'net';
 import { execSync } from 'child_process';
-import { connectDB, getGlobalLeaderboard, getUserFriendsList, addUserFriend } from './db';
+import { connectDB, getGlobalLeaderboard, getUserFriendsList, addUserFriend, saveDirectMessage, getDirectMessagesBetween } from './db';
 import { authRouter } from './routes/auth';
 import { verifyAuthToken } from '../src/lib/auth-token';
 
@@ -185,6 +185,65 @@ async function bootstrap() {
       if (!friendEmailOrName) return res.status(400).json({ success: false, error: 'Provide friend name or email' });
       const result = await addUserFriend(payload.userId, friendEmailOrName);
       res.json(result);
+    } catch (err: any) {
+      res.status(500).json({ success: false, error: err.message });
+    }
+  });
+
+  // Direct 1-on-1 Chat Endpoints
+  app.get('/api/chat/direct', async (req, res) => {
+    try {
+      const authHeader = req.headers.authorization;
+      let token = authHeader?.startsWith('Bearer ') ? authHeader.substring(7) : null;
+      if (!token && req.headers.cookie) {
+        const match = req.headers.cookie.match(/cg_auth_token=([^;]+)/);
+        if (match) token = match[1];
+      }
+      const payload = token ? verifyAuthToken(token) : null;
+      const myIdOrName = payload?.userId || (req.query.myId as string) || (req.query.myName as string);
+      const friendIdOrName = req.query.friendId as string || req.query.friendName as string;
+
+      if (!myIdOrName || !friendIdOrName) {
+        return res.json({ success: true, messages: [] });
+      }
+
+      const messages = await getDirectMessagesBetween(myIdOrName, friendIdOrName, 100);
+      res.json({ success: true, messages });
+    } catch (err: any) {
+      res.status(500).json({ success: false, error: err.message });
+    }
+  });
+
+  app.post('/api/chat/direct', async (req, res) => {
+    try {
+      const authHeader = req.headers.authorization;
+      let token = authHeader?.startsWith('Bearer ') ? authHeader.substring(7) : null;
+      if (!token && req.headers.cookie) {
+        const match = req.headers.cookie.match(/cg_auth_token=([^;]+)/);
+        if (match) token = match[1];
+      }
+      const payload = token ? verifyAuthToken(token) : null;
+      const { senderId, senderName, senderAvatar, recipientId, recipientName, text } = req.body || {};
+
+      const activeSenderId = payload?.userId || senderId || 'guest';
+      const activeSenderName = senderName || (payload?.email ? payload.email.split('@')[0] : 'Player');
+      const activeRecipientId = recipientId || '';
+      const activeRecipientName = recipientName || '';
+
+      if (!text || !text.trim()) {
+        return res.status(400).json({ success: false, error: 'Message cannot be empty' });
+      }
+
+      const savedMsg = await saveDirectMessage(
+        activeSenderId,
+        activeSenderName,
+        senderAvatar || '',
+        activeRecipientId,
+        activeRecipientName,
+        text.trim()
+      );
+
+      res.json({ success: true, message: savedMsg });
     } catch (err: any) {
       res.status(500).json({ success: false, error: err.message });
     }

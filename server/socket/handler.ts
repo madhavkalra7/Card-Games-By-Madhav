@@ -3,7 +3,7 @@ import { DukkiBazaarRoom } from '../game/engine';
 import { BluffMasterRoom } from '../game/bluffEngine';
 import { BhabhoRoom } from '../game/bhabhoEngine';
 import { GameType, Rank } from '../game/types';
-import { RoomModel, GameHistoryModel, updatePlayerStats } from '../db';
+import { RoomModel, GameHistoryModel, updatePlayerStats, saveDirectMessage } from '../db';
 
 const activeRooms = new Map<string, DukkiBazaarRoom | BluffMasterRoom | BhabhoRoom>();
 const disconnectTimers = new Map<string, NodeJS.Timeout>();
@@ -542,6 +542,46 @@ export function setupSocketHandlers(io: SocketIOServer) {
         if (callback) callback({ success: false, error: err?.message || 'Failed to trigger soundboard' });
       }
     });
+
+    // ==========================================
+    // Real-Time In-Game Table Chat
+    // ==========================================
+    socket.on('send_table_chat', (data: { roomCode: string; message: string; senderName?: string; senderAvatar?: string }, callback) => {
+      try {
+        const code = data.roomCode?.trim().toUpperCase();
+        if (!code || !activeRooms.has(code)) {
+          if (callback) callback({ success: false, error: 'Room not active' });
+          return;
+        }
+
+        const text = (data.message || '').trim();
+        if (!text) {
+          if (callback) callback({ success: false, error: 'Message cannot be empty' });
+          return;
+        }
+
+        const room = activeRooms.get(code)!;
+        const senderPlayer = room.players.find(p => p.id === socket.id);
+        const name = senderPlayer?.name || data.senderName || 'Player';
+        const avatarColor = senderPlayer?.avatarColor || data.senderAvatar || '#f59e0b';
+
+        const payload = {
+          id: `tc-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
+          roomCode: code,
+          senderId: senderPlayer?.id || socket.id,
+          senderName: name,
+          senderAvatar: avatarColor,
+          message: text.slice(0, 500),
+          timestamp: Date.now(),
+        };
+
+        io.to(code).emit('table_chat_message', payload);
+        if (callback) callback({ success: true, message: payload });
+      } catch (err: any) {
+        if (callback) callback({ success: false, error: err?.message || 'Failed to send message' });
+      }
+    });
+
     socket.on('voice:join', (data: { roomCode: string }, callback) => {
       try {
         const code = data.roomCode?.toUpperCase();
@@ -721,6 +761,51 @@ export function setupSocketHandlers(io: SocketIOServer) {
         if (callback) callback({ success: true, online: true });
       } else {
         if (callback) callback({ success: true, online: false, message: 'Player is not currently online' });
+      }
+    });
+
+    // ==========================================
+    // Real-Time 1-on-1 Direct Friend Chat
+    // ==========================================
+    socket.on('send_direct_chat', async (data: {
+      senderId: string;
+      senderName: string;
+      senderAvatar?: string;
+      recipientId: string;
+      recipientName: string;
+      text: string;
+    }, callback) => {
+      try {
+        const text = (data.text || '').trim();
+        if (!text) {
+          if (callback) callback({ success: false, error: 'Message cannot be empty' });
+          return;
+        }
+
+        // 1. Save to separate database collection in MongoDB
+        const savedMsg = await saveDirectMessage(
+          data.senderId,
+          data.senderName,
+          data.senderAvatar || '',
+          data.recipientId,
+          data.recipientName,
+          text
+        );
+
+        // 2. Deliver via socket to recipient if online
+        const target = (data.recipientId || data.recipientName || '').toLowerCase();
+        for (const [sId, u] of onlineUsers.entries()) {
+          if (
+            (u.userId && u.userId.toLowerCase() === target) ||
+            (u.name && u.name.toLowerCase() === target)
+          ) {
+            io.to(sId).emit('direct_chat_message', savedMsg);
+          }
+        }
+
+        if (callback) callback({ success: true, message: savedMsg });
+      } catch (err: any) {
+        if (callback) callback({ success: false, error: err?.message || 'Failed to send direct chat' });
       }
     });
 

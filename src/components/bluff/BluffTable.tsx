@@ -10,6 +10,8 @@ import { BluffThrowablesOverlay } from './BluffThrowablesOverlay';
 import { ThrowablePicker } from '../table/ThrowablePicker';
 import { ExitConfirmModal } from '../modal/ExitConfirmModal';
 import { VoiceControls } from '../voice/VoiceControls';
+import { TableChatModal } from '../table/TableChatModal';
+import { TableChatBubbleOverlay } from '../table/TableChatBubbleOverlay';
 import { PlayingCard } from '../card/PlayingCard';
 import { sounds } from '@/lib/sound';
 import { useGameStore } from '@/store/gameStore';
@@ -36,6 +38,7 @@ import {
   Clock,
   ChevronRight,
   Eye,
+  MessageSquare,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -62,7 +65,7 @@ export const BluffTable: React.FC<BluffTableProps> = ({
     bluffState,
   } = state;
 
-  const { setRulesModalOpen, setSoundboardOpen, showToast, leaveRoom, throwItem } = useGameStore();
+  const { setRulesModalOpen, setSoundboardOpen, showToast, leaveRoom, throwItem, setTableChatOpen, unreadTableChatCount } = useGameStore();
   const { setInviteModalOpen } = useFriendsStore();
   const router = useRouter();
   const { isLandscape, isMobile } = useViewportOrientation();
@@ -446,6 +449,22 @@ export const BluffTable: React.FC<BluffTableProps> = ({
                 <span className="hidden md:inline md:ml-1">Sounds</span>
               </button>
 
+              {/* Table Chat Button */}
+              <button
+                type="button"
+                onClick={() => setTableChatOpen(true)}
+                title="In-Game Table Chat"
+                className="relative flex items-center justify-center w-6 h-6 xs:w-7 xs:h-7 sm:w-auto sm:px-2.5 sm:py-1.5 rounded-full bg-gradient-to-r from-blue-600/30 via-indigo-600/30 to-purple-600/30 hover:from-blue-600/50 hover:to-purple-600/50 backdrop-blur-md border border-indigo-500/50 text-[10px] sm:text-[11px] font-extrabold text-indigo-300 hover:text-white shadow-lg transition-all active:scale-95 cursor-pointer"
+              >
+                <MessageSquare className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-indigo-400" />
+                <span className="hidden md:inline md:ml-1">Chat</span>
+                {unreadTableChatCount > 0 && (
+                  <span className="absolute -top-1 -right-1 w-3.5 h-3.5 xs:w-4 xs:h-4 rounded-full bg-red-600 text-white font-black text-[8px] xs:text-[9px] flex items-center justify-center shadow-md animate-pulse border border-white">
+                    {unreadTableChatCount > 9 ? '9+' : unreadTableChatCount}
+                  </span>
+                )}
+              </button>
+
               <button
                 type="button"
                 onClick={() => setRulesModalOpen(true)}
@@ -760,6 +779,10 @@ export const BluffTable: React.FC<BluffTableProps> = ({
         }}
         onClose={() => setShowExitModal(false)}
       />
+
+      {/* In-Game Table Chat Floating Speech Bubble & Interactive Modal */}
+      <TableChatBubbleOverlay />
+      <TableChatModal />
     </div>
   );
 };

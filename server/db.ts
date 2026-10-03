@@ -70,6 +70,20 @@ const userSchema = new mongoose.Schema({
 
 export const UserModel = mongoose.models.User || mongoose.model('User', userSchema);
 
+// 5. Direct Message Schema (Separate collection for 1-on-1 friend chatting)
+const directMessageSchema = new mongoose.Schema({
+  senderId: { type: String, required: true, index: true },
+  senderName: { type: String, required: true },
+  senderAvatar: { type: String },
+  recipientId: { type: String, required: true, index: true },
+  recipientName: { type: String, required: true },
+  text: { type: String, required: true },
+  createdAt: { type: Date, default: Date.now, index: true },
+  read: { type: Boolean, default: false },
+});
+
+export const DirectMessageModel = mongoose.models.DirectMessage || mongoose.model('DirectMessage', directMessageSchema);
+
 // Password hashing helpers using native crypto
 export function hashPassword(password: string): { salt: string; hash: string } {
   const salt = crypto.randomBytes(16).toString('hex');
@@ -509,6 +523,120 @@ export async function searchUsers(query: string, currentUserId?: string, limit =
     }));
   } catch (err: any) {
     console.warn('⚠️ Error searching users:', err.message);
+    return [];
+  }
+}
+
+// Save 1-on-1 direct message between friends in dedicated MongoDB collection
+export async function saveDirectMessage(
+  senderId: string,
+  senderName: string,
+  senderAvatar: string,
+  recipientId: string,
+  recipientName: string,
+  text: string
+) {
+  const isConnected = await connectDB();
+  const fallbackId = `dm-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`;
+  const now = new Date();
+
+  if (!isConnected) {
+    return {
+      id: fallbackId,
+      senderId,
+      senderName,
+      senderAvatar: senderAvatar || '',
+      recipientId,
+      recipientName,
+      text: text.trim().slice(0, 1000),
+      createdAt: now.toISOString(),
+      read: false,
+    };
+  }
+
+  try {
+    const doc = await DirectMessageModel.create({
+      senderId,
+      senderName,
+      senderAvatar: senderAvatar || '',
+      recipientId,
+      recipientName,
+      text: text.trim().slice(0, 1000),
+      createdAt: now,
+      read: false,
+    });
+
+    return {
+      id: doc._id.toString(),
+      senderId: doc.senderId,
+      senderName: doc.senderName,
+      senderAvatar: doc.senderAvatar,
+      recipientId: doc.recipientId,
+      recipientName: doc.recipientName,
+      text: doc.text,
+      createdAt: doc.createdAt.toISOString(),
+      read: doc.read,
+    };
+  } catch (err: any) {
+    console.warn('⚠️ Direct message save fallback:', err.message);
+    return {
+      id: fallbackId,
+      senderId,
+      senderName,
+      senderAvatar: senderAvatar || '',
+      recipientId,
+      recipientName,
+      text: text.trim().slice(0, 1000),
+      createdAt: now.toISOString(),
+      read: false,
+    };
+  }
+}
+
+// Fetch historical direct messages between two friends
+export async function getDirectMessagesBetween(userAIdOrName: string, userBIdOrName: string, limit = 100) {
+  const isConnected = await connectDB();
+  if (!isConnected || !userAIdOrName || !userBIdOrName) return [];
+
+  try {
+    const cleanA = userAIdOrName.trim().replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const cleanB = userBIdOrName.trim().replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const regexA = new RegExp(`^${cleanA}$`, 'i');
+    const regexB = new RegExp(`^${cleanB}$`, 'i');
+
+    const messages = await DirectMessageModel.find({
+      $or: [
+        {
+          $and: [
+            { $or: [{ senderId: userAIdOrName }, { senderName: regexA }] },
+            { $or: [{ recipientId: userBIdOrName }, { recipientName: regexB }] },
+          ],
+        },
+        {
+          $and: [
+            { $or: [{ senderId: userBIdOrName }, { senderName: regexB }] },
+            { $or: [{ recipientId: userAIdOrName }, { recipientName: regexA }] },
+          ],
+        },
+      ],
+    })
+      .sort({ createdAt: 1 })
+      .limit(limit)
+      .lean();
+
+    return messages.map((m: any) => ({
+      id: m._id.toString(),
+      senderId: m.senderId,
+      senderName: m.senderName,
+      senderAvatar: m.senderAvatar,
+      recipientId: m.recipientId,
+      recipientName: m.recipientName,
+      text: m.text,
+      createdAt: m.createdAt ? new Date(m.createdAt).toISOString() : new Date().toISOString(),
+      read: !!m.read,
+    }));
+  } catch (err: any) {
+    console.warn('⚠️ Error fetching direct messages:', err.message);
     return [];
   }
 }

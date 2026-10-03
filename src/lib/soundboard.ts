@@ -550,15 +550,6 @@ export const DESI_SOUNDBOARD_CLIPS: SoundboardClip[] = [
     fallbackSynth: 'slap',
   },
   {
-    id: 'ruk-abhi-batata-hu',
-    label: 'Ruk Abhi Batata Hu!',
-    subtitle: 'Desi Threat Meme',
-    emoji: '👊',
-    category: 'viral',
-    audioUrl: '/sounds/memes/ruk-abhi-batata-hu.mp3',
-    fallbackSynth: 'slap',
-  },
-  {
     id: 'arey-o-bhai-oye',
     label: 'Arey O Bhai Oye!',
     subtitle: 'Shocked Viral Sound',

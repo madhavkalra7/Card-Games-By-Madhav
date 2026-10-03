@@ -13,11 +13,13 @@ import { RulesModal } from '@/components/modal/RulesModal';
 import { ExitConfirmModal } from '@/components/modal/ExitConfirmModal';
 import { InviteFriendsModal } from '@/components/modal/InviteFriendsModal';
 import { DesiSoundboardModal } from '@/components/table/DesiSoundboardModal';
+import { TableChatModal } from '@/components/table/TableChatModal';
+import { TableChatBubbleOverlay } from '@/components/table/TableChatBubbleOverlay';
 import { Toast } from '@/components/ui/Toast';
 import { VoiceControls } from '@/components/voice/VoiceControls';
 import { voiceManager } from '@/lib/voice/voiceManager';
 import { useFriendsStore } from '@/store/friendsStore';
-import { Copy, Crown, Play, ShieldAlert, UserMinus, Users, WifiOff, UserPlus, Volume2 } from 'lucide-react';
+import { Copy, Crown, Play, ShieldAlert, UserMinus, Users, WifiOff, UserPlus, Volume2, MessageSquare } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 export default function RoomPage({ params }: { params: Promise<{ code: string }> }) {
@@ -48,6 +50,8 @@ export default function RoomPage({ params }: { params: Promise<{ code: string }>
     setPenaltyModalOpen,
     isRulesModalOpen,
     setRulesModalOpen,
+    setTableChatOpen,
+    unreadTableChatCount,
   } = useGameStore();
 
   // Direct navigation join prompt state
@@ -265,6 +269,21 @@ export default function RoomPage({ params }: { params: Promise<{ code: string }>
                   <span>Desi Sounds</span>
                 </button>
 
+                {/* Real-Time Table Chat in Lobby */}
+                <button
+                  onClick={() => setTableChatOpen(true)}
+                  className="relative flex items-center gap-1.5 px-3 py-2 rounded-2xl bg-blue-600/20 hover:bg-blue-600/30 border border-blue-500/40 text-blue-300 font-extrabold text-xs uppercase tracking-wider transition-all active:scale-95 cursor-pointer"
+                  title="Table Room Chat"
+                >
+                  <MessageSquare className="w-3.5 h-3.5 text-blue-400" />
+                  <span>Chat</span>
+                  {unreadTableChatCount > 0 && (
+                    <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-red-600 text-white font-black text-[9px] flex items-center justify-center shadow-md animate-pulse border border-white">
+                      {unreadTableChatCount > 9 ? '9+' : unreadTableChatCount}
+                    </span>
+                  )}
+                </button>
+
                 {/* Direct Invite Friends Button */}
                 <button
                   onClick={() => setInviteModalOpen(true)}
@@ -462,6 +481,10 @@ export default function RoomPage({ params }: { params: Promise<{ code: string }>
 
       {/* Real-Time Desi Meme Soundboard Modal */}
       <DesiSoundboardModal />
+
+      {/* In-Game / Lobby Table Chat Modal & Floating Speech Bubble */}
+      <TableChatBubbleOverlay />
+      <TableChatModal />
 
       {isLobby && (
         <div className="w-full text-center py-2 text-[10px] text-zinc-600">

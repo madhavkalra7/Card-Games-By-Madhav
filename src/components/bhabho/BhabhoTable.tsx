@@ -10,6 +10,8 @@ import { BluffThrowablesOverlay } from '../bluff/BluffThrowablesOverlay';
 import { ThrowablePicker } from '../table/ThrowablePicker';
 import { ExitConfirmModal } from '../modal/ExitConfirmModal';
 import { VoiceControls } from '../voice/VoiceControls';
+import { TableChatModal } from '../table/TableChatModal';
+import { TableChatBubbleOverlay } from '../table/TableChatBubbleOverlay';
 import { sounds } from '@/lib/sound';
 import { useGameStore } from '@/store/gameStore';
 import { useFriendsStore } from '@/store/friendsStore';
@@ -26,6 +28,7 @@ import {
   Flame,
   ShieldAlert,
   Eye,
+  MessageSquare,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -47,7 +50,7 @@ export const BhabhoTable: React.FC<BhabhoTableProps> = ({
     turnTimeRemaining,
   } = state;
 
-  const { setRulesModalOpen, setSoundboardOpen, showToast, leaveRoom, throwItem } = useGameStore();
+  const { setRulesModalOpen, setSoundboardOpen, showToast, leaveRoom, throwItem, setTableChatOpen, unreadTableChatCount } = useGameStore();
   const { setInviteModalOpen } = useFriendsStore();
   const router = useRouter();
   const { isLandscape, isMobile, viewportHeight } = useViewportOrientation();
@@ -325,6 +328,22 @@ export const BhabhoTable: React.FC<BhabhoTableProps> = ({
                 <span>📢</span>
                 <span className="hidden sm:inline">Soundboard</span>
               </button>
+
+              {/* In-Game Table Chat Button */}
+              <button
+                type="button"
+                onClick={() => setTableChatOpen(true)}
+                className="relative flex items-center gap-1 bg-gradient-to-r from-blue-600/80 via-indigo-600/80 to-purple-600/80 hover:from-blue-600 hover:to-purple-600 text-white font-extrabold text-[10px] xs:text-[11px] sm:text-xs px-2 xs:px-2.5 py-0.5 sm:py-1 rounded-full shadow-md border border-indigo-400/50 transition-all hover:scale-105 active:scale-95 touch-manipulation cursor-pointer"
+                title="In-Game Table Chat"
+              >
+                <MessageSquare className="w-2.5 h-2.5 xs:w-3 xs:h-3" />
+                <span className="hidden sm:inline">Chat</span>
+                {unreadTableChatCount > 0 && (
+                  <span className="absolute -top-1 -right-1 w-3.5 h-3.5 xs:w-4 xs:h-4 rounded-full bg-red-600 text-white font-black text-[8px] xs:text-[9px] flex items-center justify-center shadow-md animate-pulse border border-white">
+                    {unreadTableChatCount > 9 ? '9+' : unreadTableChatCount}
+                  </span>
+                )}
+              </button>
             </div>
 
             {/* Right Section: Rules, Mute, Leave Table */}
@@ -486,6 +505,10 @@ export const BhabhoTable: React.FC<BhabhoTableProps> = ({
             }}
             isPlaying={state.status === 'PLAYING'}
           />
+
+          {/* In-Game Table Chat Floating Speech Bubble & Interactive Modal */}
+          <TableChatBubbleOverlay />
+          <TableChatModal />
 
         </div>
       </div>

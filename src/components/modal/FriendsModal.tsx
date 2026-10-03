@@ -22,8 +22,10 @@ import {
   Medal,
   RefreshCw,
   Eye,
-  Play
+  Play,
+  MessageSquare,
 } from 'lucide-react';
+import { useChatStore } from '@/store/chatStore';
 
 interface FriendsModalProps {
   currentRoomCode?: string;
@@ -48,6 +50,7 @@ export const FriendsModal: React.FC<FriendsModalProps> = ({ currentRoomCode }) =
 
   const { user, setAuthModalOpen } = useAuthStore();
   const { showToast } = useGameStore();
+  const { unreadCounts, openChatWithFriend } = useChatStore();
   const router = useRouter();
 
   const [searchFriendInput, setSearchFriendInput] = useState('');
@@ -392,6 +395,33 @@ export const FriendsModal: React.FC<FriendsModalProps> = ({ currentRoomCode }) =
                             <UserPlus className="w-3.5 h-3.5" />
                           </button>
                         )}
+
+                        {!currentRoomCode && !isSelf && isAlreadyFriend && (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setFriendsModalOpen(false);
+                              const existing = friends.find((f) => f.id === player.id || f.name === player.name) || {
+                                id: player.id,
+                                name: player.name,
+                                email: player.email,
+                                avatarUrl: player.avatarUrl,
+                                avatarColor: player.avatarColor,
+                                avatarId: player.avatarId,
+                                totalScore: player.totalScore,
+                                totalGamesWon: player.totalGamesWon,
+                                totalGamesPlayed: player.totalGamesPlayed,
+                                winRate: player.winRate,
+                                coins: player.coins,
+                              };
+                              openChatWithFriend(existing);
+                            }}
+                            className="p-1.5 sm:p-2 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 border border-indigo-400/40 text-white transition-all active:scale-95 cursor-pointer shadow-sm"
+                            title={`Chat with ${player.name}`}
+                          >
+                            <MessageSquare className="w-3.5 h-3.5" />
+                          </button>
+                        )}
                       </div>
                     </div>
                   );
@@ -539,10 +569,36 @@ export const FriendsModal: React.FC<FriendsModalProps> = ({ currentRoomCode }) =
 
                               {!isSelf && (
                                 isFriend ? (
-                                  <span className="px-2 py-1 rounded-lg bg-emerald-500/15 border border-emerald-500/30 text-emerald-300 text-[10px] font-bold flex items-center gap-1">
-                                    <Check className="w-2.5 h-2.5" />
-                                    <span>Friend ✓</span>
-                                  </span>
+                                  <div className="flex items-center gap-1">
+                                    <span className="px-2 py-1 rounded-lg bg-emerald-500/15 border border-emerald-500/30 text-emerald-300 text-[10px] font-bold flex items-center gap-1">
+                                      <Check className="w-2.5 h-2.5" />
+                                      <span>Friend ✓</span>
+                                    </span>
+                                    <button
+                                      type="button"
+                                      onClick={() => {
+                                        setFriendsModalOpen(false);
+                                        const existing = friends.find((f) => f.id === player.id || f.name === player.name) || {
+                                          id: player.id,
+                                          name: player.name,
+                                          email: player.email,
+                                          avatarUrl: player.avatarUrl,
+                                          avatarColor: player.avatarColor,
+                                          avatarId: player.avatarId,
+                                          totalScore: player.totalScore,
+                                          totalGamesWon: player.totalGamesWon,
+                                          totalGamesPlayed: player.totalGamesPlayed,
+                                          winRate: player.winRate,
+                                          coins: player.coins,
+                                        };
+                                        openChatWithFriend(existing);
+                                      }}
+                                      className="p-1 sm:p-1.5 rounded-lg bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white border border-indigo-400/40 transition-all active:scale-95 cursor-pointer shadow-sm"
+                                      title={`Chat with ${player.name}`}
+                                    >
+                                      <MessageSquare className="w-3 h-3" />
+                                    </button>
+                                  </div>
                                 ) : (
                                   <button
                                     type="button"
@@ -678,8 +734,32 @@ export const FriendsModal: React.FC<FriendsModalProps> = ({ currentRoomCode }) =
                           </div>
                         </div>
 
-                        {/* Action Buttons: Join / Spectate Table or Direct Invite */}
+                        {/* Action Buttons: Chat, Join / Spectate Table, or Direct Invite */}
                         <div className="flex items-center gap-1 sm:gap-1.5 shrink-0">
+                          {/* 1-on-1 Direct Friend Chat Button */}
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setFriendsModalOpen(false);
+                              openChatWithFriend(friend);
+                            }}
+                            className="relative px-2 xs:px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-xl font-black text-[10px] xs:text-[11px] sm:text-xs uppercase tracking-wider flex items-center gap-1 sm:gap-1.5 bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 hover:from-blue-500 hover:to-purple-500 text-white shadow-md border border-indigo-400/40 transition-all cursor-pointer active:scale-95 touch-manipulation"
+                            title={`Chat with ${friend.name}`}
+                          >
+                            <MessageSquare className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
+                            <span>Chat</span>
+                            {(() => {
+                              const fKey = (friend.id || friend.name || '').toLowerCase();
+                              const count = unreadCounts[fKey] || 0;
+                              if (count <= 0) return null;
+                              return (
+                                <span className="absolute -top-1 -right-1 w-3.5 h-3.5 xs:w-4 xs:h-4 rounded-full bg-red-600 text-white font-black text-[8px] xs:text-[9px] flex items-center justify-center shadow-md animate-pulse border border-white">
+                                  {count > 9 ? '9+' : count}
+                                </span>
+                              );
+                            })()}
+                          </button>
+
                           {friendRoomCode && friendRoomCode !== currentRoomCode && (
                             <button
                               type="button"
@@ -734,8 +814,8 @@ export const FriendsModal: React.FC<FriendsModalProps> = ({ currentRoomCode }) =
                               )}
                             </button>
                           ) : !friendRoomCode && (
-                            <span className="text-[10px] text-zinc-500 font-medium">
-                              {isOnline ? 'Active in Casino' : 'Offline'}
+                            <span className="text-[10px] text-zinc-500 font-medium hidden sm:inline">
+                              {isOnline ? 'Online' : 'Offline'}
                             </span>
                           )}
                         </div>

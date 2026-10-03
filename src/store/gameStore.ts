@@ -16,6 +16,16 @@ interface ToastData {
   type: 'info' | 'error' | 'success';
 }
 
+export interface TableChatMessage {
+  id: string;
+  roomCode: string;
+  senderId: string;
+  senderName: string;
+  senderAvatar?: string;
+  message: string;
+  timestamp: number;
+}
+
 interface GameStore {
   gameState: GameStateClientView | null;
   roomCode: string;
@@ -30,6 +40,12 @@ interface GameStore {
   isSoundboardOpen: boolean;
   activeSoundboardDecals: Record<string, { label: string; emoji: string; id: string; timestamp: number }>;
   activeCardFlights: CardFlightEvent[];
+
+  // Table In-Game Chat
+  tableChatMessages: TableChatMessage[];
+  isTableChatOpen: boolean;
+  unreadTableChatCount: number;
+  latestTableBubble: TableChatMessage | null;
 
   // Actions
   initSocketListeners: () => void;
@@ -70,6 +86,11 @@ interface GameStore {
   // Soundboard Actions
   setSoundboardOpen: (open: boolean) => void;
   triggerSoundboard: (clip: { soundId: string; label: string; emoji: string; audioUrl?: string; fallbackSynth?: string; speechText?: string }) => void;
+
+  // In-Game Table Chat Actions
+  setTableChatOpen: (open: boolean) => void;
+  sendTableChatMessage: (message: string) => Promise<boolean>;
+  clearTableChat: () => void;
 }
 
 const saved = getSavedProfile();
@@ -88,6 +109,12 @@ export const useGameStore = create<GameStore>((set, get) => ({
   isSoundboardOpen: false,
   activeSoundboardDecals: {},
   activeCardFlights: [],
+
+  // Table In-Game Chat Initial State
+  tableChatMessages: [],
+  isTableChatOpen: false,
+  unreadTableChatCount: 0,
+  latestTableBubble: null,
 
   removeCardFlight: (id: string) => {
     set((prev) => ({
@@ -125,6 +152,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
       s.off('card_played');
       s.off('player_reconnected');
       s.off('match_aborted');
+      s.off('table_chat_message');
 
       // Set current connection status immediately
       set({ isConnected: s.connected });
@@ -140,6 +168,29 @@ export const useGameStore = create<GameStore>((set, get) => ({
       s.on('connect_error', (err: any) => {
         set({ isConnected: false });
         console.warn('Socket connection error:', err.message);
+      });
+
+      // Listen for in-game table chat messages
+      s.on('table_chat_message', (msg: TableChatMessage) => {
+        sounds.playCardSlide();
+        set((prev) => {
+          const isCurrentlyOpen = prev.isTableChatOpen;
+          return {
+            tableChatMessages: [...prev.tableChatMessages, msg],
+            unreadTableChatCount: isCurrentlyOpen ? 0 : prev.unreadTableChatCount + 1,
+            latestTableBubble: msg,
+          };
+        });
+
+        // Float speech bubble on table for 4.5s
+        setTimeout(() => {
+          set((prev) => {
+            if (prev.latestTableBubble?.id === msg.id) {
+              return { latestTableBubble: null };
+            }
+            return prev;
+          });
+        }, 4500);
       });
 
       // Listen for player reconnection notifications
@@ -245,6 +296,33 @@ export const useGameStore = create<GameStore>((set, get) => ({
             return prev;
           });
         }, 3800);
+      });
+
+      // Listen for real-time table chat messages across the room
+      s.off('table_chat_message');
+      s.on('table_chat_message', (msg: TableChatMessage) => {
+        const isSelf = (msg.senderName || '').toLowerCase() === (get().myName || '').toLowerCase();
+        const isChatOpen = get().isTableChatOpen;
+
+        set((prev) => ({
+          tableChatMessages: [...prev.tableChatMessages, msg],
+          unreadTableChatCount: isChatOpen ? 0 : prev.unreadTableChatCount + 1,
+          latestTableBubble: msg,
+        }));
+
+        if (!isSelf) {
+          sounds.playCardSlide();
+        }
+
+        // Auto-clear floating speech bubble after 4.5 seconds
+        setTimeout(() => {
+          set((prev) => {
+            if (prev.latestTableBubble?.id === msg.id) {
+              return { latestTableBubble: null };
+            }
+            return prev;
+          });
+        }, 4500);
       });
 
       s.on('syncState', (state: GameStateClientView) => {
@@ -715,5 +793,46 @@ export const useGameStore = create<GameStore>((set, get) => ({
       speechText: clip.speechText,
       sessionId: getOrCreateSessionId(),
     });
+  },
+
+  // ==========================================
+  // In-Game Table Chat Actions
+  // ==========================================
+  setTableChatOpen: (open: boolean) => {
+    set({
+      isTableChatOpen: open,
+      unreadTableChatCount: open ? 0 : get().unreadTableChatCount,
+    });
+  },
+
+  clearTableChat: () => {
+    set({
+      tableChatMessages: [],
+      unreadTableChatCount: 0,
+      latestTableBubble: null,
+    });
+  },
+
+  sendTableChatMessage: async (message: string) => {
+    const trimmed = message.trim();
+    if (!trimmed) return false;
+    const currentCode = get().roomCode || get().gameState?.roomCode;
+    if (!currentCode) return false;
+
+    const socket = getSocket();
+    if (!socket || !socket.connected) return false;
+
+    const myName = get().myName || 'Player';
+    const myAvatar = get().myAvatar || '#f59e0b';
+
+    socket.emit('send_table_chat', {
+      roomCode: currentCode,
+      message: trimmed,
+      senderName: myName,
+      senderAvatar: myAvatar,
+    });
+
+    sounds.playCardSlide();
+    return true;
   },
 }));

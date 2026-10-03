@@ -3,8 +3,10 @@
 import React, { useEffect } from 'react';
 import { RoomInviteToast } from '@/components/ui/RoomInviteToast';
 import { FriendsModal } from '@/components/modal/FriendsModal';
+import { FriendChatWindow } from '@/components/chat/FriendChatWindow';
 import { useAuthStore } from '@/store/authStore';
 import { useGameStore } from '@/store/gameStore';
+import { useChatStore } from '@/store/chatStore';
 import { getSocket } from '@/socket/client';
 
 export const GlobalModals: React.FC = () => {
@@ -13,6 +15,7 @@ export const GlobalModals: React.FC = () => {
 
   useEffect(() => {
     checkAuth();
+    useChatStore.getState().initSocketListeners();
   }, [checkAuth]);
 
   // Keep socket updated with current user registration
@@ -46,6 +49,7 @@ export const GlobalModals: React.FC = () => {
     <>
       <RoomInviteToast />
       <FriendsModal />
+      <FriendChatWindow />
     </>
   );
 };

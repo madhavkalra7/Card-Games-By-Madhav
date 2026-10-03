@@ -18,7 +18,6 @@ function CopyMatch($pattern, $targetName) {
 }
 
 CopyMatch "*Abe bahar nikal*" "abe-bahar-nikal.mp3"
-CopyMatch "*Abhi batata hu memes*" "ruk-abhi-batata-hu.mp3"
 CopyMatch "*Accha Thik Hai Samaz Gaya Meme puneet Superstar*" "puneet-superstar.mp3"
 CopyMatch "*Achcha... Amir Khan*" "aamir-khan-achha.mp3"
 CopyMatch "*Are..o..bhai..oye*" "arey-o-bhai-oye.mp3"

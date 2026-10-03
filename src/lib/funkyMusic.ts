@@ -14,8 +14,10 @@ class FunkyMusicEngine {
   constructor() {
     if (typeof window !== 'undefined') {
       const saved = localStorage.getItem('cg_landing_music');
-      // Default to true on desktop if user enabled before, or keep false until first user interaction
-      this.isPlayingState = saved === 'true';
+      // Default to true (ON by default) unless explicitly muted previously
+      this.isPlayingState = saved !== 'false';
+    } else {
+      this.isPlayingState = true;
     }
   }
 
@@ -30,7 +32,7 @@ class FunkyMusicEngine {
       }
     }
     if (this.ctx && this.ctx.state === 'suspended') {
-      this.ctx.resume();
+      this.ctx.resume().catch(() => {});
     }
   }
 
@@ -61,8 +63,11 @@ class FunkyMusicEngine {
   }
 
   public start() {
-    if (this.isPlayingState && this.timerId) return;
     this.initCtx();
+    if (this.ctx && this.ctx.state === 'suspended') {
+      this.ctx.resume().catch(() => {});
+    }
+    if (this.isPlayingState && this.timerId) return;
     if (!this.ctx) return;
 
     this.isPlayingState = true;
@@ -70,6 +75,9 @@ class FunkyMusicEngine {
     this.nextNoteTime = this.ctx.currentTime + 0.05;
 
     // Lookahead scheduler loop (runs every 25ms, schedules ahead by 100ms)
+    if (this.timerId) {
+      clearInterval(this.timerId);
+    }
     this.timerId = setInterval(() => {
       this.scheduleLoop();
     }, 25);

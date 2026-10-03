@@ -67,7 +67,12 @@ export const ToonHeroSection: React.FC<ToonHeroSectionProps> = ({
   const [isAnimating, setIsAnimating] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
   const [isShortHeight, setIsShortHeight] = useState(false);
-  const [isMusicPlaying, setIsMusicPlaying] = useState(false);
+  const [isMusicPlaying, setIsMusicPlaying] = useState<boolean>(() => {
+    if (typeof window !== 'undefined') {
+      return localStorage.getItem('cg_landing_music') !== 'false';
+    }
+    return true;
+  });
 
   // Touch and drag swipe state
   const [dragOffset, setDragOffset] = useState<number>(0);
@@ -101,7 +106,12 @@ export const ToonHeroSection: React.FC<ToonHeroSectionProps> = ({
       setIsMusicPlaying(playing);
     });
 
-    // Auto-start funky music on user's first click or keypress
+    // Auto-start funky music on mount by default
+    if (localStorage.getItem('cg_landing_music') !== 'false') {
+      funkyMusic.start();
+    }
+
+    // Also auto-start or resume on ANY first user gesture (touch, pointer, click, keydown)
     const handleFirstInteraction = () => {
       if (localStorage.getItem('cg_landing_music') !== 'false') {
         funkyMusic.start();
@@ -109,11 +119,15 @@ export const ToonHeroSection: React.FC<ToonHeroSectionProps> = ({
     };
 
     window.addEventListener('click', handleFirstInteraction, { once: true });
+    window.addEventListener('touchstart', handleFirstInteraction, { once: true, passive: true });
+    window.addEventListener('pointerdown', handleFirstInteraction, { once: true });
     window.addEventListener('keydown', handleFirstInteraction, { once: true });
 
     return () => {
       unsub();
       window.removeEventListener('click', handleFirstInteraction);
+      window.removeEventListener('touchstart', handleFirstInteraction);
+      window.removeEventListener('pointerdown', handleFirstInteraction);
       window.removeEventListener('keydown', handleFirstInteraction);
       funkyMusic.stop(); // Stop music when leaving the landing page
     };

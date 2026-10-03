@@ -430,7 +430,10 @@ export const BhabhoTable: React.FC<BhabhoTableProps> = ({
           )}
 
           {/* Bottom Area: Fan Hand for active player or Spectator Banner */}
-          <div className="relative w-full z-20 pb-[max(0.25rem,env(safe-area-inset-bottom))]">
+          <div
+            id={myPlayerId ? `player-seat-${myPlayerId}` : undefined}
+            className="relative w-full z-20 pb-[max(0.25rem,env(safe-area-inset-bottom))]"
+          >
             {isSpectator ? (
               <div className="w-full flex justify-center py-2 select-none pointer-events-none">
                 <div className="px-4 py-1.5 rounded-full bg-black/85 backdrop-blur-md border border-gold/40 text-gold text-xs font-black flex items-center gap-2 shadow-lg">
@@ -460,26 +463,18 @@ export const BhabhoTable: React.FC<BhabhoTableProps> = ({
           <BluffThrowablesOverlay />
 
           {/* Throwable Picker Modal (when clicking an opponent's avatar) */}
-          {throwableTarget && (
-            <div
-              className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm pointer-events-auto"
-              onClick={() => setThrowableTarget(null)}
-            >
-              <div onClick={(e) => e.stopPropagation()}>
-                <ThrowablePicker
-                  isOpen={true}
-                  targetPlayerId={throwableTarget.id}
-                  targetPlayerName={throwableTarget.name}
-                  onClose={() => setThrowableTarget(null)}
-                  onSelect={(type) => {
-                    throwItem(throwableTarget.id, type);
-                    setThrowableTarget(null);
-                  }}
-                  align="center"
-                />
-              </div>
-            </div>
-          )}
+          <ThrowablePicker
+            isOpen={!!throwableTarget}
+            targetPlayerId={throwableTarget?.id || ''}
+            targetPlayerName={throwableTarget?.name || ''}
+            onClose={() => setThrowableTarget(null)}
+            onSelect={(type) => {
+              if (throwableTarget) {
+                throwItem(throwableTarget.id, type);
+                setThrowableTarget(null);
+              }
+            }}
+          />
 
           {/* Exit Confirmation Modal */}
           <ExitConfirmModal

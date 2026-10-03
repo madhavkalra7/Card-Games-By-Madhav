@@ -164,7 +164,10 @@ export const PlayerSeat: React.FC<PlayerSeatProps> = ({
     >
       {/* Real-Time Impact Splatters / Decals when Hit */}
       {currentImpact && (
-        <div className="absolute -top-7 xs:-top-8 sm:-top-9 left-1/2 -translate-x-1/2 pointer-events-none z-50 flex items-center justify-center animate-bounce">
+        <div className={cn(
+          "absolute pointer-events-none z-50 flex items-center justify-center animate-bounce",
+          isTopSeat ? "top-8 xs:top-9 sm:top-11 left-1/2 -translate-x-1/2" : "-top-7 xs:-top-8 sm:-top-9 left-1/2 -translate-x-1/2"
+        )}>
           {currentImpact.itemType === 'chappal' && (
             <div className="flex items-center gap-1.5 bg-red-600/95 text-white font-black text-[11px] xs:text-xs sm:text-sm px-2.5 sm:px-3 py-0.5 sm:py-1 rounded-full border-1.5 sm:border-2 border-yellow-300 shadow-[0_4px_20px_rgba(220,38,38,0.75)] animate-pulse whitespace-nowrap">
               <span>PHATAK! 🩴💥</span>

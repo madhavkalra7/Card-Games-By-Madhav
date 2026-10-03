@@ -161,11 +161,23 @@ export const BluffPlayerSeat: React.FC<BluffPlayerSeatProps> = ({
             </div>
           )}
 
-          {/* Disconnected Indicator */}
-          {!player.isConnected && (
-            <div className="absolute inset-0 rounded-full bg-black/70 flex items-center justify-center">
-              <WifiOff className="w-3.5 h-3.5 text-red-500" />
-            </div>
+          {/* Quick Throw Button on Opponent Avatar */}
+          {!isSelf && (
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                if (onOpenThrowablePicker) {
+                  onOpenThrowablePicker(player.id, player.name);
+                } else {
+                  setShowPicker(!showPicker);
+                }
+              }}
+              title={`Throw item at ${player.name}`}
+              className="absolute -bottom-1 -left-1 w-4 h-4 xs:w-4.5 xs:h-4.5 sm:w-5 sm:h-5 rounded-full bg-gradient-to-r from-amber-500 to-yellow-400 text-black flex items-center justify-center text-[9px] xs:text-[10px] sm:text-xs shadow-md border border-white cursor-pointer active:scale-90 transition-transform z-10"
+            >
+              <span>🩴</span>
+            </button>
           )}
         </div>
 

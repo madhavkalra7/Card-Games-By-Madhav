@@ -26,48 +26,68 @@ const ProjectileFlight: React.FC<ProjectileFlightProps> = ({ item, onComplete })
     }
   }, [onComplete]);
 
-  // Guaranteed fallback: complete flight after 1000ms even if animation was interrupted or tab backgrounded
+  // Guaranteed fallback: complete flight after 900ms even if animation was interrupted
   useEffect(() => {
-    const safetyTimer = setTimeout(handleDone, 1000);
+    const safetyTimer = setTimeout(handleDone, 900);
     return () => clearTimeout(safetyTimer);
   }, [handleDone]);
 
   const config = getThrowableConfig(item.itemType);
+  const myPlayerId = useGameStore((s) => s.gameState?.myPlayerId);
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
 
-    // 1. Resolve sender coordinates
-    const fromEl = document.getElementById(`player-seat-${item.fromPlayerId}`);
-    let startX = window.innerWidth / 2;
-    let startY = window.innerHeight - 100;
+    const resolveCoords = (playerId: string, isSender: boolean) => {
+      // 1. Try finding by seat ID
+      const el = document.getElementById(`player-seat-${playerId}`);
+      if (el) {
+        const rect = el.getBoundingClientRect();
+        return {
+          x: Math.max(35, Math.min(window.innerWidth - 35, rect.left + rect.width / 2)),
+          y: Math.max(50, Math.min(window.innerHeight - 50, rect.top + rect.height / 2)),
+        };
+      }
 
-    if (fromEl) {
-      const rect = fromEl.getBoundingClientRect();
-      startX = rect.left + rect.width / 2;
-      startY = rect.top + rect.height / 2;
-    }
+      // 2. Fallback for local player (rendered at bottom via Fan Hand)
+      const isSelf = playerId === myPlayerId;
+      if (isSelf || (isSender && !playerId)) {
+        return {
+          x: window.innerWidth / 2,
+          y: Math.max(60, window.innerHeight - 80),
+        };
+      }
 
-    // 2. Resolve target coordinates
-    const toEl = document.getElementById(`player-seat-${item.toPlayerId}`);
-    let endX = window.innerWidth / 2;
-    let endY = 120;
+      // 3. Fallback for opponents without explicit element
+      return {
+        x: window.innerWidth / 2,
+        y: Math.max(60, window.innerHeight * 0.2),
+      };
+    };
 
-    if (toEl) {
-      const rect = toEl.getBoundingClientRect();
-      endX = rect.left + rect.width / 2;
-      endY = rect.top + rect.height / 2;
-    }
+    const from = resolveCoords(item.fromPlayerId, true);
+    const to = resolveCoords(item.toPlayerId, false);
 
-    setCoords({ startX, startY, endX, endY });
-  }, [item.fromPlayerId, item.toPlayerId]);
+    setCoords({
+      startX: from.x,
+      startY: from.y,
+      endX: to.x,
+      endY: to.y,
+    });
+  }, [item.fromPlayerId, item.toPlayerId, myPlayerId]);
 
   if (!coords) return null;
 
   const { startX, startY, endX, endY } = coords;
-  // Parabolic peak reaches higher than both points
+
+  // Midpoint horizontal coordinate
   const midX = (startX + endX) / 2;
-  const midY = Math.min(startY, endY) - (item.itemType === 'chappal' ? 140 : 100);
+
+  // Parabolic flight arc: peak stays safely inside the screen
+  const distY = Math.abs(startY - endY);
+  const arcLift = Math.min(85, Math.max(40, distY * 0.3));
+  const rawMidY = Math.min(startY, endY) - arcLift;
+  const midY = Math.max(55, rawMidY); // Clamped so it NEVER flies above the viewport top rail!
 
   return (
     <motion.div
@@ -76,41 +96,36 @@ const ProjectileFlight: React.FC<ProjectileFlightProps> = ({ item, onComplete })
         y: startY,
         scale: 0.5,
         rotate: 0,
-        opacity: 0.9,
+        opacity: 0,
       }}
       animate={{
         x: [startX, midX, endX],
         y: [startY, midY, endY],
-        scale: [0.6, 1.5, 1.1],
-        rotate: [0, item.itemType === 'chappal' ? 1080 : 360],
-        opacity: 1,
+        scale: [0.6, 1.45, 1.1],
+        rotate: [0, item.itemType === 'chappal' ? 720 : 360],
+        opacity: [0.4, 1, 1],
       }}
       transition={{
-        duration: 0.65,
+        duration: 0.62,
         ease: 'easeInOut',
-        times: [0, 0.5, 1],
+        times: [0, 0.45, 1],
       }}
       onAnimationComplete={handleDone}
-      className="absolute top-0 left-0 -translate-x-1/2 -translate-y-1/2 pointer-events-none select-none z-[110] flex items-center justify-center"
+      className="fixed top-0 left-0 -translate-x-1/2 -translate-y-1/2 pointer-events-none select-none z-[130] flex items-center justify-center"
       style={{
-        filter: `drop-shadow(0 8px 20px ${config.glowColor})`,
+        filter: `drop-shadow(0 6px 16px ${config.glowColor})`,
       }}
     >
-      {/* Visual Item Figurine / Emoji with Glowing Trail */}
+      {/* Visual Item Figurine with Glow */}
       <div className="relative flex items-center justify-center">
-        {/* Glow Ring in Flight */}
         <div
           className="absolute inset-0 rounded-full blur-md animate-pulse"
           style={{ backgroundColor: config.glowColor }}
         />
-
-        {/* The Item Emoji */}
-        <span className="text-4xl sm:text-5xl filter drop-shadow-2xl transform active:scale-125">
+        <span className="text-3xl sm:text-4xl filter drop-shadow-xl select-none">
           {config.emoji}
         </span>
-
-        {/* Flying motion sparkles */}
-        <span className="absolute -bottom-1 -right-1 text-xs opacity-75 animate-ping">
+        <span className="absolute -bottom-1 -right-1 text-xs opacity-80 animate-ping">
           ✨
         </span>
       </div>
@@ -119,7 +134,7 @@ const ProjectileFlight: React.FC<ProjectileFlightProps> = ({ item, onComplete })
 };
 
 export const ThrowablesOverlay: React.FC = () => {
-  const { activeThrowables, removeThrowable, triggerImpact, gameState } = useGameStore();
+  const { activeThrowables, removeThrowable, triggerImpact, gameState, activeImpacts } = useGameStore();
   const [announcement, setAnnouncement] = useState<{
     id: string;
     fromName: string;
@@ -129,6 +144,9 @@ export const ThrowablesOverlay: React.FC = () => {
 
   const lastHandledIdRef = useRef<string | null>(null);
   const dismissTimerRef = useRef<NodeJS.Timeout | null>(null);
+
+  const myPlayerId = gameState?.myPlayerId;
+  const myImpact = myPlayerId ? activeImpacts[myPlayerId] : null;
 
   const handleFlightComplete = (item: ThrownItemEvent) => {
     triggerImpact(item.toPlayerId, item.itemType);
@@ -148,25 +166,22 @@ export const ThrowablesOverlay: React.FC = () => {
 
     setAnnouncement({
       id: latest.id,
-      fromName: fromP?.name || 'Someone',
-      toName: toP?.name || 'Someone',
+      fromName: fromP?.name || (latest.fromPlayerId === myPlayerId ? 'You' : 'Someone'),
+      toName: toP?.name || (latest.toPlayerId === myPlayerId ? 'You' : 'Someone'),
       config,
     });
 
-    // Clear previous dismissal timer if another item is thrown in quick succession
     if (dismissTimerRef.current) {
       clearTimeout(dismissTimerRef.current);
     }
 
-    // Auto-dismiss the announcement banner after 2.6 seconds.
-    // Kept in a ref so it is NOT cancelled when activeThrowables is emptied!
+    // Auto-dismiss the announcement banner after 2.5 seconds
     dismissTimerRef.current = setTimeout(() => {
       setAnnouncement(null);
       dismissTimerRef.current = null;
-    }, 2600);
-  }, [activeThrowables, gameState?.players]);
+    }, 2500);
+  }, [activeThrowables, gameState?.players, myPlayerId]);
 
-  // Cleanup on unmount only
   useEffect(() => {
     return () => {
       if (dismissTimerRef.current) {
@@ -176,26 +191,26 @@ export const ThrowablesOverlay: React.FC = () => {
   }, []);
 
   return (
-    <div className="fixed inset-0 pointer-events-none z-[110] overflow-hidden">
-      {/* Global Responsive Throw Action Announcement Banner */}
+    <div className="fixed inset-0 pointer-events-none z-[125] overflow-hidden">
+      {/* 1. Global Responsive Throw Action Announcement Banner */}
       <AnimatePresence>
         {announcement && (
           <motion.div
             key={announcement.id}
-            initial={{ opacity: 0, y: -20, scale: 0.88 }}
+            initial={{ opacity: 0, y: -16, scale: 0.9 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: -15, scale: 0.9 }}
-            transition={{ type: 'spring', damping: 22, stiffness: 350 }}
-            className="fixed top-12 xs:top-14 sm:top-16 left-1/2 -translate-x-1/2 z-[120] pointer-events-none px-2 max-w-[92vw] sm:max-w-md w-full flex justify-center"
+            exit={{ opacity: 0, y: -10, scale: 0.92 }}
+            transition={{ type: 'spring', damping: 25, stiffness: 380 }}
+            className="fixed top-12 xs:top-13 sm:top-15 left-1/2 -translate-x-1/2 z-[140] pointer-events-none px-2 max-w-[94vw] w-auto flex justify-center"
           >
-            <div className="flex items-center gap-2 px-3 sm:px-4 py-1.5 sm:py-2 rounded-full bg-black/90 backdrop-blur-xl border-1.5 sm:border-2 border-amber-400/80 shadow-[0_8px_30px_rgba(0,0,0,0.85)] text-white text-xs xs:text-sm sm:text-base font-black">
-              <span className="text-base sm:text-xl shrink-0 animate-bounce">{announcement.config.emoji}</span>
-              <div className="truncate text-center">
-                <span className="text-amber-300 font-extrabold">{announcement.fromName}</span>
-                <span className="text-zinc-300 font-medium"> threw </span>
-                <span className="text-yellow-400 font-extrabold">{announcement.config.name}</span>
-                <span className="text-zinc-300 font-medium"> at </span>
-                <span className="text-amber-300 font-extrabold">{announcement.toName}</span>!
+            <div className="flex items-center gap-1.5 xs:gap-2 px-3 xs:px-4 py-1.5 rounded-full bg-black/92 backdrop-blur-xl border border-amber-400/90 shadow-[0_8px_30px_rgba(0,0,0,0.85)] text-white text-[11px] xs:text-xs sm:text-sm font-black whitespace-nowrap">
+              <span className="text-base sm:text-lg shrink-0 animate-bounce">{announcement.config.emoji}</span>
+              <div className="flex items-center gap-1 font-bold">
+                <span className="text-amber-300 font-black max-w-[85px] xs:max-w-[120px] sm:max-w-[160px] truncate">{announcement.fromName}</span>
+                <span className="text-zinc-300 font-normal">threw</span>
+                <span className="text-yellow-400 font-black">{announcement.config.hindiName}</span>
+                <span className="text-zinc-300 font-normal">at</span>
+                <span className="text-amber-300 font-black max-w-[85px] xs:max-w-[120px] sm:max-w-[160px] truncate">{announcement.toName}</span>!
               </div>
               <span className="text-xs sm:text-sm shrink-0">💥</span>
             </div>
@@ -203,6 +218,47 @@ export const ThrowablesOverlay: React.FC = () => {
         )}
       </AnimatePresence>
 
+      {/* 2. Direct-Hit Self Impact Visual Effect (When someone throws an item at the local user) */}
+      <AnimatePresence>
+        {myImpact && (
+          <motion.div
+            key={myImpact.id}
+            initial={{ opacity: 0, scale: 0.3 }}
+            animate={{ opacity: 1, scale: [0.3, 1.25, 1] }}
+            exit={{ opacity: 0, scale: 0.8 }}
+            transition={{ duration: 0.45, ease: 'easeOut' }}
+            className="fixed inset-0 z-[150] pointer-events-none flex flex-col items-center justify-center px-4"
+          >
+            {/* Screen edge flash */}
+            <motion.div
+              initial={{ opacity: 0.4 }}
+              animate={{ opacity: 0 }}
+              transition={{ duration: 0.6 }}
+              className="absolute inset-0 bg-red-600/15"
+            />
+
+            {/* Direct hit visual badge */}
+            <div className="relative flex flex-col items-center justify-center p-3.5 sm:p-5 rounded-2xl sm:rounded-3xl bg-black/90 backdrop-blur-md border-2 border-amber-400 shadow-[0_0_50px_rgba(239,68,68,0.6)] animate-bounce">
+              <span className="text-5xl sm:text-7xl filter drop-shadow-2xl">
+                {myImpact.itemType === 'chappal' && '🩴'}
+                {myImpact.itemType === 'chai' && '☕'}
+                {myImpact.itemType === 'tomato' && '🍅'}
+                {myImpact.itemType === 'cash' && '💸'}
+                {myImpact.itemType === 'rose' && '🌹'}
+              </span>
+              <div className="mt-2 px-3 py-1 rounded-full bg-red-600/90 text-white font-black text-[11px] xs:text-xs sm:text-sm uppercase tracking-wider shadow-lg border border-yellow-300 text-center">
+                {myImpact.itemType === 'chappal' && 'PHATAK! You got hit by a Chappal! 🩴💥'}
+                {myImpact.itemType === 'chai' && 'GARAM CHAI! Hot tea splashed on you! ☕♨️'}
+                {myImpact.itemType === 'tomato' && 'SPLATTER! Rotten tomato on your face! 🍅💦'}
+                {myImpact.itemType === 'cash' && 'PAISA HI PAISA! Cash shower on you! 💸✨'}
+                {myImpact.itemType === 'rose' && 'PYAAR SE! Someone sent you a Rose! 🌹💖'}
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* 3. In-Flight Projectiles */}
       <AnimatePresence>
         {activeThrowables.map((item) => (
           <ProjectileFlight
@@ -215,4 +271,3 @@ export const ThrowablesOverlay: React.FC = () => {
     </div>
   );
 };
-

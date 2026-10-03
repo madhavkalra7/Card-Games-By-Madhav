@@ -587,7 +587,10 @@ export const BluffTable: React.FC<BluffTableProps> = ({
 
           {/* ================= BOTTOM AREA: ACTION CONTROLS & FAN HAND ================= */}
           {/* Firmly anchored at the bottom edge with clean hierarchy and zero card cutoff */}
-          <div className="absolute bottom-[max(0.25rem,env(safe-area-inset-bottom))] sm:bottom-2 left-1/2 -translate-x-1/2 z-20 w-full max-w-5xl px-2 flex flex-col items-center pointer-events-auto">
+          <div
+            id={myPlayerId ? `player-seat-${myPlayerId}` : undefined}
+            className="absolute bottom-[max(0.25rem,env(safe-area-inset-bottom))] sm:bottom-2 left-1/2 -translate-x-1/2 z-20 w-full max-w-5xl px-2 flex flex-col items-center pointer-events-auto"
+          >
             {state.isSpectator ? (
               /* Spectator Mode Bottom Display Card */
               <div
@@ -622,17 +625,17 @@ export const BluffTable: React.FC<BluffTableProps> = ({
                 {/* Rank Selector (Only shown if Fresh Cycle & It's My Turn) */}
                 {isMyTurn && isCycleFresh && (
                   <div className="mb-1.5 flex flex-col items-center animate-in slide-in-from-bottom-2 duration-200">
-                    <span className="text-[9px] xs:text-[10px] sm:text-xs font-black uppercase tracking-wider text-amber-300 mb-0.5">
+                    <span className="text-[10px] xs:text-xs sm:text-sm font-black uppercase tracking-wider text-amber-300 mb-1">
                       Select Claim Rank:
                     </span>
-                    <div className="flex items-center gap-1 max-w-[92vw] overflow-x-auto py-1 px-2 no-scrollbar scrollbar-none bg-black/85 rounded-2xl border border-white/15 backdrop-blur-md shadow-lg">
+                    <div className="flex items-center gap-1.5 max-w-[94vw] overflow-x-auto py-1.5 px-2.5 no-scrollbar scrollbar-none bg-black/85 rounded-2xl border border-white/15 backdrop-blur-md shadow-lg">
                       {ALL_RANKS.map((r) => (
                         <button
                           key={r}
                           type="button"
                           onClick={() => setSelectedRank(r)}
                           className={cn(
-                            'w-7 h-7 sm:w-8 sm:h-8 rounded-xl font-black text-xs sm:text-sm transition-all cursor-pointer flex items-center justify-center shrink-0 touch-manipulation',
+                            'w-8 h-8 sm:w-9 sm:h-9 rounded-xl font-black text-sm sm:text-base transition-all cursor-pointer flex items-center justify-center shrink-0 touch-manipulation',
                             selectedRank === r
                               ? 'bg-gradient-to-r from-amber-500 to-yellow-400 text-black scale-105 shadow-gold-glow'
                               : 'bg-zinc-800/90 text-zinc-300 hover:bg-zinc-700 hover:text-white'
